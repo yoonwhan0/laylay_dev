@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Lay Lay — 시뮬 레이아웃</title>
+<meta name="theme-color" content="#1a1612">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Noto Sans KR', -apple-system, 'Apple SD Gothic Neo', sans-serif;
+    background: #1a1612;
+    color: #f3ede6;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  .shell-top { flex-shrink: 0; }
+  .shell-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    background: rgba(12,10,9,.94);
+    backdrop-filter: blur(10px);
+  }
+  .btn-hamburger {
+    appearance: none;
+    border: 1px solid rgba(255,255,255,.18);
+    background: rgba(255,255,255,.06);
+    color: rgba(243,237,230,.86);
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .btn-hamburger:hover { background: rgba(255,255,255,.12); }
+  .shell-brand {
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(243,237,230,.55);
+    letter-spacing: .02em;
+  }
+  .tabs {
+    display: flex;
+    gap: 6px;
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .tab {
+    appearance: none;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.05);
+    color: rgba(243,237,230,.82);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .tab:hover {
+    background: rgba(255,255,255,.1);
+    border-color: rgba(255,255,255,.18);
+  }
+  .tab[aria-selected="true"] {
+    background: #e8440a;
+    border-color: #e85925;
+    color: #fff;
+  }
+
+  .split {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+  }
+  .split.rail-hidden .dev-rail { display: none; }
+
+  /* 작성 영역(iframe) 밖 좌측 — 항상 노출 */
+  .dev-rail {
+    flex-shrink: 0;
+    width: min(280px, 38vw);
+    border-right: 1px solid rgba(255,255,255,.1);
+    background: rgba(10, 9, 8, .96);
+    overflow: auto;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dev-rail-caption {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(243,237,230,.42);
+    letter-spacing: .03em;
+    line-height: 1.35;
+  }
+
+  .dev-field label {
+    display: block;
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(243,237,230,.46);
+    margin-bottom: 2px;
+    letter-spacing: .02em;
+  }
+  .dev-input, .dev-select {
+    width: 100%;
+    font-family: inherit;
+    font-size: 11.5px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(0,0,0,.38);
+    color: #f3ede6;
+    padding: 5px 7px;
+  }
+  .dev-sim-pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(232,68,10,.22);
+    color: rgba(254,237,230,.96);
+    text-align: center;
+  }
+  .dev-hint {
+    font-size: 9px;
+    color: rgba(243,237,230,.4);
+    line-height: 1.45;
+  }
+  .chk-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: rgba(243,237,230,.52);
+    user-select: none;
+  }
+  .chk-row input { accent-color: #0ea5e9; scale: .9; }
+  .btn-save {
+    appearance: none;
+    border: 1px solid rgba(255,255,255,.2);
+    background: rgba(255,255,255,.08);
+    color: #fff;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 2px;
+  }
+  .btn-save:hover { background: rgba(255,255,255,.14); }
+  .dev-save-msg {
+    font-size: 10px;
+    color: rgba(94,234,212,.85);
+    min-height: 1em;
+  }
+  .dev-runtime {
+    font-size: 10px;
+    color: rgba(255,255,255,.9);
+    background: rgba(51, 65, 85, .28);
+    border: 1px solid rgba(148, 163, 184, .28);
+    border-radius: 6px;
+    padding: 7px;
+    line-height: 1.45;
+  }
+  .dev-mode {
+    font-size: 10px;
+    color: rgba(125, 211, 252, .95);
+    background: rgba(14, 116, 144, .22);
+    border: 1px solid rgba(125, 211, 252, .28);
+    border-radius: 6px;
+    padding: 6px 7px;
+    line-height: 1.35;
+  }
+
+  .frame-wrap {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    background: #0d0c0b;
+  }
+  .frame-wrap iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+
+  @media (max-width: 720px) {
+    .split { flex-direction: column; }
+    .dev-rail {
+      width: 100%;
+      max-height: 38vh;
+      border-right: none;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      flex-shrink: 0;
+    }
+  }
+  .split.rail-hidden .dev-rail { display: none; }
+</style>
+</head>
+<body>
+  <div class="shell-top">
+    <header class="shell-head">
+      <button type="button" class="btn-hamburger" id="btn-rail-toggle" aria-label="좌측 패널 숨김/표시" title="좌측 패널 숨김/표시">☰</button>
+      <span class="shell-brand">시뮬 전환</span>
+      <div class="tabs" role="tablist" aria-label="시뮬 선택">
+        <button type="button" class="tab" role="tab" id="tab-layz" aria-selected="true" aria-controls="panel-sim">Lay-Z력 테스트</button>
+        <button type="button" class="tab" role="tab" id="tab-mong" aria-selected="false" aria-controls="panel-sim">Lay-몽</button>
+      </div>
+    </header>
+  </div>
+
+  <div class="split">
+    <aside class="dev-rail" id="dev-rail" aria-label="임시 OpenAI 설정">
+      <p class="dev-rail-caption">좌측은 설정, 우측은 시뮬 화면입니다.</p>
+      <div class="dev-mode" id="dev-mode-msg"></div>
+      <div class="dev-sim-pill" id="dev-active-sim">지금 보는 시뮬: Lay-Z력 테스트</div>
+      <p class="dev-hint">토스트에 <strong>GPT 결과</strong>가 뜨면 실제 AI, <strong>Mock</strong>이면 대체 결과입니다.</p>
+      <div class="dev-runtime" id="dev-runtime-box">런타임 대기 중…</div>
+      <div class="dev-field">
+        <label for="dev-api-key">OpenAI API 키</label>
+        <input type="password" class="dev-input" id="dev-api-key" autocomplete="off" placeholder="sk-…" spellcheck="false">
+      </div>
+      <div class="chk-row">
+        <input type="checkbox" id="dev-store-key" checked>
+        <label for="dev-store-key">localStorage 저장</label>
+      </div>
+      <button type="button" class="btn-save" id="dev-save-key">키 저장 · iframe에 넘기기</button>
+      <div class="dev-save-msg" id="dev-save-msg"></div>
+      <div class="dev-field">
+        <label for="dev-model-preset">모델</label>
+        <select class="dev-select" id="dev-model-preset" aria-label="모델">
+          <option value="gpt-4o-mini">gpt-4o-mini</option>
+          <option value="gpt-4o">gpt-4o</option>
+          <option value="gpt-4-turbo">gpt-4-turbo</option>
+          <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+          <option value="o4-mini">o4-mini</option>
+          <option value="o3-mini">o3-mini</option>
+          <option value="o3">o3</option>
+          <option value="__custom__">직접 입력…</option>
+        </select>
+      </div>
+      <div class="dev-field" id="dev-model-custom-wrap" style="display:none">
+        <label for="dev-model-custom">모델 ID</label>
+        <input type="text" class="dev-input" id="dev-model-custom" placeholder="예: gpt-4o" spellcheck="false">
+      </div>
+    </aside>
+
+    <div class="frame-wrap" role="tabpanel" id="panel-sim">
+      <iframe id="sim-frame" title="선택한 시뮬" src="3차_시뮬_layz_test.html"></iframe>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var LS_KEY = 'laylay_dev_openai_key';
+      var srcs = {
+        layz: '3차_시뮬_layz_test.html',
+        mong: '3차_시뮬_꿈해몽_산하.html',
+      };
+      var split = document.querySelector('.split');
+      var btnRailToggle = document.getElementById('btn-rail-toggle');
+      var frame = document.getElementById('sim-frame');
+      var tabs = [
+        { el: document.getElementById('tab-layz'), key: 'layz' },
+        { el: document.getElementById('tab-mong'), key: 'mong' },
+      ];
+
+      var inputKey = document.getElementById('dev-api-key');
+      var chkStore = document.getElementById('dev-store-key');
+      var btnSaveKey = document.getElementById('dev-save-key');
+      var saveMsg = document.getElementById('dev-save-msg');
+      var modeMsg = document.getElementById('dev-mode-msg');
+      var runtimeBox = document.getElementById('dev-runtime-box');
+      var selPreset = document.getElementById('dev-model-preset');
+      var wrapCustom = document.getElementById('dev-model-custom-wrap');
+      var inputCustom = document.getElementById('dev-model-custom');
+
+      function select(key) {
+        frame.src = srcs[key];
+        tabs.forEach(function (t) {
+          var on = t.key === key;
+          t.el.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        var simEl = document.getElementById('dev-active-sim');
+        if (simEl)
+          simEl.textContent =
+            key === 'mong' ? '지금 보는 시뮬: Lay-몽' : '지금 보는 시뮬: Lay-Z력 테스트';
+        if (key === 'layz') {
+          runtimeBox.textContent = 'Lay-Z는 현재 API 호출 기능 미연동 (런타임 측정 없음)';
+        } else {
+          runtimeBox.textContent = 'Lay-몽 실행 시 런타임이 여기 표시됩니다.';
+        }
+      }
+
+      tabs[0].el.addEventListener('click', function () { select('layz'); });
+      tabs[1].el.addEventListener('click', function () { select('mong'); });
+
+      function setRailHidden(hidden) {
+        split.classList.toggle('rail-hidden', hidden);
+        btnRailToggle.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+        try { sessionStorage.setItem('laylay_rail_hidden', hidden ? '1' : '0'); } catch (e) {}
+      }
+      btnRailToggle.addEventListener('click', function () {
+        setRailHidden(!split.classList.contains('rail-hidden'));
+      });
+      try {
+        var savedRail = sessionStorage.getItem('laylay_rail_hidden');
+        setRailHidden(savedRail === null ? true : savedRail === '1');
+      } catch (e) {
+        setRailHidden(true);
+      }
+
+      function syncCustomModelVisible() {
+        wrapCustom.style.display = selPreset.value === '__custom__' ? 'block' : 'none';
+      }
+      selPreset.addEventListener('change', syncCustomModelVisible);
+      syncCustomModelVisible();
+
+      function resolvedModel() {
+        if (selPreset.value === '__custom__')
+          return (inputCustom.value || '').trim() || 'gpt-4o-mini';
+        return selPreset.value;
+      }
+
+      function pushModelToShellSession() {
+        try {
+          sessionStorage.setItem('laylay_dev_openai_model', resolvedModel());
+        } catch (e) {}
+      }
+
+      function effectiveBroadcastKey() {
+        var typed = (inputKey.value || '').trim();
+        if (!chkStore.checked) return typed;
+        try {
+          var ls = (localStorage.getItem(LS_KEY) || '').trim();
+          return ls || typed;
+        } catch (e) {
+          return typed;
+        }
+      }
+
+      /** iframe에 현재 패널 키·모델을 반드시 넣어야 MOCK으로 안 떨어집니다(localStorage 분리 문제 방지). */
+      function broadcastDevToFrame() {
+        if (!frame.contentWindow) return;
+        pushModelToShellSession();
+        try {
+          frame.contentWindow.postMessage(
+            {
+              source: 'laylay-shell',
+              type: 'laylay-dev-sync',
+              apiKey: effectiveBroadcastKey(),
+              model: resolvedModel(),
+            },
+            '*'
+          );
+        } catch (e) {}
+      }
+
+      selPreset.addEventListener('change', function () {
+        pushModelToShellSession();
+        broadcastDevToFrame();
+      });
+      inputCustom.addEventListener('change', function () {
+        pushModelToShellSession();
+        broadcastDevToFrame();
+      });
+      inputCustom.addEventListener('blur', function () {
+        pushModelToShellSession();
+        broadcastDevToFrame();
+      });
+
+      frame.addEventListener('load', function () {
+        broadcastDevToFrame();
+      });
+
+      if (chkStore.checked) {
+        try {
+          var saved = localStorage.getItem(LS_KEY);
+          if (saved) inputKey.value = saved;
+        } catch (e) {}
+      }
+      pushModelToShellSession();
+
+      function persistApiKeyFromPanel() {
+        if (!chkStore.checked) return;
+        try {
+          var v = (inputKey.value || '').trim();
+          if (v) localStorage.setItem(LS_KEY, v);
+          else localStorage.removeItem(LS_KEY);
+        } catch (e) {}
+      }
+
+      function setSaveMsg(text) {
+        saveMsg.textContent = text;
+        setTimeout(function () {
+          if (saveMsg.textContent === text) saveMsg.textContent = '';
+        }, 2600);
+      }
+
+      function updateModeGuide() {
+        var h = location.hostname || '';
+        var isLocal = h === 'localhost' || h === '127.0.0.1' || h === '';
+        if (isLocal) {
+          modeMsg.innerHTML =
+            '테스트 환경으로 보입니다.<br>아래 API 키를 직접 입력 후 테스트하세요.';
+        } else {
+          modeMsg.innerHTML =
+            '실배포 환경으로 보입니다.<br>서버 OPENAI_API_KEY가 설정돼 있으면 키 입력 없이 모델만 선택해도 됩니다.';
+        }
+      }
+
+      window.addEventListener('message', function (e) {
+        var d = e.data;
+        if (!d || d.source !== 'laylay-sim' || d.type !== 'runtime') return;
+        var ms = typeof d.elapsed_ms === 'number' ? d.elapsed_ms + 'ms' : '-';
+        var status = d.status || 'unknown';
+        var detail = d.detail ? ' / ' + d.detail : '';
+        runtimeBox.textContent = '[' + (d.sim || 'sim') + '] ' + ms + ' · ' + status + detail;
+      });
+
+      inputKey.addEventListener('input', function () {
+        persistApiKeyFromPanel();
+        broadcastDevToFrame();
+      });
+      inputKey.addEventListener('blur', function () {
+        persistApiKeyFromPanel();
+        broadcastDevToFrame();
+      });
+
+      btnSaveKey.addEventListener('click', function () {
+        if (!chkStore.checked) {
+          setSaveMsg('저장 안 함 — 입력값만 동기화');
+          broadcastDevToFrame();
+          return;
+        }
+        persistApiKeyFromPanel();
+        var v = (inputKey.value || '').trim();
+        setSaveMsg(v ? '저장 후 iframe 반영 완료' : '저장값 비움 · iframe 반영');
+        broadcastDevToFrame();
+      });
+
+      chkStore.addEventListener('change', function () {
+        if (!chkStore.checked) {
+          try {
+            localStorage.removeItem(LS_KEY);
+          } catch (e) {}
+          setSaveMsg('저장 비활성(입력란 내용만 전달)');
+        } else persistApiKeyFromPanel();
+        broadcastDevToFrame();
+      });
+
+      updateModeGuide();
+      select('layz');
+      broadcastDevToFrame();
+    })();
+  </script>
+</body>
+</html>
