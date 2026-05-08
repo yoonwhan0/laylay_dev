@@ -143,35 +143,6 @@
     color: rgba(243,237,230,.4);
     line-height: 1.45;
   }
-  .chk-row {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 10px;
-    color: rgba(243,237,230,.52);
-    user-select: none;
-  }
-  .chk-row input { accent-color: #0ea5e9; scale: .9; }
-  .btn-save {
-    appearance: none;
-    border: 1px solid rgba(255,255,255,.2);
-    background: rgba(255,255,255,.08);
-    color: #fff;
-    font-family: inherit;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 6px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    width: 100%;
-    margin-top: 2px;
-  }
-  .btn-save:hover { background: rgba(255,255,255,.14); }
-  .dev-save-msg {
-    font-size: 10px;
-    color: rgba(94,234,212,.85);
-    min-height: 1em;
-  }
   .dev-runtime {
     font-size: 10px;
     color: rgba(255,255,255,.9);
@@ -236,18 +207,8 @@
       <p class="dev-rail-caption">좌측은 설정, 우측은 시뮬 화면입니다.</p>
       <div class="dev-mode" id="dev-mode-msg"></div>
       <div class="dev-sim-pill" id="dev-active-sim">지금 보는 시뮬: Lay-Z력 테스트</div>
-      <p class="dev-hint">토스트에 <strong>GPT 결과</strong>가 뜨면 실제 AI, <strong>Mock</strong>이면 대체 결과입니다.</p>
+      <p class="dev-hint">키 입력은 제거했습니다. 모델만 선택해서 테스트하세요.<br>동작 기준은 서버 환경변수 <code>OPENAI_API_KEY</code> 입니다.</p>
       <div class="dev-runtime" id="dev-runtime-box">런타임 대기 중…</div>
-      <div class="dev-field">
-        <label for="dev-api-key">OpenAI API 키</label>
-        <input type="password" class="dev-input" id="dev-api-key" autocomplete="off" placeholder="sk-…" spellcheck="false">
-      </div>
-      <div class="chk-row">
-        <input type="checkbox" id="dev-store-key" checked>
-        <label for="dev-store-key">localStorage 저장</label>
-      </div>
-      <button type="button" class="btn-save" id="dev-save-key">키 저장 · iframe에 넘기기</button>
-      <div class="dev-save-msg" id="dev-save-msg"></div>
       <div class="dev-field">
         <label for="dev-model-preset">모델</label>
         <select class="dev-select" id="dev-model-preset" aria-label="모델">
@@ -274,7 +235,6 @@
 
   <script>
     (function () {
-      var LS_KEY = 'laylay_dev_openai_key';
       var srcs = {
         layz: '3차_시뮬_layz_test.html',
         mong: '3차_시뮬_꿈해몽_산하.html',
@@ -287,10 +247,6 @@
         { el: document.getElementById('tab-mong'), key: 'mong' },
       ];
 
-      var inputKey = document.getElementById('dev-api-key');
-      var chkStore = document.getElementById('dev-store-key');
-      var btnSaveKey = document.getElementById('dev-save-key');
-      var saveMsg = document.getElementById('dev-save-msg');
       var modeMsg = document.getElementById('dev-mode-msg');
       var runtimeBox = document.getElementById('dev-runtime-box');
       var selPreset = document.getElementById('dev-model-preset');
@@ -350,17 +306,6 @@
         } catch (e) {}
       }
 
-      function effectiveBroadcastKey() {
-        var typed = (inputKey.value || '').trim();
-        if (!chkStore.checked) return typed;
-        try {
-          var ls = (localStorage.getItem(LS_KEY) || '').trim();
-          return ls || typed;
-        } catch (e) {
-          return typed;
-        }
-      }
-
       /** iframe에 현재 패널 키·모델을 반드시 넣어야 MOCK으로 안 떨어집니다(localStorage 분리 문제 방지). */
       function broadcastDevToFrame() {
         if (!frame.contentWindow) return;
@@ -370,7 +315,7 @@
             {
               source: 'laylay-shell',
               type: 'laylay-dev-sync',
-              apiKey: effectiveBroadcastKey(),
+              apiKey: '',
               model: resolvedModel(),
             },
             '*'
@@ -395,36 +340,14 @@
         broadcastDevToFrame();
       });
 
-      if (chkStore.checked) {
-        try {
-          var saved = localStorage.getItem(LS_KEY);
-          if (saved) inputKey.value = saved;
-        } catch (e) {}
-      }
       pushModelToShellSession();
-
-      function persistApiKeyFromPanel() {
-        if (!chkStore.checked) return;
-        try {
-          var v = (inputKey.value || '').trim();
-          if (v) localStorage.setItem(LS_KEY, v);
-          else localStorage.removeItem(LS_KEY);
-        } catch (e) {}
-      }
-
-      function setSaveMsg(text) {
-        saveMsg.textContent = text;
-        setTimeout(function () {
-          if (saveMsg.textContent === text) saveMsg.textContent = '';
-        }, 2600);
-      }
 
       function updateModeGuide() {
         var h = location.hostname || '';
         var isLocal = h === 'localhost' || h === '127.0.0.1' || h === '';
         if (isLocal) {
           modeMsg.innerHTML =
-            '테스트 환경으로 보입니다.<br>아래 API 키를 직접 입력 후 테스트하세요.';
+            '테스트 환경으로 보입니다.<br>서버 OPENAI_API_KEY가 없으면 Mock으로 동작합니다.';
         } else {
           modeMsg.innerHTML =
             '실배포 환경으로 보입니다.<br>서버 OPENAI_API_KEY가 설정돼 있으면 키 입력 없이 모델만 선택해도 됩니다.';
@@ -438,37 +361,6 @@
         var status = d.status || 'unknown';
         var detail = d.detail ? ' / ' + d.detail : '';
         runtimeBox.textContent = '[' + (d.sim || 'sim') + '] ' + ms + ' · ' + status + detail;
-      });
-
-      inputKey.addEventListener('input', function () {
-        persistApiKeyFromPanel();
-        broadcastDevToFrame();
-      });
-      inputKey.addEventListener('blur', function () {
-        persistApiKeyFromPanel();
-        broadcastDevToFrame();
-      });
-
-      btnSaveKey.addEventListener('click', function () {
-        if (!chkStore.checked) {
-          setSaveMsg('저장 안 함 — 입력값만 동기화');
-          broadcastDevToFrame();
-          return;
-        }
-        persistApiKeyFromPanel();
-        var v = (inputKey.value || '').trim();
-        setSaveMsg(v ? '저장 후 iframe 반영 완료' : '저장값 비움 · iframe 반영');
-        broadcastDevToFrame();
-      });
-
-      chkStore.addEventListener('change', function () {
-        if (!chkStore.checked) {
-          try {
-            localStorage.removeItem(LS_KEY);
-          } catch (e) {}
-          setSaveMsg('저장 비활성(입력란 내용만 전달)');
-        } else persistApiKeyFromPanel();
-        broadcastDevToFrame();
       });
 
       updateModeGuide();

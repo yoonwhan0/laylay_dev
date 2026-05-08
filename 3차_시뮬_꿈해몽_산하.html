@@ -813,8 +813,15 @@ async function startDream(){
     const elapsed=Math.round(performance.now()-reqStart);
     stopMsgs();
     if(!res.ok){
-      showToast(`${elapsed}ms · Mock(API오류)`);
-      reportRuntime('Mock', elapsed, 'API오류');
+      const apiReason=(data&&(
+        data.error||
+        (data.detail&&data.detail.message)||
+        (data.detail&&data.detail.code)||
+        (data.detail&&data.detail.type)
+      ))||'API오류';
+      const shortReason=String(apiReason).slice(0,26);
+      showToast(`${elapsed}ms · Mock(${shortReason})`);
+      reportRuntime('Mock', elapsed, `API:${shortReason}`);
       renderResult(MOCK, dream, mood, moodEmoji);
       return;
     }
