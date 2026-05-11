@@ -419,7 +419,7 @@ function prevDate(n){const d=new Date();d.setDate(d.getDate()-n);return localDat
 function dispDate(iso){
   const[y,m,d]=iso.split('-');
   const wd=['일','월','화','수','목','금','토'][new Date(+y,+m-1,+d).getDay()];
-  return`${+m}월 ${+d}일 (${wd})`;
+  return`${y}년 ${+m}월 ${+d}일 (${wd})`;
 }
 function calcStreak(h){let s=0;for(let i=0;i<90;i++){if(h.find(x=>x.date===prevDate(i)))s++;else break;}return s;}
 function loadHist(){try{return JSON.parse(localStorage.getItem('layz5:hist')||'[]');}catch{return[];}}
@@ -431,6 +431,25 @@ function saveHist(score,tid,crm,kws){
   if(h.length>90)h=h.slice(0,90);
   localStorage.setItem('layz5:hist',JSON.stringify(h));
   return h;
+}
+function bumpLayLoginBonus(){
+  try{
+    const today=localDate();
+    const last=localStorage.getItem('layz5:lastLoginBonusDay')||'';
+    if(last===today)return;
+    localStorage.setItem('layz5:lastLoginBonusDay',today);
+    const n=(parseInt(localStorage.getItem('layz5:loginLayBonus')||'0',10)||0)+1;
+    localStorage.setItem('layz5:loginLayBonus',String(n));
+  }catch(e){}
+}
+function getLoginLayBonus(){
+  try{return parseInt(localStorage.getItem('layz5:loginLayBonus')||'0',10)||0;}catch(e){return 0;}
+}
+function layzPercentileTop(score){
+  const s=Math.max(0,Math.min(99,Number(score)||0));
+  const base=Math.round(4+(s/99)*89);
+  const w=(Math.floor(s*17)%7)%3;
+  return Math.min(98,Math.max(2,base+w));
 }
 
 function toast(msg){
@@ -558,11 +577,13 @@ async function copyShareText(){
 
 // ══ SCREENS ══════════════════════════════════════════
 function showIntro(){
+  bumpLayLoginBonus();
   st.hist=loadHist();
   const today=localDate();
   const te=st.hist.find(h=>h.date===today);
-  const streak=calcStreak(st.hist);
   const avg=st.hist.length?Math.round(st.hist.reduce((a,h)=>a+h.score,0)/st.hist.length):null;
+  const loginN=getLoginLayBonus();
+  const lastP=st.hist.length?layzPercentileTop(st.hist[0].score):null;
   document.getElementById('hd-hist').style.display=st.hist.length>0?'block':'none';
 
   const todayBand=te?`
@@ -578,9 +599,13 @@ function showIntro(){
     <div data-laylay-region="layz-q" style="padding-top:.5rem">
       ${todayBand}
       <div style="text-align:center;padding:.75rem 0 .5rem">
-        ${streak>=2
-          ? `<div style="display:inline-flex;align-items:center;gap:5px;background:#fff4ee;border:1.5px solid #f5c4a8;border-radius:2rem;padding:.3rem 1rem;font-size:13px;color:var(--or3);margin-bottom:1.1rem"><span style="color:var(--or);font-weight:700">${streak}일</span> 연속 측정 중</div>`
-          : `<div style="display:inline-block;background:var(--surf);border:1px solid var(--line);border-radius:2rem;padding:.3rem 1rem;font-size:12px;color:var(--mute);margin-bottom:1.1rem;letter-spacing:.03em">Lay-Z력 테스트</div>`}
+        <div style="display:inline-flex;flex-wrap:wrap;justify-content:center;gap:6px 10px;background:var(--surf);border:1px solid var(--line);border-radius:2rem;padding:.35rem 1rem;font-size:11.5px;color:var(--mute);margin-bottom:1.1rem;max-width:100%;box-sizing:border-box;line-height:1.45;text-align:center">
+          <span style="letter-spacing:.03em;color:var(--txt);font-weight:600">Lay-Z력</span>
+          ${st.hist.length?`<span>누적 측정 <strong style="color:var(--txt)">${st.hist.length}</strong>회</span>`:''}
+          <span>로그인 적립 <strong style="color:var(--txt)">${loginN}</strong>회</span>
+          ${lastP!=null?`<span>지수 <strong style="color:var(--or)">상위 약 ${lastP}%</strong> 예시</span>`:''}
+        </div>
+        <p style="font-size:10px;color:var(--mute);margin:-.2rem 0 .9rem;line-height:1.5;text-align:center">상위 %는 데모용 추정치이며, 실제 서비스에서는 집계 로직으로 교체됩니다.</p>
         <div style="margin:0 0 1.1rem;display:flex;justify-content:center">
           <img src="${IMG_C3}" alt="레이레이 캐릭터" class="char-sleep" style="width:200px;max-width:80%;display:block" loading="lazy">
         </div>
@@ -656,7 +681,6 @@ function goResult(score){
 function renderResult(lz,r,kws){
   const yest=st.hist.find(h=>h.date===prevDate(1));
   const diff=yest?lz-yest.score:null;
-  const streak=calcStreak(st.hist);
   const sleepAns=st.answers[6];
   const sleepScore=sleepAns?.s??null;
   const sleepDeficit=sleepScore===null?null
@@ -705,7 +729,7 @@ function renderResult(lz,r,kws){
             {l:'부족한 수면',v:sleepDeficit||lz+'점'}
           ].map(s=>`<div class="sc"><div class="sv" style="color:${r.accent}">${s.v}</div><div class="sl">${s.l}</div></div>`).join('')}
         </div>
-        ${streak>=2?`<p style="margin-top:.85rem;text-align:center;font-size:13px;color:var(--sub)">연속 <strong style="color:var(--or)">${streak}일</strong> 측정 중</p>`:''}
+        <p style="margin-top:.85rem;text-align:center;font-size:12px;color:var(--mute);line-height:1.55">이번 결과 기준 <strong style="color:var(--or)">상위 약 ${layzPercentileTop(lz)}%</strong> 예시 · 로그인 적립 <strong>${getLoginLayBonus()}</strong>회</p>
       </div>
     </div>
 
@@ -756,9 +780,9 @@ function renderResult(lz,r,kws){
 function showHistory(){
   st.hist=loadHist();
   const today=localDate();
-  const streak=calcStreak(st.hist);
   const avg=st.hist.length?Math.round(st.hist.reduce((a,h)=>a+h.score,0)/st.hist.length):0;
   const best=st.hist.length?Math.max(...st.hist.map(h=>h.score)):0;
+  const loginN=getLoginLayBonus();
 
   // Build 7-day chart
   const H7=96;
@@ -805,8 +829,11 @@ function showHistory(){
     <!-- 이번 주 차트 -->
     <div style="padding:1.25rem;background:var(--surf);border-radius:var(--rl);margin-bottom:12px;border:1px solid var(--line)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-        <p style="font-size:12px;color:var(--sub);font-weight:500">최근 7일 Lay-Z 지수</p>
-        ${streak>=2?`<div style="font-size:12px;background:#fff4ee;color:var(--or);padding:.2rem .7rem;border-radius:2rem;font-weight:500;border:1px solid #f5c4a8">${streak}일 연속</div>`:''}
+        <div>
+          <p style="font-size:12px;color:var(--sub);font-weight:500">최근 7일 차트 (참고)</p>
+          <p style="font-size:10.5px;color:var(--mute);margin-top:4px">연속 일수 대신, 아래 <strong>전체 기록</strong>에서 <strong>년/월/일</strong> 단위로 확인하세요.</p>
+        </div>
+        <div style="font-size:11px;background:var(--surf);color:var(--mute);padding:.25rem .65rem;border-radius:2rem;border:1px solid var(--line)">로그인 적립 ${loginN}회</div>
       </div>
       <div style="display:flex;align-items:flex-end;gap:7px;height:${H7+44}px">${bars}</div>
       ${insight?`<p style="font-size:13px;color:var(--or);font-weight:600;margin-top:.85rem;text-align:center">${insight}</p>`:''}
@@ -814,7 +841,7 @@ function showHistory(){
 
     <!-- 요약 스탯 -->
     <div class="sg" style="margin-bottom:12px">
-      ${[{v:streak+'일',l:'연속 측정'},{v:avg+'점',l:'평균 지수'},{v:best+'점',l:'최고 지수'}]
+      ${[{v:loginN+'회',l:'로그인 적립'},{v:st.hist.length+'회',l:'누적 측정'},{v:avg+'점',l:'평균 지수'},{v:best+'점',l:'최고 지수'}]
         .map(s=>`<div class="sc"><div class="sv">${s.v}</div><div class="sl">${s.l}</div></div>`).join('')}
     </div>
 
