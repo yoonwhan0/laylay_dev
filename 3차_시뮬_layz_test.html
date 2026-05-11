@@ -135,11 +135,25 @@ body{font-family:var(--font);color:var(--txt);-webkit-font-smoothing:antialiased
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 #share-canvas{display:none;position:fixed;left:-9999px;top:0}
+
+/* 셸에서 구역 하이라이트(붉은 깜빡임) */
+.laylay-shell-highlight{
+  position:relative;
+  z-index:100;
+  outline:3px solid #dc2626 !important;
+  outline-offset:3px;
+  animation:laylayShellBlink .42s ease-in-out 7;
+  border-radius:14px;
+}
+@keyframes laylayShellBlink{
+  0%,100%{ box-shadow:0 0 0 0 rgba(220,38,38,.9); }
+  50%{ box-shadow:0 0 0 10px rgba(220,38,38,.25); }
+}
 </style>
 </head>
 <body>
 <div id="wrap">
-  <div id="hd">
+  <div id="hd" data-laylay-region="layz-api">
     <div>
       <div class="brand">레이레이</div>
       <div class="brand-sub">Lay-Z력 테스트</div>
@@ -197,7 +211,7 @@ body{font-family:var(--font);color:var(--txt);-webkit-font-smoothing:antialiased
 <!-- Share Modal -->
 <div id="share-modal">
   <div class="share-backdrop" onclick="closeShare()"></div>
-  <div class="share-sheet">
+  <div class="share-sheet" data-laylay-region="layz-share">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.1rem">
       <h3 style="font-size:16.5px;font-weight:700">결과 카드 공유하기</h3>
       <button onclick="closeShare()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--mute);padding:0;line-height:1">×</button>
@@ -366,6 +380,18 @@ window.addEventListener('message',function(e){
     if(typeof d.apiKey==='string')sessionStorage.setItem('_laylay_shell_api',d.apiKey);
     if(typeof d.model==='string')sessionStorage.setItem('_laylay_shell_model',d.model||'');
   }catch(x){}
+});
+window.addEventListener('message',function(e){
+  var d=e.data;
+  if(!d||d.source!=='laylay-shell'||d.type!=='laylay-highlight')return;
+  var rid=d.regionId;
+  if(!rid)return;
+  document.querySelectorAll('.laylay-shell-highlight').forEach(function(n){n.classList.remove('laylay-shell-highlight');});
+  var el=document.querySelector('[data-laylay-region="'+rid+'"]');
+  if(!el)return;
+  el.classList.add('laylay-shell-highlight');
+  clearTimeout(window._laylayHlT);
+  window._laylayHlT=setTimeout(function(){el.classList.remove('laylay-shell-highlight');},3200);
 });
 function laylayEffectiveApiKey(){
   try{
@@ -546,7 +572,7 @@ function showIntro(){
     </div>` : '';
 
   setApp(`
-    <div style="padding-top:.5rem">
+    <div data-laylay-region="layz-q" style="padding-top:.5rem">
       ${todayBand}
       <div style="text-align:center;padding:.75rem 0 .5rem">
         ${streak>=2
@@ -562,7 +588,6 @@ function showIntro(){
         <button class="btn btn-outline" onclick="openInfo()" style="margin-bottom:.75rem">Lay-Z 지수란? →</button>
         ${st.hist.length>0?`<button class="btn btn-s" onclick="showHistory()">내 기록 보기 (총 ${st.hist.length}회)</button>`:''}
       </div>
-    </div>
     <div style="border-top:1px solid var(--line);padding:1.5rem 0 .5rem;margin-top:1.25rem">
       <p style="font-size:10.5px;color:var(--mute);text-align:center;margin-bottom:.85rem;letter-spacing:.06em;text-transform:uppercase">5가지 Lay-Z 유형</p>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">
@@ -571,6 +596,7 @@ function showIntro(){
           <div style="font-size:8.5px;color:${t.tc};line-height:1.4;opacity:.85">${t.tag}</div>
         </div>`).join('')}
       </div>
+    </div>
     </div>
   `);
 }
@@ -581,6 +607,7 @@ function renderQ(){
   const q=Qs[st.cur];
   const pct=Math.round(st.cur/Qs.length*100);
   setApp(`
+    <div data-laylay-region="layz-q">
     <div class="prog-wrap">
       <div class="prog-meta">
         <span class="prog-label">${String(st.cur+1).padStart(2,'0')} / ${String(Qs.length).padStart(2,'0')}</span>
@@ -593,6 +620,7 @@ function renderQ(){
     <div>${q.a.map((a,i)=>`<button class="ans" onclick="pick(${i})">${a.t}</button>`).join('')}</div>
     <div style="text-align:center;margin-top:1.5rem;opacity:.35">
       <img src="${IMG_C3}" alt="" style="width:72px;display:inline-block" loading="lazy">
+    </div>
     </div>
   `);
 }
@@ -648,7 +676,7 @@ function renderResult(lz,r,kws){
   const charClass=lz>=60?'char-slow':lz>=40?'char-slow':'char-ok';
 
   setApp(`
-    <div class="rc" style="border-color:${r.accent}22">
+    <div class="rc" data-laylay-region="layz-score" style="border-color:${r.accent}22">
       <div class="rc-head" style="background:${r.bg}">
         <div style="text-align:center;padding:.5rem 0 .2rem">
           <img src="${IMG_C3}" alt="레이레이 캐릭터" class="${charClass}" style="width:${charSize}px;max-width:80%;display:inline-block" loading="lazy">
@@ -678,6 +706,7 @@ function renderResult(lz,r,kws){
       </div>
     </div>
 
+    <div data-laylay-region="layz-rec">
     <!-- 추천 행동 -->
     <div style="margin-bottom:14px">
       <div class="dv"><hr><span>오늘 컨디션에 맞는 행동 추천</span><hr></div>
@@ -705,9 +734,10 @@ function renderResult(lz,r,kws){
           <div style="font-size:13.5px;color:rgba(255,255,255,.85);line-height:1.6">${item}</div>
         </div>`).join('')}
     </div>
+    </div>
 
     <!-- Actions -->
-    <button class="btn btn-p" onclick="prepareCard()" style="margin-bottom:.75rem">결과 카드 만들어서 공유하기</button>
+    <button class="btn btn-p" onclick="prepareCard()" data-laylay-region="layz-share" style="margin-bottom:.75rem">결과 카드 만들어서 공유하기</button>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <button class="btn btn-s" onclick="startQuiz()">다시 테스트</button>
       <button class="btn btn-s" onclick="showHistory()">내 기록</button>

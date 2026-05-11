@@ -61,6 +61,8 @@ Synthesis:
 - Keep responses clear but insightful
 - Avoid overly technical jargon unless necessary
 - Balance depth with readability for general users
+- Korean prose should read like a lively roundtable or dramatized podcast, not a textbook: short beats, occasional vivid metaphor, and contrast between the two voices. Avoid repeating the same sentence opener in every block (e.g. generic “it may suggest that…” chains).
+- One wry or human line per section is fine if it still fits the thinker’s character; never mock the user or trivialize distress
 
 ---
 

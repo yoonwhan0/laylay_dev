@@ -32,19 +32,6 @@
     background: rgba(12,10,9,.94);
     backdrop-filter: blur(10px);
   }
-  .btn-hamburger {
-    appearance: none;
-    border: 1px solid rgba(255,255,255,.18);
-    background: rgba(255,255,255,.06);
-    color: rgba(243,237,230,.86);
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 18px;
-    line-height: 1;
-  }
-  .btn-hamburger:hover { background: rgba(255,255,255,.12); }
   .shell-brand {
     font-size: 12px;
     font-weight: 700;
@@ -88,9 +75,8 @@
     flex-direction: row;
     overflow: hidden;
   }
-  .split.rail-hidden .dev-rail { display: none; }
 
-  /* 작성 영역(iframe) 밖 좌측 — 항상 노출 */
+  /* 좌측: AI 설정 */
   .dev-rail {
     flex-shrink: 0;
     width: min(280px, 38vw);
@@ -177,23 +163,106 @@
     display: block;
   }
 
+  /* 우측: AI 담당 영역 맵 */
+  .cov-rail {
+    flex-shrink: 0;
+    width: min(300px, 40vw);
+    border-left: 1px solid rgba(255,255,255,.1);
+    background: rgba(8, 14, 18, .96);
+    overflow: auto;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .cov-rail-caption {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(163, 211, 232, .55);
+    letter-spacing: .03em;
+    line-height: 1.35;
+  }
+  .cov-list { display: flex; flex-direction: column; gap: 6px; }
+  .cov-row {
+    text-align: left;
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(0,0,0,.28);
+    color: #e8f0f4;
+    font-family: inherit;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+  }
+  .cov-row:hover {
+    border-color: rgba(255,255,255,.2);
+    background: rgba(255,255,255,.06);
+  }
+  .cov-row[aria-pressed="true"] {
+    box-shadow: 0 0 0 1px rgba(125, 211, 252, .35);
+    border-color: rgba(125, 211, 252, .4);
+    background: rgba(14, 116, 144, .18);
+  }
+  .cov-row-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 2px;
+  }
+  .cov-label { font-size: 12px; font-weight: 600; line-height: 1.35; color: #f3ede6; }
+  .cov-badge {
+    flex-shrink: 0;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    padding: 3px 7px;
+    border-radius: 999px;
+    text-transform: uppercase;
+  }
+  .cov-badge.ai { background: rgba(34, 197, 94, .22); color: #86efac; border: 1px solid rgba(34,197,94,.35); }
+  .cov-badge.fixed { background: rgba(148, 163, 184, .15); color: rgba(226,232,240,.85); border: 1px solid rgba(148,163,184,.28); }
+  .cov-sub { font-size: 10px; color: rgba(234,240,245,.45); line-height: 1.4; margin-top: 2px; }
+  .cov-detail {
+    font-size: 10px;
+    color: rgba(226, 240, 245, .82);
+    line-height: 1.55;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(125, 211, 252, .22);
+    background: rgba(14, 45, 58, .35);
+    min-height: 2.5em;
+  }
+  .cov-detail.muted {
+    border-color: rgba(255,255,255,.08);
+    background: rgba(0,0,0,.2);
+    color: rgba(243,237,230,.38);
+  }
+
   @media (max-width: 720px) {
     .split { flex-direction: column; }
     .dev-rail {
       width: 100%;
-      max-height: 38vh;
+      max-height: 30vh;
       border-right: none;
       border-bottom: 1px solid rgba(255,255,255,.08);
       flex-shrink: 0;
     }
+    .cov-rail {
+      width: 100%;
+      max-height: 34vh;
+      border-left: none;
+      border-top: 1px solid rgba(255,255,255,.08);
+      flex-shrink: 0;
+    }
+    .frame-wrap { min-height: 42vh; flex: 1; }
   }
-  .split.rail-hidden .dev-rail { display: none; }
 </style>
 </head>
 <body>
   <div class="shell-top">
     <header class="shell-head">
-      <button type="button" class="btn-hamburger" id="btn-rail-toggle" aria-label="좌측 패널 숨김/표시" title="좌측 패널 숨김/표시">☰</button>
       <span class="shell-brand">시뮬 전환</span>
       <div class="tabs" role="tablist" aria-label="시뮬 선택">
         <button type="button" class="tab" role="tab" id="tab-layz" aria-selected="true" aria-controls="panel-sim">Lay-Z력 테스트</button>
@@ -203,8 +272,8 @@
   </div>
 
   <div class="split">
-    <aside class="dev-rail" id="dev-rail" aria-label="임시 OpenAI 설정">
-      <p class="dev-rail-caption">좌측은 설정, 우측은 시뮬 화면입니다.</p>
+    <aside class="dev-rail" id="dev-rail" aria-label="AI 설정">
+      <p class="dev-rail-caption">좌측: 모델 등 AI 설정 · 가운데: 시뮬 · 우측: AI 담당 맵</p>
       <div class="dev-mode" id="dev-mode-msg"></div>
       <div class="dev-sim-pill" id="dev-active-sim">지금 보는 시뮬: Lay-Z력 테스트</div>
       <p class="dev-hint">키 입력은 제거했습니다. 모델만 선택해서 테스트하세요.<br>동작 기준은 서버 환경변수 <code>OPENAI_API_KEY</code> 입니다.</p>
@@ -231,6 +300,13 @@
     <div class="frame-wrap" role="tabpanel" id="panel-sim">
       <iframe id="sim-frame" title="선택한 시뮬" src="3차_시뮬_layz_test.html"></iframe>
     </div>
+
+    <aside class="cov-rail" id="cov-rail" aria-label="AI 담당 영역">
+      <p class="cov-rail-caption">AI 담당 영역</p>
+      <p class="dev-hint" style="color: rgba(163,211,232,.42)">항목을 누르면 설명이 뜨고, 시뮬 화면에서 해당 구역이 붉게 깜빡여요.</p>
+      <div class="cov-list" id="cov-list"></div>
+      <div class="cov-detail muted" id="cov-detail">항목을 선택하면 상세 설명이 여기 표시됩니다.</div>
+    </aside>
   </div>
 
   <script>
@@ -239,8 +315,6 @@
         layz: '3차_시뮬_layz_test.html',
         mong: '3차_시뮬_꿈해몽_산하.html',
       };
-      var split = document.querySelector('.split');
-      var btnRailToggle = document.getElementById('btn-rail-toggle');
       var frame = document.getElementById('sim-frame');
       var tabs = [
         { el: document.getElementById('tab-layz'), key: 'layz' },
@@ -252,6 +326,124 @@
       var selPreset = document.getElementById('dev-model-preset');
       var wrapCustom = document.getElementById('dev-model-custom-wrap');
       var inputCustom = document.getElementById('dev-model-custom');
+      var covList = document.getElementById('cov-list');
+      var covDetail = document.getElementById('cov-detail');
+
+      /** 시뮬별: 화면 구역이 AI 생성인지 / 고정·규칙인지 검수용 */
+      var COVERAGE_BY_SIM = {
+        layz: [
+          {
+            id: 'layz-q',
+            label: '8문항 질문·보기',
+            ai: false,
+            short: '사전 작성 Q/A',
+            detail: '모든 문항과 선택지는 HTML에 박힌 데이터(Qs 배열)입니다. 사용자가 고른 보기만 모이고, 모델 호출은 없습니다.',
+          },
+          {
+            id: 'layz-score',
+            label: 'Lay-Z 점수·티어',
+            ai: false,
+            short: '클라이언트 계산',
+            detail: '점수는 선택지 가중치 합으로 계산되고, 티어·한줄 멘트는 TIERS 고정 카피입니다. AI가 점수를 “매기지” 않습니다.',
+          },
+          {
+            id: 'layz-rec',
+            label: '추천 행동·수면 처방',
+            ai: false,
+            short: '티어별 고정 카피',
+            detail: '추천 카드와 수면 가이드 문구도 TIERS에 들어 있는 템플릿입니다.',
+          },
+          {
+            id: 'layz-share',
+            label: '공유 카드(캔버스)',
+            ai: false,
+            short: 'Canvas 렌더',
+            detail: '점수·티어·키워드를 그려 넣는 로직만 있고, 문장 생성은 없습니다.',
+          },
+          {
+            id: 'layz-api',
+            label: 'OpenAI / 런타임',
+            ai: false,
+            short: '미연동',
+            detail: '이 시뮬은 셸이 보내는 모델 동기화만 받을 뿐, iframe 안에서 Chat API를 부르지 않습니다.',
+          },
+        ],
+        mong: [
+          {
+            id: 'mong-form',
+            label: '입력 폼·무드·달력 UI',
+            ai: false,
+            short: '고정 UI',
+            detail: '생년월일·꿈 입력 등은 마크업·스타일로 고정입니다. AI는 이 값을 읽어 프롬프트에 넣을 뿐, 폼 자체를 생성하지 않습니다.',
+          },
+          {
+            id: 'mong-prompt',
+            label: '꿈 해몽·운세 본문',
+            ai: true,
+            short: '모델 생성 JSON',
+            detail: '꿈과 프로필을 묶은 user 메시지로 `/api/openai-dev`를 호출하고, 돌아온 JSON을 파싱해 카드에 채웁니다. 성공 시 이 블록만이 “모델이 쓴” 영역입니다.',
+          },
+          {
+            id: 'mong-mock',
+            label: 'API 실패·파싱 실패 시',
+            ai: false,
+            short: 'MOCK 폴백',
+            detail: '오류나 JSON 깨짐 시 MOCK 상수로 동일 필드를 채웁니다. 이 텍스트는 코드에 박힌 고정값입니다.',
+          },
+          {
+            id: 'mong-ui',
+            label: '결과 레이아웃·별·탭',
+            ai: false,
+            short: '템플릿 렌더',
+            detail: '별 개수, 섹션 접기, 행운 카드 그리드 등은 받은 JSON을 끼워 넣는 고정 템플릿입니다.',
+          },
+          {
+            id: 'mong-feed',
+            label: '도감 피드·시드 데이터',
+            ai: false,
+            short: 'localStorage 규칙',
+            detail: '피드에 쌓이는 예시 항목과 저장 로직은 클라이언트 규칙입니다. AI가 피드 문구를 따로 쓰지는 않습니다.',
+          },
+        ],
+      };
+
+      function renderCoverage(simKey) {
+        var rows = COVERAGE_BY_SIM[simKey] || [];
+        covList.innerHTML = '';
+        covDetail.textContent = '항목을 선택하면 상세 설명이 여기 표시됩니다.';
+        covDetail.classList.add('muted');
+        rows.forEach(function (row) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'cov-row';
+          btn.setAttribute('aria-pressed', 'false');
+          var badgeClass = row.ai ? 'cov-badge ai' : 'cov-badge fixed';
+          var badgeText = row.ai ? 'AI' : '고정';
+          btn.innerHTML =
+            '<div class="cov-row-top">' +
+            '<span class="cov-label">' +
+            row.label +
+            '</span>' +
+            '<span class="' +
+            badgeClass +
+            '">' +
+            badgeText +
+            '</span></div>' +
+            '<div class="cov-sub">' +
+            row.short +
+            '</div>';
+          btn.addEventListener('click', function () {
+            covList.querySelectorAll('.cov-row').forEach(function (r) {
+              r.setAttribute('aria-pressed', 'false');
+            });
+            btn.setAttribute('aria-pressed', 'true');
+            covDetail.classList.remove('muted');
+            covDetail.textContent = row.detail;
+            broadcastHighlight(row.id);
+          });
+          covList.appendChild(btn);
+        });
+      }
 
       function select(key) {
         frame.src = srcs[key];
@@ -268,25 +460,11 @@
         } else {
           runtimeBox.textContent = 'Lay-몽 실행 시 런타임이 여기 표시됩니다.';
         }
+        renderCoverage(key);
       }
 
       tabs[0].el.addEventListener('click', function () { select('layz'); });
       tabs[1].el.addEventListener('click', function () { select('mong'); });
-
-      function setRailHidden(hidden) {
-        split.classList.toggle('rail-hidden', hidden);
-        btnRailToggle.setAttribute('aria-pressed', hidden ? 'true' : 'false');
-        try { sessionStorage.setItem('laylay_rail_hidden', hidden ? '1' : '0'); } catch (e) {}
-      }
-      btnRailToggle.addEventListener('click', function () {
-        setRailHidden(!split.classList.contains('rail-hidden'));
-      });
-      try {
-        var savedRail = sessionStorage.getItem('laylay_rail_hidden');
-        setRailHidden(savedRail === null ? true : savedRail === '1');
-      } catch (e) {
-        setRailHidden(true);
-      }
 
       function syncCustomModelVisible() {
         wrapCustom.style.display = selPreset.value === '__custom__' ? 'block' : 'none';
@@ -317,6 +495,22 @@
               type: 'laylay-dev-sync',
               apiKey: '',
               model: resolvedModel(),
+            },
+            '*'
+          );
+        } catch (e) {}
+      }
+
+      /** 우측 대시보드에서 선택한 구역을 iframe 안에서 붉게 깜빡임 */
+      function broadcastHighlight(regionId) {
+        if (regionId === 'mong-mock') regionId = 'mong-prompt';
+        if (!frame.contentWindow || !regionId) return;
+        try {
+          frame.contentWindow.postMessage(
+            {
+              source: 'laylay-shell',
+              type: 'laylay-highlight',
+              regionId: regionId,
             },
             '*'
           );
