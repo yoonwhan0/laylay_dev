@@ -377,25 +377,53 @@
             detail: '생년월일·꿈 입력 등은 마크업·스타일로 고정입니다. AI는 이 값을 읽어 프롬프트에 넣을 뿐, 폼 자체를 생성하지 않습니다.',
           },
           {
-            id: 'mong-prompt',
-            label: '꿈 해몽·운세 본문',
+            id: 'mong-score',
+            label: '종합 점수·링 그래프',
             ai: true,
-            short: '모델 생성 JSON',
-            detail: '꿈과 프로필을 묶은 user 메시지로 `/api/openai-dev`를 호출하고, 돌아온 JSON을 파싱해 카드에 채웁니다. 성공 시 이 블록만이 “모델이 쓴” 영역입니다.',
+            short: 'JSON 별점 합산',
+            detail: '재물·애정·직장·건강 별 개수로 총점과 링을 그립니다. 값 자체는 모델이 준 JSON 필드입니다.',
+          },
+          {
+            id: 'mong-oneline',
+            label: '한줄평',
+            ai: true,
+            short: '한줄평 필드',
+            detail: '`한줄평` 문자열을 그대로 표시합니다.',
+          },
+          {
+            id: 'mong-fortune',
+            label: '운세 분석 카드',
+            ai: true,
+            short: '분야별·총론 텍스트',
+            detail: '각 운 설명·총론 설명 문단은 모델 JSON입니다. 접기 UI만 고정입니다.',
+          },
+          {
+            id: 'mong-lucky',
+            label: '행운의 색·숫자·물건',
+            ai: true,
+            short: '행운 3요소',
+            detail: '`행운의색`, `행운의숫자`, `행운의물건` 필드를 카드에 넣습니다.',
+          },
+          {
+            id: 'mong-tags',
+            label: '행동 해시태그',
+            ai: true,
+            short: '`행동해시태그` 배열',
+            detail: '모델이 준 해시태그 문자열을 칩으로 렌더합니다.',
           },
           {
             id: 'mong-mock',
             label: 'API 실패·파싱 실패 시',
             ai: false,
             short: 'MOCK 폴백',
-            detail: '오류나 JSON 깨짐 시 MOCK 상수로 동일 필드를 채웁니다. 이 텍스트는 코드에 박힌 고정값입니다.',
+            detail: '오류나 JSON 깨짐 시 MOCK 상수로 위 필드를 채웁니다. 강조는 본문 양이 많은 운세 카드 영역을 대표로 보여 줍니다.',
           },
           {
             id: 'mong-ui',
-            label: '결과 레이아웃·별·탭',
+            label: '결과 레이아웃·탭·무드 뱃지',
             ai: false,
             short: '템플릿 렌더',
-            detail: '별 개수, 섹션 접기, 행운 카드 그리드 등은 받은 JSON을 끼워 넣는 고정 템플릿입니다.',
+            detail: '탭, 접기 아이콘, 공유/재시도 버튼, 선택한 기분 뱃지 등은 고정 UI입니다.',
           },
           {
             id: 'mong-feed',
@@ -503,7 +531,7 @@
 
       /** 우측 대시보드에서 선택한 구역을 iframe 안에서 붉게 깜빡임 */
       function broadcastHighlight(regionId) {
-        if (regionId === 'mong-mock') regionId = 'mong-prompt';
+        if (regionId === 'mong-mock') regionId = 'mong-fortune';
         if (!frame.contentWindow || !regionId) return;
         try {
           frame.contentWindow.postMessage(
