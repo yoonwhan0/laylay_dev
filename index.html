@@ -484,7 +484,8 @@
           simEl.textContent =
             key === 'mong' ? '지금 보는 시뮬: Lay-몽' : '지금 보는 시뮬: Lay-Z력 테스트';
         if (key === 'layz') {
-          runtimeBox.textContent = 'Lay-Z는 현재 API 호출 기능 미연동 (런타임 측정 없음)';
+          runtimeBox.textContent =
+            'Lay-Z 결과 카피는 iframe에서 POST /api/openai-dev 호출 · 셸 모델·키 동기화';
         } else {
           runtimeBox.textContent = 'Lay-몽 실행 시 런타임이 여기 표시됩니다.';
         }

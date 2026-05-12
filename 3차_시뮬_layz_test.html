@@ -462,7 +462,15 @@ async function fetchLayZCopy(lz, baseTier, answers){
     }),
   });
   const data = await res.json().catch(function () { return {}; });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    try {
+      window.__layzLastFetch = { status: res.status, mode: data.mode, err: data.error };
+    } catch (e) {
+      window.__layzLastFetch = { status: res.status };
+    }
+    return null;
+  }
+  window.__layzLastFetch = null;
   var raw = typeof data.text === 'string' ? data.text.trim() : '';
   if (!raw && data.raw && data.raw.choices && data.raw.choices[0] && data.raw.choices[0].message) {
     raw = String(data.raw.choices[0].message.content || '').trim();
@@ -962,19 +970,24 @@ function renderResult(lz,r,kws){
   },130);
   st.lzTierForShare = null;
   var stBar = document.getElementById('layz-ai-status');
-  var apiKeyTry = laylayEffectiveApiKey();
-  if (!String(apiKeyTry || '').trim()) {
-    if (stBar) stBar.textContent = 'API 키 없음 · 좌측 셸에서 키를 넣은 뒤 새로고침하거나, netlify dev로 열어 주세요.';
-    st.lzTierForShare = r;
-    return;
+  var hasClientKey = !!String(laylayEffectiveApiKey() || '').trim();
+  if (stBar) {
+    stBar.textContent = hasClientKey
+      ? 'AI 카피 생성 중…'
+      : 'AI 카피 생성 중… (서버 OPENAI_API_KEY 사용 시도 — netlify dev 등)';
   }
-  if (stBar) stBar.textContent = 'AI 카피 생성 중…';
   fetchLayZCopy(lz, r, st.answers).then(function (ai) {
     var mr = mergeTierWithAI(r, ai);
     st.lzTierForShare = mr.tier;
     applyLayZCopyToDom(lz, r, mr.tier);
     if (stBar) {
-      if (!ai) stBar.textContent = 'API 실패·빈 응답 · TIERS 고정 카피';
+      if (!ai) {
+        var lf = window.__layzLastFetch;
+        if (lf && lf.mode === 'no-key')
+          stBar.textContent =
+            'OpenAI 키 없음(클라이언트·서버 모두) · netlify dev에 OPENAI_API_KEY 설정 또는 셸에서 키 동기화';
+        else stBar.textContent = 'API 실패·빈 응답 · TIERS 고정 카피';
+      }
       else if (mr.applied) stBar.textContent = 'AI 카피 반영됨';
       else stBar.textContent = 'AI 응답 형식 부족 · TIERS 유지';
       setTimeout(function () { if (stBar) stBar.textContent = ''; }, 3200);
