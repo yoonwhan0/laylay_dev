@@ -595,13 +595,23 @@ function applyLayZCopyToDom(lz, r, merged) {
   if (h) {
     h.textContent = merged.head;
     h.style.whiteSpace = 'pre-line';
+    h.style.opacity = '';
   }
   if (d) {
     d.textContent = merged.desc;
     d.style.whiteSpace = 'pre-line';
+    d.style.opacity = '';
   }
-  if (badge) badge.textContent = merged.tag;
-  if (name) name.textContent = merged.name;
+  if (badge) {
+    badge.textContent = merged.tag;
+    badge.style.background = r.accent;
+    badge.style.color = '#fff';
+    badge.style.opacity = '1';
+  }
+  if (name) {
+    name.textContent = merged.name;
+    name.style.opacity = '1';
+  }
   if (list) {
     list.innerHTML = merged.recs
       .map(function (rec) {
@@ -621,8 +631,14 @@ function applyLayZCopyToDom(lz, r, merged) {
       })
       .join('');
   }
-  if (rt) rt.textContent = merged.rx.title;
-  if (rs) rs.textContent = merged.rx.sub;
+  if (rt) {
+    rt.textContent = merged.rx.title;
+    rt.style.opacity = '1';
+  }
+  if (rs) {
+    rs.textContent = merged.rx.sub;
+    rs.style.opacity = '1';
+  }
   if (ri && merged.rx.items) {
     ri.innerHTML = merged.rx.items
       .map(function (item, idx) {
@@ -684,6 +700,14 @@ function toast(msg){
   const el=document.getElementById('toast');
   el.textContent=msg;el.classList.add('on');
   clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('on'),2600);
+}
+function setLayZShareButtonReady(ready){
+  var b=document.getElementById('layz-btn-share');
+  if(!b)return;
+  b.disabled=!ready;
+  b.setAttribute('aria-disabled',ready?'false':'true');
+  b.style.opacity=ready?'1':'0.52';
+  b.style.cursor=ready?'pointer':'not-allowed';
 }
 function animNum(id,to,dur=900){
   const el=document.getElementById(id);if(!el)return;
@@ -774,6 +798,10 @@ async function drawCard(){
 }
 let _blob=null;
 async function prepareCard(){
+  if(st.lzTierForShare==null){
+    toast('AI 카피를 불러온 뒤에 공유할 수 있어요');
+    return;
+  }
   toast('카드 생성 중...');
   const canvas=await drawCard();
   canvas.toBlob(b=>{_blob=b;},'image/png');
@@ -955,17 +983,17 @@ function renderResult(lz,r,kws){
         <div style="display:flex;justify-content:space-between;font-size:10.5px;color:${r.tc};opacity:.45;margin-bottom:.85rem"><span>0 (비타민)</span><span>99 (전설)</span></div>
         </div>
         <div data-laylay-region="layz-ai-copy">
-        <div id="layz-tier-badge" class="tier-badge" style="background:${r.accent};color:white">${r.tag}</div>
-        <h2 id="layz-tier-name" style="font-size:1.2rem;font-weight:700;color:${r.tc};margin-bottom:.65rem;letter-spacing:-.01em">${r.name}</h2>
+        <div id="layz-tier-badge" class="tier-badge" style="background:rgba(17,17,17,.1);color:var(--sub);font-weight:700">카피 생성 중</div>
+        <h2 id="layz-tier-name" style="font-size:1.2rem;font-weight:700;color:${r.tc};margin-bottom:.65rem;letter-spacing:-.01em;min-height:1.35em;opacity:.4"></h2>
         ${diffHtml}
-        <p id="layz-ai-head" style="font-size:14px;color:${r.tc};line-height:1.75;opacity:.82;margin-bottom:.5rem;white-space:pre-line">${r.head}</p>
-        <p id="layz-ai-desc" style="font-size:13.5px;color:${r.tc};line-height:1.7;opacity:.68;white-space:pre-line">${r.desc}</p>
+        <p id="layz-ai-head" style="font-size:14px;color:${r.tc};line-height:1.75;margin-bottom:.5rem;white-space:pre-line;min-height:2.2em;opacity:.35"></p>
+        <p id="layz-ai-desc" style="font-size:13.5px;color:${r.tc};line-height:1.7;white-space:pre-line;min-height:4.5em;opacity:.35"></p>
         ${chipsHtml}
         <div id="layz-ai-loading" class="layz-ai-loading" aria-live="polite">
           <div class="layz-ai-loading-inner">
             <div class="layz-ai-spinner" aria-hidden="true"></div>
             <div class="layz-ai-loading-text">
-              <div class="layz-ai-loading-title">AI가 오늘 결과 문구를 작성 중</div>
+              <div class="layz-ai-loading-title">AI가 유형·본문·추천·수면 가이드를 작성 중</div>
               <div id="layz-ai-step" class="layz-ai-step">8문항 응답을 한 줄로 묶는 중…</div>
               <div id="layz-ai-elapsed" class="layz-ai-elapsed">0.0초</div>
             </div>
@@ -990,12 +1018,7 @@ function renderResult(lz,r,kws){
     <!-- 추천 행동 -->
     <div style="margin-bottom:14px">
       <div class="dv"><hr><span>오늘 컨디션에 맞는 행동 추천</span><hr></div>
-      <div id="layz-rec-list">${r.recs.map(rec=>`
-        <div class="rec">
-          <div class="rec-tag" style="background:${r.bg};color:${r.tc}">${rec.tag}</div>
-          <div style="font-size:14.5px;font-weight:700;color:var(--txt);margin-bottom:.3rem">${rec.title}</div>
-          <p style="font-size:12.5px;color:var(--sub);line-height:1.6;white-space:pre-line">${rec.desc}</p>
-        </div>`).join('')}</div>
+      <div id="layz-rec-list" style="min-height:200px;padding:1.25rem .5rem;text-align:center;font-size:13px;color:var(--mute);line-height:1.55">추천·행동 카피를 생성하는 중이에요.</div>
     </div>
 
     <!-- 수면 처방전 -->
@@ -1003,21 +1026,17 @@ function renderResult(lz,r,kws){
       <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:.6rem">
         <div>
           <div style="font-size:10.5px;color:rgba(255,255,255,.45);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">레이레이 수면 가이드</div>
-          <div id="layz-rx-title" style="font-size:15px;font-weight:700;color:#fff;line-height:1.4">${r.rx.title}</div>
-          <div id="layz-rx-sub" style="font-size:12px;color:rgba(255,255,255,.5);margin-top:.25rem">${r.rx.sub}</div>
+          <div id="layz-rx-title" style="font-size:15px;font-weight:700;color:#fff;line-height:1.4;opacity:.42">수면 가이드 생성 중…</div>
+          <div id="layz-rx-sub" style="font-size:12px;color:rgba(255,255,255,.38);margin-top:.25rem">잠깐만 기다려 주세요</div>
         </div>
         <img src="${IMG_C3}" alt="" style="width:72px;flex-shrink:0;margin-left:.75rem;opacity:.85" loading="lazy">
       </div>
-      <div id="layz-rx-items">${r.rx.items.map((item,i)=>`
-        <div class="rx-item">
-          <div class="rx-num">${i+1}</div>
-          <div style="font-size:13.5px;color:rgba(255,255,255,.85);line-height:1.65;white-space:pre-line">${item}</div>
-        </div>`).join('')}</div>
+      <div id="layz-rx-items" style="padding:.85rem .5rem;color:rgba(255,255,255,.38);font-size:12.5px;text-align:center;line-height:1.5">체크리스트 항목을 준비하고 있어요.</div>
     </div>
     </div>
 
     <!-- Actions -->
-    <button class="btn btn-p" onclick="prepareCard()" data-laylay-region="layz-share" style="margin-bottom:.75rem">결과 카드 만들어서 공유하기</button>
+    <button type="button" class="btn btn-p" id="layz-btn-share" disabled aria-disabled="true" onclick="prepareCard()" data-laylay-region="layz-share" style="margin-bottom:.75rem;opacity:.52;cursor:not-allowed">결과 카드 만들어서 공유하기</button>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <button class="btn btn-s" onclick="startQuiz()">다시 테스트</button>
       <button class="btn btn-s" onclick="showHistory()">내 기록</button>
@@ -1029,6 +1048,7 @@ function renderResult(lz,r,kws){
     animNum('snum',lz);
   },130);
   st.lzTierForShare = null;
+  setLayZShareButtonReady(false);
   var stBar = document.getElementById('layz-ai-status');
   var loadEl = document.getElementById('layz-ai-loading');
   var stepEl = document.getElementById('layz-ai-step');
@@ -1071,6 +1091,7 @@ function renderResult(lz,r,kws){
     var mr = mergeTierWithAI(r, ai);
     st.lzTierForShare = mr.tier;
     applyLayZCopyToDom(lz, r, mr.tier);
+    setLayZShareButtonReady(true);
     if (ai && mr.applied) reportLayZRuntime('GPT 카피', elapsed, '본문·추천·수면 반영');
     else if (ai) reportLayZRuntime('GPT', elapsed, '형식 부족·TIERS 유지');
     else reportLayZRuntime('TIERS', elapsed, 'API/파싱');
@@ -1091,6 +1112,8 @@ function renderResult(lz,r,kws){
     var elapsed = Math.round(performance.now() - tAi0);
     stopLayZAiLoading();
     st.lzTierForShare = r;
+    applyLayZCopyToDom(lz, r, r);
+    setLayZShareButtonReady(true);
     reportLayZRuntime('TIERS', elapsed, '네트워크');
     if (stBar) {
       stBar.textContent = '네트워크 오류 · TIERS 고정 카피';
