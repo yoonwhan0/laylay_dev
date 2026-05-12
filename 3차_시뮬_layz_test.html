@@ -374,7 +374,7 @@ const TIERS = [
 ];
 
 // ══ STATE ══════════════════════════════════════════════
-const st = {cur:0,answers:[],hist:[],lz:0,tier:null};
+const st = {cur:0,answers:[],hist:[],lz:0,tier:null,lzTierForShare:null};
 
 window.addEventListener('message',function(e){
   var d=e.data;
@@ -410,6 +410,148 @@ function laylayEffectiveModel(){
     return sessionStorage.getItem('laylay_dev_openai_model')||'gpt-4o-mini';
   }catch(e){return 'gpt-4o-mini';}
 }
+
+
+async function fetchLayZCopy(lz, baseTier, answers){
+  const layzSystem = [
+    '당신은 브랜드 "Lay-Z"의 오늘 컨디션 카피 작가입니다.',
+    '말투: 친근한 반말/해요체 혼용 가능하나 가볍고 유머 있게. 진부한 운세체·번역투·과한 한자어 나열은 피합니다.',
+    '의학·법률·투자·진단처럼 들리는 단정은 금지. 재미·자기인식용이며 점수는 이미 확정입니다.',
+    '출력은 반드시 요청된 JSON 한 덩어리만. JSON 바깥 텍스트·마크다운·코드펜스 금지.',
+    'Lay-Z 지수 숫자는 사용자가 준 값이며 절대 바꾸거나 재해석하지 마세요.'
+  ].join('\n');
+
+  const lines = (answers || []).map(function (a, i) {
+    var q = Qs[i];
+    if (!q) return (i + 1) + '. (응답)';
+    var pick = (q.a || [])[a.s];
+    var label = pick ? pick.t : String(a.s);
+    return (i + 1) + '. [' + q.cat + '] ' + q.q + ' → ' + label;
+  }).join('\n');
+
+  const user = [
+    '아래는 사용자가 고른 8문항 요약입니다.',
+    'Lay-Z 지수(고정·변경 금지): ' + lz,
+    '참고 티어(색·구간만 고정, 이름/카피는 자유롭게 새로 써도 됨): id=' + baseTier.id + ', 기본이름=' + baseTier.name + ', 기본태그=' + baseTier.tag,
+    '',
+    '문항별 선택:',
+    lines,
+    '',
+    '반드시 유효한 JSON 하나만 출력. 키 정확히 일치.',
+    '{"tierName":"…","tierTag":"…","head":"1문장 헤드","desc":"2~4문장 본문","recs":[{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"}],"rx":{"title":"수면 가이드 제목","sub":"한 줄 부제","items":["항목1","항목2","항목3"]}}',
+    'recs는 정확히 3개. rx.items는 정확히 3개의 짧은 문장.'
+  ].join('\n');
+
+  const apiKey = laylayEffectiveApiKey();
+  const model = laylayEffectiveModel();
+  const res = await fetch('/api/openai-dev', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      apiKey: apiKey,
+      model: model,
+      messages: [
+        { role: 'system', content: layzSystem },
+        { role: 'user', content: user },
+      ],
+      max_tokens: 1400,
+      temperature: 0.7,
+    }),
+  });
+  const data = await res.json().catch(function () { return {}; });
+  if (!res.ok) return null;
+  const raw = (data.text || '').trim();
+  const m = raw.match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  try {
+    return JSON.parse(m[0]);
+  } catch (e) {
+    return null;
+  }
+}
+
+function mergeTierWithAI(base, ai) {
+  if (!ai) return base;
+  var recs = Array.isArray(ai.recs) ? ai.recs : [];
+  if (recs.length < 3) return base;
+  for (var i = 0; i < 3; i++) {
+    var x = recs[i];
+    if (!x || !String(x.title || '').trim() || !String(x.desc || '').trim()) return base;
+  }
+  var rx = base.rx;
+  if (ai.rx && ai.rx.title && ai.rx.sub && Array.isArray(ai.rx.items) && ai.rx.items.length >= 3) {
+    rx = {
+      title: String(ai.rx.title).trim(),
+      sub: String(ai.rx.sub).trim(),
+      items: ai.rx.items.slice(0, 4).map(function (t) { return String(t || '').trim(); }).filter(Boolean),
+    };
+    if (rx.items.length < 3) rx = base.rx;
+  }
+  return Object.assign({}, base, {
+    name: String(ai.tierName || '').trim() || base.name,
+    tag: String(ai.tierTag || '').trim() || base.tag,
+    head: String(ai.head || '').trim() || base.head,
+    desc: String(ai.desc || '').trim() || base.desc,
+    recs: recs.slice(0, 3).map(function (x) {
+      return {
+        tag: String(x.tag || '').trim() || '추천',
+        title: String(x.title || '').trim(),
+        desc: String(x.desc || '').trim(),
+      };
+    }),
+    rx: rx,
+  });
+}
+
+function applyLayZCopyToDom(lz, r, merged) {
+  var h = document.getElementById('layz-ai-head');
+  var d = document.getElementById('layz-ai-desc');
+  var badge = document.getElementById('layz-tier-badge');
+  var name = document.getElementById('layz-tier-name');
+  var list = document.getElementById('layz-rec-list');
+  var rt = document.getElementById('layz-rx-title');
+  var rs = document.getElementById('layz-rx-sub');
+  var ri = document.getElementById('layz-rx-items');
+  if (h) h.textContent = merged.head;
+  if (d) d.textContent = merged.desc;
+  if (badge) badge.textContent = merged.tag;
+  if (name) name.textContent = merged.name;
+  if (list) {
+    list.innerHTML = merged.recs
+      .map(function (rec) {
+        return (
+          '<div class="rec"><div class="rec-tag" style="background:' +
+          r.bg +
+          ';color:' +
+          r.tc +
+          '">' +
+          rec.tag +
+          '</div><div style="font-size:14.5px;font-weight:700;color:var(--txt);margin-bottom:.3rem">' +
+          rec.title +
+          '</div><p style="font-size:12.5px;color:var(--sub);line-height:1.55">' +
+          rec.desc +
+          '</p></div>'
+        );
+      })
+      .join('');
+  }
+  if (rt) rt.textContent = merged.rx.title;
+  if (rs) rs.textContent = merged.rx.sub;
+  if (ri && merged.rx.items) {
+    ri.innerHTML = merged.rx.items
+      .map(function (item, idx) {
+        return (
+          '<div class="rx-item"><div class="rx-num">' +
+          (idx + 1) +
+          '</div><div style="font-size:13.5px;color:rgba(255,255,255,.85);line-height:1.6">' +
+          item +
+          '</div></div>'
+        );
+      })
+      .join('');
+  }
+}
+
 
 function getTier(s){return TIERS.find(t=>s>=t.min&&s<=t.max)||TIERS[TIERS.length-1];}
 function calcScore(){return Math.round(st.answers.reduce((a,b)=>a+b.s,0)/(Qs.length*3)*99);}
@@ -501,7 +643,7 @@ async function drawCard(){
   const W=1080,H=1350;
   canvas.width=W;canvas.height=H;
   const ctx=canvas.getContext('2d');
-  const r=st.tier,lz=st.lz;
+  const r=st.lzTierForShare||st.tier,lz=st.lz;
   const g=ctx.createLinearGradient(0,0,0,H);
   g.addColorStop(0,'#ffffff');g.addColorStop(1,r.bg);
   ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
@@ -554,12 +696,18 @@ async function prepareCard(){
 }
 function downloadCard(){
   const a=document.createElement('a');
-  a.download=`layz-${st.lz}점-${st.tier.name}.png`;
+  a.download=`layz-${st.lz}점-${(st.lzTierForShare||st.tier).name}.png`;
   a.href=document.getElementById('share-canvas').toDataURL('image/png');
   a.click();toast('카드가 저장됐어요!');
 }
 async function nativeShare(){
-  const text=`나의 Lay-Z 지수: ${st.lz}점\n${st.tier.name} (${st.tier.tag})\n\n"${st.tier.head}"\n\n레이레이에서 나도 테스트해봐 → laylelay.com`;
+  const trn=st.lzTierForShare||st.tier;
+  const text=`나의 Lay-Z 지수: ${st.lz}점
+${trn.name} (${trn.tag})
+
+\"${trn.head}\"
+
+레이레이에서 나도 테스트해봐 → laylelay.com`;
   try{
     if(_blob&&navigator.canShare){
       const file=new File([_blob],'layz.png',{type:'image/png'});
@@ -569,7 +717,11 @@ async function nativeShare(){
   }catch(e){if(e.name!=='AbortError')copyShareText();}
 }
 async function copyShareText(){
-  const text=`나의 Lay-Z 지수: ${st.lz}점\n${st.tier.name} (${st.tier.tag})\n\n레이레이에서 나도 테스트해봐 → laylelay.com`;
+  const trc=st.lzTierForShare||st.tier;
+  const text=`나의 Lay-Z 지수: ${st.lz}점
+${trc.name} (${trc.tag})
+
+레이레이에서 나도 테스트해봐 → laylelay.com`;
   try{await navigator.clipboard.writeText(text);toast('복사됐어요! 카카오톡에 붙여넣기 해보세요');}
   catch{toast('복사 실패. 이미지를 저장해보세요');}
   closeShare();
@@ -629,7 +781,7 @@ function showIntro(){
   `);
 }
 
-function startQuiz(){st.cur=0;st.answers=[];renderQ();}
+function startQuiz(){st.cur=0;st.answers=[];st.lzTierForShare=null;renderQ();}
 
 function renderQ(){
   const q=Qs[st.cur];
@@ -714,12 +866,13 @@ function renderResult(lz,r,kws){
           <div id="mfill" class="meter-fill" style="width:0%;background:${r.meter}"></div>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:10.5px;color:${r.tc};opacity:.45;margin-bottom:.85rem"><span>0 (비타민)</span><span>99 (전설)</span></div>
-        <div class="tier-badge" style="background:${r.accent};color:white">${r.tag}</div>
-        <h2 style="font-size:1.2rem;font-weight:700;color:${r.tc};margin-bottom:.65rem;letter-spacing:-.01em">${r.name}</h2>
+        <div id="layz-tier-badge" class="tier-badge" style="background:${r.accent};color:white">${r.tag}</div>
+        <h2 id="layz-tier-name" style="font-size:1.2rem;font-weight:700;color:${r.tc};margin-bottom:.65rem;letter-spacing:-.01em">${r.name}</h2>
         ${diffHtml}
-        <p style="font-size:14px;color:${r.tc};line-height:1.75;opacity:.82;margin-bottom:.5rem">${r.head}</p>
-        <p style="font-size:13.5px;color:${r.tc};line-height:1.7;opacity:.68">${r.desc}</p>
+        <p id="layz-ai-head" style="font-size:14px;color:${r.tc};line-height:1.75;opacity:.82;margin-bottom:.5rem">${r.head}</p>
+        <p id="layz-ai-desc" style="font-size:13.5px;color:${r.tc};line-height:1.7;opacity:.68">${r.desc}</p>
         ${chipsHtml}
+        <p id="layz-ai-status" style="font-size:11.5px;color:var(--mute);margin-top:.65rem;text-align:center"></p>
       </div>
       <div class="rc-body">
         <div class="sg">
@@ -737,12 +890,12 @@ function renderResult(lz,r,kws){
     <!-- 추천 행동 -->
     <div style="margin-bottom:14px">
       <div class="dv"><hr><span>오늘 컨디션에 맞는 행동 추천</span><hr></div>
-      ${r.recs.map(rec=>`
+      <div id="layz-rec-list">${r.recs.map(rec=>`
         <div class="rec">
           <div class="rec-tag" style="background:${r.bg};color:${r.tc}">${rec.tag}</div>
           <div style="font-size:14.5px;font-weight:700;color:var(--txt);margin-bottom:.3rem">${rec.title}</div>
           <p style="font-size:12.5px;color:var(--sub);line-height:1.55">${rec.desc}</p>
-        </div>`).join('')}
+        </div>`).join('')}</div>
     </div>
 
     <!-- 수면 처방전 -->
@@ -750,16 +903,16 @@ function renderResult(lz,r,kws){
       <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:.6rem">
         <div>
           <div style="font-size:10.5px;color:rgba(255,255,255,.45);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">레이레이 수면 가이드</div>
-          <div style="font-size:15px;font-weight:700;color:#fff;line-height:1.4">${r.rx.title}</div>
-          <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:.25rem">${r.rx.sub}</div>
+          <div id="layz-rx-title" style="font-size:15px;font-weight:700;color:#fff;line-height:1.4">${r.rx.title}</div>
+          <div id="layz-rx-sub" style="font-size:12px;color:rgba(255,255,255,.5);margin-top:.25rem">${r.rx.sub}</div>
         </div>
         <img src="${IMG_C3}" alt="" style="width:72px;flex-shrink:0;margin-left:.75rem;opacity:.85" loading="lazy">
       </div>
-      ${r.rx.items.map((item,i)=>`
+      <div id="layz-rx-items">${r.rx.items.map((item,i)=>`
         <div class="rx-item">
           <div class="rx-num">${i+1}</div>
           <div style="font-size:13.5px;color:rgba(255,255,255,.85);line-height:1.6">${item}</div>
-        </div>`).join('')}
+        </div>`).join('')}</div>
     </div>
     </div>
 
@@ -775,6 +928,25 @@ function renderResult(lz,r,kws){
     const mf=document.getElementById('mfill');if(mf)mf.style.width=lz+'%';
     animNum('snum',lz);
   },130);
+  st.lzTierForShare = null;
+  var stBar = document.getElementById('layz-ai-status');
+  if (stBar) stBar.textContent = 'AI 카피 생성 중…';
+  fetchLayZCopy(lz, r, st.answers).then(function (ai) {
+    var merged = mergeTierWithAI(r, ai);
+    st.lzTierForShare = merged;
+    applyLayZCopyToDom(lz, r, merged);
+    if (stBar) {
+      stBar.textContent = ai ? 'AI 카피 반영됨' : '고정 카피(TIERS 폴백)';
+      setTimeout(function () { if (stBar) stBar.textContent = ''; }, 2200);
+    }
+  }).catch(function () {
+    st.lzTierForShare = r;
+    if (stBar) {
+      stBar.textContent = 'AI 오류 · 고정 카피';
+      setTimeout(function () { if (stBar) stBar.textContent = ''; }, 2200);
+    }
+  });
+
 }
 
 function showHistory(){
