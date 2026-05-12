@@ -424,8 +424,11 @@ async function fetchLayZCopy(lz, baseTier, answers){
   const lines = (answers || []).map(function (a, i) {
     var q = Qs[i];
     if (!q) return (i + 1) + '. (응답)';
-    var pick = (q.a || [])[a.s];
-    var label = pick ? pick.t : String(a.s);
+    var label = '';
+    if (a && a.t) label = a.t;
+    else if (a && a.kw) label = '(키워드) ' + a.kw;
+    else if (typeof a.s === 'number' && q.a && q.a[a.s]) label = q.a[a.s].t;
+    else label = '(선택 요약 없음)';
     return (i + 1) + '. [' + q.cat + '] ' + q.q + ' → ' + label;
   }).join('\n');
 
@@ -460,7 +463,10 @@ async function fetchLayZCopy(lz, baseTier, answers){
   });
   const data = await res.json().catch(function () { return {}; });
   if (!res.ok) return null;
-  const raw = (data.text || '').trim();
+  var raw = typeof data.text === 'string' ? data.text.trim() : '';
+  if (!raw && data.raw && data.raw.choices && data.raw.choices[0] && data.raw.choices[0].message) {
+    raw = String(data.raw.choices[0].message.content || '').trim();
+  }
   const m = raw.match(/\{[\s\S]*\}/);
   if (!m) return null;
   try {
@@ -471,36 +477,62 @@ async function fetchLayZCopy(lz, baseTier, answers){
 }
 
 function mergeTierWithAI(base, ai) {
-  if (!ai) return base;
+  if (!ai) return { tier: base, applied: false };
+  var out = Object.assign({}, base);
+  var changed = false;
+  if (String(ai.tierName || '').trim()) {
+    out.name = String(ai.tierName).trim();
+    changed = true;
+  }
+  if (String(ai.tierTag || '').trim()) {
+    out.tag = String(ai.tierTag).trim();
+    changed = true;
+  }
+  if (String(ai.head || '').trim()) {
+    out.head = String(ai.head).trim();
+    changed = true;
+  }
+  if (String(ai.desc || '').trim()) {
+    out.desc = String(ai.desc).trim();
+    changed = true;
+  }
   var recs = Array.isArray(ai.recs) ? ai.recs : [];
-  if (recs.length < 3) return base;
-  for (var i = 0; i < 3; i++) {
-    var x = recs[i];
-    if (!x || !String(x.title || '').trim() || !String(x.desc || '').trim()) return base;
-  }
-  var rx = base.rx;
-  if (ai.rx && ai.rx.title && ai.rx.sub && Array.isArray(ai.rx.items) && ai.rx.items.length >= 3) {
-    rx = {
-      title: String(ai.rx.title).trim(),
-      sub: String(ai.rx.sub).trim(),
-      items: ai.rx.items.slice(0, 4).map(function (t) { return String(t || '').trim(); }).filter(Boolean),
-    };
-    if (rx.items.length < 3) rx = base.rx;
-  }
-  return Object.assign({}, base, {
-    name: String(ai.tierName || '').trim() || base.name,
-    tag: String(ai.tierTag || '').trim() || base.tag,
-    head: String(ai.head || '').trim() || base.head,
-    desc: String(ai.desc || '').trim() || base.desc,
-    recs: recs.slice(0, 3).map(function (x) {
-      return {
+  if (recs.length >= 3) {
+    var mapped = [];
+    var recOk = true;
+    for (var i = 0; i < 3; i++) {
+      var x = recs[i];
+      if (!x || !String(x.title || '').trim() || !String(x.desc || '').trim()) {
+        recOk = false;
+        break;
+      }
+      mapped.push({
         tag: String(x.tag || '').trim() || '추천',
         title: String(x.title || '').trim(),
         desc: String(x.desc || '').trim(),
+      });
+    }
+    if (recOk) {
+      out.recs = mapped;
+      changed = true;
+    }
+  }
+  if (ai.rx && String(ai.rx.title || '').trim() && String(ai.rx.sub || '').trim() && Array.isArray(ai.rx.items)) {
+    var items = ai.rx.items
+      .map(function (t) {
+        return String(t || '').trim();
+      })
+      .filter(Boolean);
+    if (items.length >= 3) {
+      out.rx = {
+        title: String(ai.rx.title).trim(),
+        sub: String(ai.rx.sub).trim(),
+        items: items.slice(0, 3),
       };
-    }),
-    rx: rx,
-  });
+      changed = true;
+    }
+  }
+  return { tier: changed ? out : base, applied: changed };
 }
 
 function applyLayZCopyToDom(lz, r, merged) {
@@ -930,24 +962,30 @@ function renderResult(lz,r,kws){
   },130);
   st.lzTierForShare = null;
   var stBar = document.getElementById('layz-ai-status');
+  var apiKeyTry = laylayEffectiveApiKey();
+  if (!String(apiKeyTry || '').trim()) {
+    if (stBar) stBar.textContent = 'API 키 없음 · 좌측 셸에서 키를 넣은 뒤 새로고침하거나, netlify dev로 열어 주세요.';
+    st.lzTierForShare = r;
+    return;
+  }
   if (stBar) stBar.textContent = 'AI 카피 생성 중…';
   fetchLayZCopy(lz, r, st.answers).then(function (ai) {
-    var merged = mergeTierWithAI(r, ai);
-    st.lzTierForShare = merged;
-    applyLayZCopyToDom(lz, r, merged);
+    var mr = mergeTierWithAI(r, ai);
+    st.lzTierForShare = mr.tier;
+    applyLayZCopyToDom(lz, r, mr.tier);
     if (stBar) {
-      stBar.textContent = ai ? 'AI 카피 반영됨' : '고정 카피(TIERS 폴백)';
-      setTimeout(function () { if (stBar) stBar.textContent = ''; }, 2200);
+      if (!ai) stBar.textContent = 'API 실패·빈 응답 · TIERS 고정 카피';
+      else if (mr.applied) stBar.textContent = 'AI 카피 반영됨';
+      else stBar.textContent = 'AI 응답 형식 부족 · TIERS 유지';
+      setTimeout(function () { if (stBar) stBar.textContent = ''; }, 3200);
     }
   }).catch(function () {
     st.lzTierForShare = r;
     if (stBar) {
-      stBar.textContent = 'AI 오류 · 고정 카피';
-      setTimeout(function () { if (stBar) stBar.textContent = ''; }, 2200);
+      stBar.textContent = '네트워크 오류 · TIERS 고정 카피';
+      setTimeout(function () { if (stBar) stBar.textContent = ''; }, 3200);
     }
   });
-
-}
 
 function showHistory(){
   st.hist=loadHist();

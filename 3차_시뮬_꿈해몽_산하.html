@@ -475,8 +475,8 @@ textarea { resize: none; line-height: 1.7; }
     <div class="hdr-sub">오늘의 꿈으로 당신의 운세를 읽어드릴게요</div>
   </div>
   <div class="intro-actions">
-    <button type="button" class="ia-btn" onclick="openMyDreamArchive()">내 이전 해몽 보기</button>
-    <button type="button" class="ia-btn ia-ghost" onclick="openOthersPeek()">다른 해몽 구경</button>
+    <button type="button" class="ia-btn" onclick="openMyDreamArchive()">이전에 물어본 꿈 내용</button>
+    <button type="button" class="ia-btn ia-ghost" onclick="openOthersPeek()">다른 사람의 꿈 내용</button>
   </div>
   <div class="step-bar">
     <div class="dot active" id="d0"></div>
@@ -908,13 +908,13 @@ function openPeekShell(title,sub,html){
 function openMyDreamArchive(){
   ensureSeed();
   var mine=getFeed().filter(function(x){return x._mine;}).sort(function(a,b){return(b.ts||0)-(a.ts||0);});
-  if(!mine.length){showToast('아직 저장된 내 해몽이 없어요. 한 번 받아보면 여기 쌓여요!');return;}
+  if(!mine.length){showToast('아직 저장된 꿈 기록이 없어요. 해몽을 한 번 받아보면 여기에 쌓여요!');return;}
   var html=mine.slice(0,12).map(function(it){
     var t=timeAgo(it.ts||0);
     var d=(it.dream||'').length>72?(it.dream.slice(0,72)+'…'):(it.dream||'');
     return'<div class="peek-card"><div class="peek-m">'+t+' · '+String(it.score||'')+'점</div><div class="peek-d">“'+d+'”</div></div>';
   }).join('');
-  openPeekShell('내 이전 해몽','이 기기 브라우저에만 저장된 기록이에요.',html);
+  openPeekShell('이전에 물어본 꿈 내용','해몽 결과는 이미 받아본 화면에 있어요. 여기서는 그때 적었던 꿈 글만 다시 볼 수 있어요. (이 기기 브라우저에만 저장)',html);
 }
 function openOthersPeek(){
   ensureSeed();
@@ -924,7 +924,7 @@ function openOthersPeek(){
     return'<div class="peek-card"><div class="peek-m">'+timeAgo(it.ts||0)+'</div><div class="peek-d">“'+d+'”</div></div>';
   }).join('');
   if(!html)html='<p class="peek-sub">아직 미리볼 카드가 없어요.</p>';
-  openPeekShell('다른 해몽 미리보기','레이도감에 올라온 예시·다른 기록 일부예요. (시드+저장된 피드)',html);
+  openPeekShell('다른 사람의 꿈 내용','해몽 문장은 카드마다 다르지만, 여기서는 꿈으로 적어 둔 글 위주로 미리봐요. (레이도감 시드·저장 피드)',html);
 }
 function showToast(msg){
   const t=document.getElementById('toast');
