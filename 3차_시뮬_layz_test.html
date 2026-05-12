@@ -941,8 +941,9 @@ function renderResult(lz,r,kws){
   const charClass=lz>=60?'char-slow':lz>=40?'char-slow':'char-ok';
 
   setApp(`
-    <div class="rc" data-laylay-region="layz-score" style="border-color:${r.accent}22">
+    <div class="rc" style="border-color:${r.accent}22">
       <div class="rc-head" style="background:${r.bg}">
+        <div data-laylay-region="layz-score">
         <div style="text-align:center;padding:.5rem 0 .2rem">
           <img src="${IMG_C3}" alt="레이레이 캐릭터" class="${charClass}" style="width:${charSize}px;max-width:80%;display:inline-block" loading="lazy">
         </div>
@@ -952,6 +953,8 @@ function renderResult(lz,r,kws){
           <div id="mfill" class="meter-fill" style="width:0%;background:${r.meter}"></div>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:10.5px;color:${r.tc};opacity:.45;margin-bottom:.85rem"><span>0 (비타민)</span><span>99 (전설)</span></div>
+        </div>
+        <div data-laylay-region="layz-ai-copy">
         <div id="layz-tier-badge" class="tier-badge" style="background:${r.accent};color:white">${r.tag}</div>
         <h2 id="layz-tier-name" style="font-size:1.2rem;font-weight:700;color:${r.tc};margin-bottom:.65rem;letter-spacing:-.01em">${r.name}</h2>
         ${diffHtml}
@@ -969,6 +972,7 @@ function renderResult(lz,r,kws){
           </div>
         </div>
         <p id="layz-ai-status" style="font-size:11.5px;color:var(--mute);margin-top:.65rem;text-align:center"></p>
+        </div>
       </div>
       <div class="rc-body">
         <div class="sg">

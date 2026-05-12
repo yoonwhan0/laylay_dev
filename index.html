@@ -341,17 +341,24 @@
           },
           {
             id: 'layz-score',
-            label: 'Lay-Z 점수(숫자·링)',
+            label: 'Lay-Z 점수(숫자·막대만)',
             ai: false,
-            short: '클라이언트만 (백엔드 동일 규칙 예정)',
-            detail: '0~99 지수는 Qs 답변 가중치로만 계산합니다. 링·막대·배지 색은 점수 구간에 매핑된 TIERS 디자인 토큰입니다. 같은 카드 안의 티어명·한줄·본문은 결과 진입 후 AI가 덮어쓸 수 있으며, 실패 시 TIERS 고정 카피가 남습니다.',
+            short: '클라이언트 규칙만',
+            detail: '캐릭터·「나의 Lay-Z 지수」·큰 숫자(#snum)·0~99 막대만 이 구역입니다. `calcScore()`로만 결정되며 모델 호출 없습니다.',
+          },
+          {
+            id: 'layz-ai-copy',
+            label: 'AI 본문 (#layz-ai-head·#layz-ai-desc)',
+            ai: true,
+            short: '같은 API 응답의 일부',
+            detail: '`fetchLayZCopy` JSON의 tierName·tierTag·head·desc가 여기에 들어갑니다. DOM id는 `layz-ai-head`, `layz-ai-desc`. 키워드 칩은 설문에서 온 고정 라벨이고, 어제 대비 점수 배지도 규칙 계산입니다. AI 로딩 스트립·상태 한 줄도 이 블록 안에 있습니다. 실패 시 TIERS 고정 카피가 먼저 깔린 뒤 그대로일 수 있습니다.',
           },
           {
             id: 'layz-rec',
             label: '추천·수면 처방 카피',
             ai: true,
             short: 'POST /api/openai-dev',
-            detail: '결과 화면에서 `fetchLayZCopy`가 `/api/openai-dev`를 호출해 tierName·tierTag·head·desc·recs(3)·rx(JSON)를 생성합니다. Lay-몽과 동일하게 셸 `laylay-dev-sync` + `laylayEffectiveApiKey`/`laylayEffectiveModel`을 씁니다. 실패·파싱 오류 시 TIERS 템플릿으로 폴백합니다.',
+            detail: '같은 호출의 recs(3)·rx(title·sub·items)가 아래 섹션에 반영됩니다. `layz-ai-copy`와 한 번에 받습니다. 실패·파싱 오류 시 TIERS 템플릿으로 폴백합니다.',
           },
           {
             id: 'layz-share',
