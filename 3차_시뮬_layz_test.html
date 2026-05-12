@@ -83,6 +83,30 @@ body{font-family:var(--font);color:var(--txt);-webkit-font-smoothing:antialiased
 .badge{display:inline-block;padding:.28rem .9rem;border-radius:2rem;font-size:12px;font-weight:500}
 .tier-badge{display:inline-flex;align-items:center;gap:5px;padding:.3rem .95rem;border-radius:2rem;font-size:12px;font-weight:500;margin-bottom:.85rem}
 
+/* Lay-Z: AI 작성 중 표시 */
+.layz-ai-loading{
+  margin-top:1rem;
+  padding:.95rem 1.05rem;
+  border-radius:var(--r);
+  background:linear-gradient(135deg,rgba(255,255,255,.9),rgba(255,243,232,.96));
+  border:1px solid rgba(232,68,10,.24);
+  box-shadow:0 2px 16px rgba(232,68,10,.1);
+}
+.layz-ai-loading-inner{display:flex;align-items:flex-start;gap:.9rem}
+.layz-ai-spinner{
+  width:28px;height:28px;border-radius:50%;
+  border:3px solid rgba(232,68,10,.22);
+  border-top-color:var(--or);
+  flex-shrink:0;
+  margin-top:2px;
+  animation:layzSpin .72s linear infinite;
+}
+@keyframes layzSpin{to{transform:rotate(360deg)}}
+.layz-ai-loading-title{font-size:13px;font-weight:800;color:var(--txt);letter-spacing:-.02em;margin-bottom:.28rem}
+.layz-ai-step{font-size:12.5px;color:var(--sub);line-height:1.5;min-height:2.55em}
+.layz-ai-elapsed{font-size:11px;color:var(--mute);margin-top:.35rem;font-variant-numeric:tabular-nums}
+.layz-ai-loading-done{display:none !important}
+
 /* Week chart */
 .wk-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
 .wk-bar-wrap{width:100%;flex:1;display:flex;flex-direction:column;justify-content:flex-end}
@@ -396,6 +420,20 @@ window.addEventListener('message',function(e){
   clearTimeout(window._laylayHlT);
   window._laylayHlT=setTimeout(function(){el.classList.remove('laylay-shell-highlight');},3200);
 });
+function reportLayZRuntime(status, elapsedMs, detail){
+  try{
+    if(window.parent&&window.parent!==window){
+      window.parent.postMessage({
+        source:'laylay-sim',
+        type:'runtime',
+        sim:'Lay-Z',
+        status:status,
+        elapsed_ms:typeof elapsedMs==='number'?elapsedMs:null,
+        detail:detail||''
+      },'*');
+    }
+  }catch(e){}
+}
 function laylayEffectiveApiKey(){
   try{
     var s=sessionStorage.getItem('_laylay_shell_api');
@@ -417,6 +455,7 @@ async function fetchLayZCopy(lz, baseTier, answers){
     '당신은 브랜드 "Lay-Z"의 오늘 컨디션 카피 작가입니다.',
     '말투: 친근한 반말/해요체 혼용 가능하나 가볍고 유머 있게. 진부한 운세체·번역투·과한 한자어 나열은 피합니다.',
     '의학·법률·투자·진단처럼 들리는 단정은 금지. 재미·자기인식용이며 점수는 이미 확정입니다.',
+    '카피는 짧게 끊기지 말고 여유 있게: 공감 한두 문장, 오늘 상태를 구체적으로 풀어 쓰기, 문항에서 드러난 뉘앙스를 한두 번은 직접 짚어 주기.',
     '출력은 반드시 요청된 JSON 한 덩어리만. JSON 바깥 텍스트·마크다운·코드펜스 금지.',
     'Lay-Z 지수 숫자는 사용자가 준 값이며 절대 바꾸거나 재해석하지 마세요.'
   ].join('\n');
@@ -441,8 +480,9 @@ async function fetchLayZCopy(lz, baseTier, answers){
     lines,
     '',
     '반드시 유효한 JSON 하나만 출력. 키 정확히 일치.',
-    '{"tierName":"…","tierTag":"…","head":"1문장 헤드","desc":"2~4문장 본문","recs":[{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"}],"rx":{"title":"수면 가이드 제목","sub":"한 줄 부제","items":["항목1","항목2","항목3"]}}',
-    'recs는 정확히 3개. rx.items는 정확히 3개의 짧은 문장.'
+    '{"tierName":"…","tierTag":"…","head":"2문장 이내 한 덩어리(임팩트 있는 헤드)","desc":"5~9문장 본문. 공감·구체 묘사·가벼운 유머 가능. 문항 요약에서 단서를 2회 이상 인용하듯 짚을 것.","recs":[{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"}],"rx":{"title":"수면 가이드 제목","sub":"한 줄 부제","items":["항목1","항목2","항목3"]}}',
+    'recs는 정확히 3개. 각 rec.desc는 4~8문장 분량으로 행동 이유·기대 효과·주의를 풍부하게.',
+    'rx.items는 정확히 3개. 각 항목은 2~5문장(짧은 단락)으로 수면·회복에 도움이 되는 실천을 구체적으로.'
   ].join('\n');
 
   const apiKey = laylayEffectiveApiKey();
@@ -457,8 +497,8 @@ async function fetchLayZCopy(lz, baseTier, answers){
         { role: 'system', content: layzSystem },
         { role: 'user', content: user },
       ],
-      max_tokens: 1400,
-      temperature: 0.7,
+      max_tokens: 2400,
+      temperature: 0.72,
     }),
   });
   const data = await res.json().catch(function () { return {}; });
@@ -552,8 +592,14 @@ function applyLayZCopyToDom(lz, r, merged) {
   var rt = document.getElementById('layz-rx-title');
   var rs = document.getElementById('layz-rx-sub');
   var ri = document.getElementById('layz-rx-items');
-  if (h) h.textContent = merged.head;
-  if (d) d.textContent = merged.desc;
+  if (h) {
+    h.textContent = merged.head;
+    h.style.whiteSpace = 'pre-line';
+  }
+  if (d) {
+    d.textContent = merged.desc;
+    d.style.whiteSpace = 'pre-line';
+  }
   if (badge) badge.textContent = merged.tag;
   if (name) name.textContent = merged.name;
   if (list) {
@@ -568,7 +614,7 @@ function applyLayZCopyToDom(lz, r, merged) {
           rec.tag +
           '</div><div style="font-size:14.5px;font-weight:700;color:var(--txt);margin-bottom:.3rem">' +
           rec.title +
-          '</div><p style="font-size:12.5px;color:var(--sub);line-height:1.55">' +
+          '</div><p style="font-size:12.5px;color:var(--sub);line-height:1.6;white-space:pre-line">' +
           rec.desc +
           '</p></div>'
         );
@@ -583,7 +629,7 @@ function applyLayZCopyToDom(lz, r, merged) {
         return (
           '<div class="rx-item"><div class="rx-num">' +
           (idx + 1) +
-          '</div><div style="font-size:13.5px;color:rgba(255,255,255,.85);line-height:1.6">' +
+          '</div><div style="font-size:13.5px;color:rgba(255,255,255,.85);line-height:1.65;white-space:pre-line">' +
           item +
           '</div></div>'
         );
@@ -909,9 +955,19 @@ function renderResult(lz,r,kws){
         <div id="layz-tier-badge" class="tier-badge" style="background:${r.accent};color:white">${r.tag}</div>
         <h2 id="layz-tier-name" style="font-size:1.2rem;font-weight:700;color:${r.tc};margin-bottom:.65rem;letter-spacing:-.01em">${r.name}</h2>
         ${diffHtml}
-        <p id="layz-ai-head" style="font-size:14px;color:${r.tc};line-height:1.75;opacity:.82;margin-bottom:.5rem">${r.head}</p>
-        <p id="layz-ai-desc" style="font-size:13.5px;color:${r.tc};line-height:1.7;opacity:.68">${r.desc}</p>
+        <p id="layz-ai-head" style="font-size:14px;color:${r.tc};line-height:1.75;opacity:.82;margin-bottom:.5rem;white-space:pre-line">${r.head}</p>
+        <p id="layz-ai-desc" style="font-size:13.5px;color:${r.tc};line-height:1.7;opacity:.68;white-space:pre-line">${r.desc}</p>
         ${chipsHtml}
+        <div id="layz-ai-loading" class="layz-ai-loading" aria-live="polite">
+          <div class="layz-ai-loading-inner">
+            <div class="layz-ai-spinner" aria-hidden="true"></div>
+            <div class="layz-ai-loading-text">
+              <div class="layz-ai-loading-title">AI가 오늘 결과 문구를 작성 중</div>
+              <div id="layz-ai-step" class="layz-ai-step">8문항 응답을 한 줄로 묶는 중…</div>
+              <div id="layz-ai-elapsed" class="layz-ai-elapsed">0.0초</div>
+            </div>
+          </div>
+        </div>
         <p id="layz-ai-status" style="font-size:11.5px;color:var(--mute);margin-top:.65rem;text-align:center"></p>
       </div>
       <div class="rc-body">
@@ -934,7 +990,7 @@ function renderResult(lz,r,kws){
         <div class="rec">
           <div class="rec-tag" style="background:${r.bg};color:${r.tc}">${rec.tag}</div>
           <div style="font-size:14.5px;font-weight:700;color:var(--txt);margin-bottom:.3rem">${rec.title}</div>
-          <p style="font-size:12.5px;color:var(--sub);line-height:1.55">${rec.desc}</p>
+          <p style="font-size:12.5px;color:var(--sub);line-height:1.6;white-space:pre-line">${rec.desc}</p>
         </div>`).join('')}</div>
     </div>
 
@@ -951,7 +1007,7 @@ function renderResult(lz,r,kws){
       <div id="layz-rx-items">${r.rx.items.map((item,i)=>`
         <div class="rx-item">
           <div class="rx-num">${i+1}</div>
-          <div style="font-size:13.5px;color:rgba(255,255,255,.85);line-height:1.6">${item}</div>
+          <div style="font-size:13.5px;color:rgba(255,255,255,.85);line-height:1.65;white-space:pre-line">${item}</div>
         </div>`).join('')}</div>
     </div>
     </div>
@@ -970,16 +1026,50 @@ function renderResult(lz,r,kws){
   },130);
   st.lzTierForShare = null;
   var stBar = document.getElementById('layz-ai-status');
-  var hasClientKey = !!String(laylayEffectiveApiKey() || '').trim();
-  if (stBar) {
-    stBar.textContent = hasClientKey
-      ? 'AI 카피 생성 중…'
-      : 'AI 카피 생성 중… (서버 OPENAI_API_KEY 사용 시도 — netlify dev 등)';
+  var loadEl = document.getElementById('layz-ai-loading');
+  var stepEl = document.getElementById('layz-ai-step');
+  var elapsedEl = document.getElementById('layz-ai-elapsed');
+  try {
+    if (window.__layzStepTimer) clearInterval(window.__layzStepTimer);
+    if (window.__layzElTimer) clearInterval(window.__layzElTimer);
+  } catch (e) {}
+  if (stBar) stBar.textContent = '';
+  var stepMsgs = [
+    '8문항 응답을 패턴으로 묶는 중…',
+    'Lay-Z 톤에 맞게 말맛 다듬는 중…',
+    '추천 행동·수면 가이드를 풀어 쓰는 중…',
+    'JSON으로 정리해 화면에 붙이는 중…'
+  ];
+  var stepIdx = 0;
+  var tAi0 = performance.now();
+  window.__layzStepTimer = setInterval(function () {
+    stepIdx = (stepIdx + 1) % stepMsgs.length;
+    if (stepEl) stepEl.textContent = stepMsgs[stepIdx];
+  }, 1300);
+  window.__layzElTimer = setInterval(function () {
+    if (elapsedEl)
+      elapsedEl.textContent = ((performance.now() - tAi0) / 1000).toFixed(1) + '초 경과';
+  }, 110);
+  function stopLayZAiLoading() {
+    try {
+      if (window.__layzStepTimer) clearInterval(window.__layzStepTimer);
+      if (window.__layzElTimer) clearInterval(window.__layzElTimer);
+    } catch (e) {}
+    window.__layzStepTimer = window.__layzElTimer = null;
+    if (loadEl) {
+      loadEl.style.display = 'none';
+      loadEl.setAttribute('aria-hidden', 'true');
+    }
   }
   fetchLayZCopy(lz, r, st.answers).then(function (ai) {
+    var elapsed = Math.round(performance.now() - tAi0);
+    stopLayZAiLoading();
     var mr = mergeTierWithAI(r, ai);
     st.lzTierForShare = mr.tier;
     applyLayZCopyToDom(lz, r, mr.tier);
+    if (ai && mr.applied) reportLayZRuntime('GPT 카피', elapsed, '본문·추천·수면 반영');
+    else if (ai) reportLayZRuntime('GPT', elapsed, '형식 부족·TIERS 유지');
+    else reportLayZRuntime('TIERS', elapsed, 'API/파싱');
     if (stBar) {
       if (!ai) {
         var lf = window.__layzLastFetch;
@@ -987,16 +1077,22 @@ function renderResult(lz,r,kws){
           stBar.textContent =
             'OpenAI 키 없음(클라이언트·서버 모두) · netlify dev에 OPENAI_API_KEY 설정 또는 셸에서 키 동기화';
         else stBar.textContent = 'API 실패·빈 응답 · TIERS 고정 카피';
-      }
-      else if (mr.applied) stBar.textContent = 'AI 카피 반영됨';
+      } else if (mr.applied) stBar.textContent = 'AI 카피 반영됨 · 약 ' + elapsed + 'ms';
       else stBar.textContent = 'AI 응답 형식 부족 · TIERS 유지';
-      setTimeout(function () { if (stBar) stBar.textContent = ''; }, 3200);
+      setTimeout(function () {
+        if (stBar) stBar.textContent = '';
+      }, 3200);
     }
   }).catch(function () {
+    var elapsed = Math.round(performance.now() - tAi0);
+    stopLayZAiLoading();
     st.lzTierForShare = r;
+    reportLayZRuntime('TIERS', elapsed, '네트워크');
     if (stBar) {
       stBar.textContent = '네트워크 오류 · TIERS 고정 카피';
-      setTimeout(function () { if (stBar) stBar.textContent = ''; }, 3200);
+      setTimeout(function () {
+        if (stBar) stBar.textContent = '';
+      }, 3200);
     }
   });
 }
