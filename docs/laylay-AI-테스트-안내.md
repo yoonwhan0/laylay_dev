@@ -8,7 +8,7 @@
 
 안녕하세요,
 
-현재 `index.html`은 **좌측 고정 패널**(설정) + **우측 시뮬 화면**으로 구성됩니다.  
+현재 `site/index.html`은 **좌측 고정 패널**(설정) + **우측 시뮬 화면**으로 구성됩니다.  
 상단 안내는 자동으로 다음처럼 보여줍니다.  
 - **테스트 환경으로 보이면:** “API 키 수동 입력 후 테스트”  
 - **실배포 환경으로 보이면:** “서버 환경변수(`OPENAI_API_KEY`)가 있으면 키 입력 없이 모델만 선택”  
@@ -34,7 +34,7 @@
 
 ### Lay-몽 — **메인 GPT 프롬프트가 이미 있음**
 
-`3차_시뮬_꿈해몽_산하.html` 의 **`async function startDream()`** 안에, 꿈 해몽 전문가 역할 설정 + 사용자 생년·꿈·기분 변수를 끼워 넣은 **긴 사용자 프롬프트 문자열(`prompt`)** 이 이미 존재합니다.  
+`site/sim/lay-mong.html` 의 **`async function startDream()`** 안에, 꿈 해몽 전문가 역할 설정 + 사용자 생년·꿈·기분 변수를 끼워 넣은 **긴 사용자 프롬프트 문자열(`prompt`)** 이 이미 존재합니다.  
 반환 형식은 **고정 JSON 스키마**를 강하게 요구하는 문구까지 포함되어 있어, UI(`renderResult`)와 1:1로 맞춰 두었습니다.  
 별도 「시스템 메시지」 분리 없이 **`messages: [{ role: 'user', content: prompt }]`** 한 번에 보내는 구조입니다.
 
@@ -50,7 +50,7 @@
 
 ---
 
-## 3. Lay-Z력 테스트 (`3차_시뮬_layz_test.html`) — AI가 의미 있게 붙는 지점
+## 3. Lay-Z력 테스트 (`site/sim/layz.html`) — AI가 의미 있게 붙는 지점
 
 | 구간 | 설명 |
 |------|------|
@@ -61,7 +61,7 @@
 
 ---
 
-## 4. Lay-몽 (`3차_시뮬_꿈해몽_산하.html`) — AI가 의미 있게 붙는 지점
+## 4. Lay-몽 (`site/sim/lay-mong.html`) — AI가 의미 있게 붙는 지점
 
 | 구간 | `data-laylay-ai` (참조용) | 설명 |
 |------|---------------------------|------|
@@ -78,11 +78,11 @@
 
 | 파일 | 역할 |
 |------|------|
-| `index.html` | 시뮬 탭 전환 + GPT 패널 UI |
+| `site/index.html` | 시뮬 탭 전환 + GPT 패널 UI |
 | `netlify/functions/openai-dev-chat.js` | OpenAI Chat Completions 프록시 (CORS 회피) |
 | `netlify.toml` | `/api/openai-dev` 리다이렉트 |
-| `3차_시뮬_layz_test.html` | Lay-Z 시뮬 + 결과 코멘트 슬롯 |
-| `3차_시뮬_꿈해몽_산하.html` | Lay-몽 시뮬 + GPT JSON 해몽 |
+| `site/sim/layz.html` | Lay-Z 시뮬 + 결과 코멘트 슬롯 |
+| `site/sim/lay-mong.html` | Lay-몽 시뮬 + GPT JSON 해몽 |
 
 ---
 

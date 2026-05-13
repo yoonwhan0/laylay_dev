@@ -56,16 +56,31 @@
     padding: 8px 16px;
     border-radius: 999px;
     cursor: pointer;
-    transition: background .15s, border-color .15s, color .15s;
+    transition: background .22s, border-color .22s, color .22s, box-shadow .22s, transform .18s;
   }
   .tab:hover {
     background: rgba(255,255,255,.1);
     border-color: rgba(255,255,255,.18);
+    transform: translateY(-1px);
   }
-  .tab[aria-selected="true"] {
-    background: #e8440a;
-    border-color: #e85925;
+  .tabs.tabs--mong .tab[aria-selected="true"] {
+    background: linear-gradient(135deg, #5c4ec4 0%, #8b6bc9 45%, #b8943a 100%);
+    border-color: rgba(201,168,76,.45);
     color: #fff;
+    box-shadow: 0 4px 22px rgba(92,78,196,.35), 0 0 0 1px rgba(255,255,255,.12) inset;
+  }
+  .tabs.tabs--layz .tab[aria-selected="true"] {
+    background: linear-gradient(135deg, #e8440a 0%, #f06a1a 50%, #ffb347 100%);
+    border-color: rgba(255,180,100,.4);
+    color: #fff;
+    box-shadow: 0 4px 22px rgba(232,68,10,.4), 0 0 0 1px rgba(255,255,255,.1) inset;
+  }
+  .tabs.tabs--mong .tab[aria-selected="false"],
+  .tabs.tabs--layz .tab[aria-selected="false"] {
+    background: rgba(255,255,255,.05);
+    border-color: rgba(255,255,255,.12);
+    color: rgba(243,237,230,.72);
+    box-shadow: none;
   }
 
   .split {
@@ -152,15 +167,81 @@
     flex: 1;
     min-width: 0;
     position: relative;
-    background: #0d0c0b;
+    background: #060504;
+    overflow: hidden;
   }
-  .frame-wrap iframe {
+  .frame-viewport {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  .frame-viewport::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 3;
+    box-shadow:
+      inset 0 0 100px rgba(0,0,0,.5),
+      inset 0 0 0 1px rgba(255,255,255,.05);
+  }
+  .frame-viewport::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 38%,
+      rgba(255,255,255,.07) 50%,
+      transparent 62%
+    );
+    background-size: 200% 100%;
+    transition: opacity .15s;
+  }
+  .frame-wrap.frame-wrap--motion .frame-viewport::after {
+    opacity: 1;
+    animation: simSheen 0.85s ease-out both;
+  }
+  @keyframes simSheen {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+  .frame-track {
+    display: flex;
+    width: 200%;
+    height: 100%;
+    transform: translate3d(0, 0, 0);
+    transition: transform 0.72s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+  .frame-track--layz { transform: translate3d(-50%, 0, 0); }
+  .frame-pane {
+    width: 50%;
+    height: 100%;
+    flex-shrink: 0;
+    position: relative;
+    transition: filter 0.45s ease, transform 0.72s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .frame-wrap.frame-wrap--motion .frame-pane {
+    filter: saturate(1.06) contrast(1.02);
+  }
+  .frame-pane--mong { box-shadow: 8px 0 36px rgba(0,0,0,.4); }
+  .frame-pane--layz { box-shadow: -8px 0 36px rgba(0,0,0,.45); }
+  .frame-pane iframe {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     border: 0;
     display: block;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .frame-track { transition: none !important; }
+    .frame-pane { transition: none !important; }
+    .frame-wrap.frame-wrap--motion .frame-viewport::after { animation: none !important; opacity: 0 !important; }
   }
 
   /* 우측: AI 담당 영역 맵 */
@@ -264,9 +345,9 @@
   <div class="shell-top">
     <header class="shell-head">
       <span class="shell-brand">시뮬 전환</span>
-      <div class="tabs" role="tablist" aria-label="시뮬 선택">
-        <button type="button" class="tab" role="tab" id="tab-layz" aria-selected="true" aria-controls="panel-sim">Lay-Z력 테스트</button>
-        <button type="button" class="tab" role="tab" id="tab-mong" aria-selected="false" aria-controls="panel-sim">Lay-몽</button>
+      <div class="tabs tabs--mong" role="tablist" id="sim-tabs" aria-label="시뮬 선택">
+        <button type="button" class="tab" role="tab" id="tab-layz" aria-selected="false" aria-controls="panel-sim">Lay-Z력 테스트</button>
+        <button type="button" class="tab" role="tab" id="tab-mong" aria-selected="true" aria-controls="panel-sim">Lay-몽</button>
       </div>
     </header>
   </div>
@@ -275,7 +356,7 @@
     <aside class="dev-rail" id="dev-rail" aria-label="AI 설정">
       <p class="dev-rail-caption">좌측: 모델 등 AI 설정 · 가운데: 시뮬 · 우측: AI 담당 맵</p>
       <div class="dev-mode" id="dev-mode-msg"></div>
-      <div class="dev-sim-pill" id="dev-active-sim">지금 보는 시뮬: Lay-Z력 테스트</div>
+      <div class="dev-sim-pill" id="dev-active-sim">지금 보는 시뮬: Lay-몽</div>
       <p class="dev-hint">키 입력은 제거했습니다. 모델만 선택해서 테스트하세요.<br>동작 기준은 서버 환경변수 <code>OPENAI_API_KEY</code> 입니다.</p>
       <div class="dev-runtime" id="dev-runtime-box">런타임 대기 중…</div>
       <div class="dev-field">
@@ -298,7 +379,16 @@
     </aside>
 
     <div class="frame-wrap" role="tabpanel" id="panel-sim">
-      <iframe id="sim-frame" title="선택한 시뮬" src="3차_시뮬_layz_test.html"></iframe>
+      <div class="frame-viewport">
+        <div class="frame-track frame-track--mong" id="frame-track">
+          <div class="frame-pane frame-pane--mong">
+            <iframe id="sim-frame-mong" title="Lay-몽" src="sim/lay-mong.html"></iframe>
+          </div>
+          <div class="frame-pane frame-pane--layz">
+            <iframe id="sim-frame-layz" title="Lay-Z력 테스트" src="sim/layz.html"></iframe>
+          </div>
+        </div>
+      </div>
     </div>
 
     <aside class="cov-rail" id="cov-rail" aria-label="AI 담당 영역">
@@ -311,11 +401,17 @@
 
   <script>
     (function () {
-      var srcs = {
-        layz: '3차_시뮬_layz_test.html',
-        mong: '3차_시뮬_꿈해몽_산하.html',
-      };
-      var frame = document.getElementById('sim-frame');
+      var track = document.getElementById('frame-track');
+      var panelSim = document.getElementById('panel-sim');
+      var simTabs = document.getElementById('sim-tabs');
+      var frameMong = document.getElementById('sim-frame-mong');
+      var frameLayz = document.getElementById('sim-frame-layz');
+      var currentKey = null;
+
+      function activeFrame() {
+        return currentKey === 'layz' ? frameLayz : frameMong;
+      }
+
       var tabs = [
         { el: document.getElementById('tab-layz'), key: 'layz' },
         { el: document.getElementById('tab-mong'), key: 'mong' },
@@ -481,7 +577,22 @@
       }
 
       function select(key) {
-        frame.src = srcs[key];
+        if (currentKey !== null && key === currentKey) return;
+        var prev = currentKey;
+        currentKey = key;
+        track.classList.remove('frame-track--mong', 'frame-track--layz');
+        track.classList.add(key === 'mong' ? 'frame-track--mong' : 'frame-track--layz');
+        if (simTabs) {
+          simTabs.classList.remove('tabs--mong', 'tabs--layz');
+          simTabs.classList.add(key === 'mong' ? 'tabs--mong' : 'tabs--layz');
+        }
+        if (prev !== null && prev !== key && panelSim) {
+          panelSim.classList.add('frame-wrap--motion');
+          clearTimeout(window._simSlideT);
+          window._simSlideT = setTimeout(function () {
+            panelSim.classList.remove('frame-wrap--motion');
+          }, 820);
+        }
         tabs.forEach(function (t) {
           var on = t.key === key;
           t.el.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -497,6 +608,7 @@
           runtimeBox.textContent = 'Lay-몽 실행 시 런타임이 여기 표시됩니다.';
         }
         renderCoverage(key);
+        broadcastDevToFrame();
       }
 
       tabs[0].el.addEventListener('click', function () { select('layz'); });
@@ -520,29 +632,29 @@
         } catch (e) {}
       }
 
-      /** iframe에 현재 패널 키·모델을 반드시 넣어야 MOCK으로 안 떨어집니다(localStorage 분리 문제 방지). */
+      /** 두 iframe 모두에 모델 동기화(전환 시 대기 중인 쪽까지 반영) */
       function broadcastDevToFrame() {
-        if (!frame.contentWindow) return;
         pushModelToShellSession();
-        try {
-          frame.contentWindow.postMessage(
-            {
-              source: 'laylay-shell',
-              type: 'laylay-dev-sync',
-              apiKey: '',
-              model: resolvedModel(),
-            },
-            '*'
-          );
-        } catch (e) {}
+        var payload = {
+          source: 'laylay-shell',
+          type: 'laylay-dev-sync',
+          apiKey: '',
+          model: resolvedModel(),
+        };
+        [frameMong, frameLayz].forEach(function (fr) {
+          try {
+            if (fr.contentWindow) fr.contentWindow.postMessage(payload, '*');
+          } catch (e) {}
+        });
       }
 
       /** 우측 대시보드에서 선택한 구역을 iframe 안에서 붉게 깜빡임 */
       function broadcastHighlight(regionId) {
         if (regionId === 'mong-mock') regionId = 'mong-fortune';
-        if (!frame.contentWindow || !regionId) return;
+        var fr = activeFrame();
+        if (!fr.contentWindow || !regionId) return;
         try {
-          frame.contentWindow.postMessage(
+          fr.contentWindow.postMessage(
             {
               source: 'laylay-shell',
               type: 'laylay-highlight',
@@ -566,8 +678,10 @@
         broadcastDevToFrame();
       });
 
-      frame.addEventListener('load', function () {
-        broadcastDevToFrame();
+      [frameMong, frameLayz].forEach(function (fr) {
+        fr.addEventListener('load', function () {
+          broadcastDevToFrame();
+        });
       });
 
       pushModelToShellSession();
@@ -587,6 +701,9 @@
       window.addEventListener('message', function (e) {
         var d = e.data;
         if (!d || d.source !== 'laylay-sim' || d.type !== 'runtime') return;
+        var af = activeFrame();
+        if (!af || !af.contentWindow) return;
+        if (e.source !== af.contentWindow) return;
         var ms = typeof d.elapsed_ms === 'number' ? d.elapsed_ms + 'ms' : '-';
         var status = d.status || 'unknown';
         var detail = d.detail ? ' / ' + d.detail : '';
@@ -594,8 +711,7 @@
       });
 
       updateModeGuide();
-      select('layz');
-      broadcastDevToFrame();
+      select('mong');
     })();
   </script>
 </body>

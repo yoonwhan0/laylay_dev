@@ -1,6 +1,6 @@
 # Lay-Z / Lay-몽 시뮬 — 소비자 구조·목적·프롬프트 정리
 
-> 기준 코드: `3차_시뮬_layz_test.html`, `3차_시뮬_꿈해몽_산하.html`, 셸 `index.html`  
+> 기준 코드: `site/sim/layz.html`, `site/sim/lay-mong.html`, 개발 셸 `site/index.html`  
 > “프롬프트”는 **LLM에 넣는 문자열**과, Lay-Z처럼 **질문·선지가 곧 입력 설계인 경우**를 구분해 적었습니다.
 
 ---
