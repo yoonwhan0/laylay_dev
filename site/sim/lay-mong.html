@@ -311,6 +311,9 @@ body {
     animation: none !important;
     transform: translate3d(0, 0, 0) !important;
   }
+  .mong-main-ui--intro-reveal {
+    animation: none !important;
+  }
   .mong-sw-overlay {
     transition: none !important;
   }
@@ -719,29 +722,6 @@ textarea { resize: none; line-height: 1.7; }
 .dream-card.mong-dogam-card-in {
   animation: mongCardRise .58s cubic-bezier(.22,1,.36,1) both;
 }
-/* 오프닝 끝날 때까지 기입·버튼 블록 비표시(오버레이 전 깜빡임 방지) */
-#mong-form-reveal.mong-form-reveal--intro-wait {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  filter: blur(8px);
-}
-/* 첫 방문: 폼 영역 부드럽게 등장 */
-#mong-form-reveal.mong-form-reveal--entering {
-  animation: mongFormReveal 1.22s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-}
-@keyframes mongFormReveal {
-  from {
-    opacity: 0;
-    transform: translateY(28px) scale(0.97);
-    filter: blur(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0);
-  }
-}
 .shell.mong-intro-active .mong-standalone-dogang .dogang-title {
   background: linear-gradient(90deg, var(--gold-l), var(--lav-l), var(--gold-l));
   background-size: 200% auto;
@@ -803,6 +783,30 @@ textarea { resize: none; line-height: 1.7; }
 /* fade */
 @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
 .fi { animation: fadeUp .45s ease both; }
+
+/* 메인 UI(헤더+폼): 오프닝 후 한 번에 페이드인 — 셸 .fi 와 이중 페이드 방지 */
+.mong-main-ui {
+  position: relative;
+  z-index: 1;
+}
+.mong-main-ui--intro-wait {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.mong-main-ui--intro-reveal {
+  animation: mongMainUiReveal 1s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes mongMainUiReveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* 셸에서 구역 하이라이트(붉은 깜빡임) */
 .laylay-shell-highlight{
@@ -881,14 +885,15 @@ textarea { resize: none; line-height: 1.7; }
 </div>
 
 <div class="wrap">
-<div class="shell fi">
+<div class="shell">
+  <div id="mong-main-ui" class="mong-main-ui mong-main-ui--intro-wait">
   <!-- Header -->
   <div class="hdr">
     <div class="brand">Lay Lay DTC</div>
     <div class="hdr-title">Lay-몽</div>
     <div class="hdr-sub">오늘의 꿈으로 당신의 운세를 읽어드릴게요</div>
   </div>
-  <div id="mong-form-reveal" class="mong-form-reveal mong-form-reveal--intro-wait">
+  <div id="mong-form-reveal" class="mong-form-reveal">
   <div class="intro-actions">
     <button type="button" class="ia-btn" onclick="openMyDreamArchive()">이전에 물어본 꿈 내용</button>
     <button type="button" class="ia-btn ia-ghost" onclick="goToDreamGallery()">다른 사람의 꿈 내용</button>
@@ -945,6 +950,7 @@ textarea { resize: none; line-height: 1.7; }
     <button class="btn-go" onclick="startDream()">✦ 해몽 시작하기</button>
   </div>
   </div>
+  </div><!-- /#mong-main-ui -->
 
   <div id="mong-standalone-dogang" class="mong-standalone-dogang" aria-label="레이도감 미리보기">
     <div class="mong-standalone-inner" id="mong-standalone-inner">
@@ -1501,7 +1507,6 @@ function goToDreamGallery(opts){
 function closeDreamGallery(opts){
   opts = opts || {};
   var shell = document.querySelector('.shell');
-  var reveal = document.getElementById('mong-form-reveal');
   var hint = document.getElementById('mong-intro-hint-line');
   resetIntroGalleryVisual();
   if (shell) {
@@ -1509,13 +1514,16 @@ function closeDreamGallery(opts){
     if (!opts.keepIntroClass) shell.classList.remove('mong-intro-active');
   }
   if (hint) hint.hidden = true;
-  if (opts.fromIntro && reveal) {
-    reveal.classList.remove('mong-form-reveal--entering');
-    void reveal.offsetWidth;
-    reveal.classList.add('mong-form-reveal--entering');
-    setTimeout(function () {
-      reveal.classList.remove('mong-form-reveal--entering');
-    }, 1200);
+  if (opts.fromIntro) {
+    var mainUi2 = document.getElementById('mong-main-ui');
+    if (mainUi2) {
+      mainUi2.classList.remove('mong-main-ui--intro-reveal');
+      void mainUi2.offsetWidth;
+      mainUi2.classList.add('mong-main-ui--intro-reveal');
+      window.setTimeout(function () {
+        mainUi2.classList.remove('mong-main-ui--intro-reveal');
+      }, 1100);
+    }
   }
 }
 /** 새로고침할 때마다: 플래시·로고 → 결과 카드 슬라이드 → 페이드아웃 후 입력 폼 */
@@ -1523,10 +1531,16 @@ function runStarWarsOpen(){
   var overlay = document.getElementById('mong-sw-overlay');
   var track = document.getElementById('mong-sw-credits-track');
   var shell = document.querySelector('.shell');
-  var reveal = document.getElementById('mong-form-reveal');
   if (!overlay || !track || !shell) {
-    var r0 = document.getElementById('mong-form-reveal');
-    if (r0) r0.classList.remove('mong-form-reveal--intro-wait');
+    var main0 = document.getElementById('mong-main-ui');
+    if (main0) {
+      main0.classList.remove('mong-main-ui--intro-wait');
+      void main0.offsetWidth;
+      main0.classList.add('mong-main-ui--intro-reveal');
+      window.setTimeout(function () {
+        main0.classList.remove('mong-main-ui--intro-reveal');
+      }, 1100);
+    }
     return;
   }
 
@@ -1558,20 +1572,21 @@ function runStarWarsOpen(){
     overlay.classList.remove('mong-sw-overlay--fade', 'mong-sw-impact');
     overlay.hidden = true;
     shell.classList.remove('mong-sw-playing');
-    if (reveal) {
-      reveal.classList.remove('mong-form-reveal--intro-wait', 'mong-form-reveal--entering');
-      void reveal.offsetWidth;
-      reveal.classList.add('mong-form-reveal--entering');
+    var mainUi = document.getElementById('mong-main-ui');
+    if (mainUi) {
+      mainUi.classList.remove('mong-main-ui--intro-wait', 'mong-main-ui--intro-reveal');
+      void mainUi.offsetWidth;
+      mainUi.classList.add('mong-main-ui--intro-reveal');
       window.setTimeout(function () {
-        reveal.classList.remove('mong-form-reveal--entering');
-      }, 1200);
+        mainUi.classList.remove('mong-main-ui--intro-reveal');
+      }, 1100);
     }
   }, doneAt);
 }
 
-/** .shell.fi 의 fadeUp(0.45s) 동안 부모 opacity 때문에 오버레이가 안 보이는 것을 피함 */
+/** 오버레이 표시 직전 짧은 안정화(레이아웃 한 프레임) */
 function scheduleStarWarsOpen(){
-  window.setTimeout(runStarWarsOpen, 560);
+  window.setTimeout(runStarWarsOpen, 120);
 }
 function showToast(msg){
   const t=document.getElementById('toast');
