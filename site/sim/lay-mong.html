@@ -590,6 +590,11 @@ textarea { resize: none; line-height: 1.7; }
 }
 .shell.mong-shell--feed-focus .mong-standalone-dogang { display: block; }
 .shell.mong-shell--feed-focus #mong-form-reveal { display: none !important; }
+/* 결과/로딩이 켜진 채로 갤러리 열리면 탭 레이도감과 스탠드얼론이 겹침 → 피드 포커스 중엔 숨김 */
+.shell.mong-shell--feed-focus #s-result,
+.shell.mong-shell--feed-focus #s-load {
+  display: none !important;
+}
 .mong-standalone-inner {
   padding: 1rem 1.35rem 1.1rem;
   border-top: 0.5px solid var(--border);
@@ -1491,8 +1496,6 @@ function goToDreamGallery(opts){
   if (!shell) return;
   resetIntroGalleryVisual();
   shell.classList.add('mong-shell--feed-focus');
-  var sr = document.getElementById('s-result');
-  if (sr && sr.style.display === 'block') switchTab(1);
   ensureSeed();
   renderFeed();
   var hint = document.getElementById('mong-intro-hint-line');
