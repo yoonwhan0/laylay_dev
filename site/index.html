@@ -182,32 +182,44 @@
     pointer-events: none;
     z-index: 3;
     box-shadow:
-      inset 0 0 100px rgba(0,0,0,.5),
-      inset 0 0 0 1px rgba(255,255,255,.05);
+      inset 0 0 140px rgba(0, 0, 0, 0.42),
+      inset 0 0 60px rgba(0, 0, 0, 0.22),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   }
   .frame-viewport::after {
     content: '';
     position: absolute;
-    inset: 0;
+    inset: -12%;
     pointer-events: none;
     z-index: 2;
     opacity: 0;
+    /* 넓은 스톱 + soft-light로 딱 끊기는 밴딩 완화 */
     background: linear-gradient(
-      105deg,
-      transparent 38%,
-      rgba(255,255,255,.07) 50%,
-      transparent 62%
+      102deg,
+      rgba(255, 255, 255, 0) 28%,
+      rgba(255, 255, 255, 0.012) 38%,
+      rgba(255, 255, 255, 0.04) 44%,
+      rgba(255, 255, 255, 0.078) 49.5%,
+      rgba(255, 255, 255, 0.078) 50.5%,
+      rgba(255, 255, 255, 0.04) 56%,
+      rgba(255, 255, 255, 0.012) 62%,
+      rgba(255, 255, 255, 0) 72%
     );
-    background-size: 200% 100%;
-    transition: opacity .15s;
+    background-size: 280% 100%;
+    background-repeat: no-repeat;
+    transition: opacity 0.22s ease;
+    mix-blend-mode: soft-light;
+    filter: blur(18px);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
   }
   .frame-wrap.frame-wrap--motion .frame-viewport::after {
-    opacity: 1;
-    animation: simSheen 0.85s ease-out both;
+    opacity: 0.92;
+    animation: simSheen 1.2s cubic-bezier(0.22, 0.82, 0.28, 1) both;
   }
   @keyframes simSheen {
-    0% { background-position: 100% 0; }
-    100% { background-position: -100% 0; }
+    0% { background-position: 108% 0; }
+    100% { background-position: -108% 0; }
   }
   .frame-track {
     display: flex;
