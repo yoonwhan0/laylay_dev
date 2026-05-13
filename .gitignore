@@ -1,4 +1,4 @@
-# Local Netlify folder
+# 로컬 배포 도구 캐시
 .netlify
 
 # Secrets (never commit)

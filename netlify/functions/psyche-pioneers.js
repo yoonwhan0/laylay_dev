@@ -1,8 +1,4 @@
-/**
- * Netlify 환경변수:
- * - ANTHROPIC_API_KEY (Claude)
- * - OPENAI_API_KEY (ChatGPT)
- */
+/** 실험용 `/api/psyche` — 키는 서버 프로세스에서만 읽음 (Claude / OpenAI). Lay-Z·Lay-몽 UI와 무관. */
 
 const SYSTEM_PROMPT = `You are "Psyche Pioneers", an AI embodying both Carl Jung and Sigmund Freud.
 
@@ -118,7 +114,7 @@ exports.handler = async (event) => {
           statusCode: 500,
           headers: corsHeaders,
           body: JSON.stringify({
-            error: "서버에 ANTHROPIC_API_KEY 가 설정되지 않았습니다.",
+            error: "서버에 Claude용 키가 없습니다.",
           }),
         };
       }
@@ -177,7 +173,7 @@ exports.handler = async (event) => {
           statusCode: 500,
           headers: corsHeaders,
           body: JSON.stringify({
-            error: "서버에 OPENAI_API_KEY 가 설정되지 않았습니다.",
+            error: "서버에 OpenAI용 키가 없습니다.",
           }),
         };
       }

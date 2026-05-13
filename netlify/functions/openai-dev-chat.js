@@ -36,7 +36,7 @@ exports.handler = async (event) => {
         statusCode: 400,
         headers: corsHeaders,
         body: JSON.stringify({
-          error: "apiKey 가 필요합니다. (또는 서버 OPENAI_API_KEY 설정)",
+          error: "apiKey 가 필요합니다. (또는 서버에 upstream 키가 없습니다)",
           mode: "no-key",
         }),
       };
@@ -122,7 +122,7 @@ exports.handler = async (event) => {
           upstream_ms,
           model: mdl,
           usage,
-          auth_source: requestKey ? "request" : "server_env",
+          auth_source: requestKey ? "request" : "server",
         },
       }),
     };
