@@ -500,6 +500,26 @@ async function mongShareCopy(){
   closeMongShareSheet();
 }
 
+function mongShareWrapLines(ctx, text, maxW, maxLines){
+  var chars = String(text).split('');
+  var lines = [''];
+  for(var i = 0; i < chars.length; i++){
+    var trial = lines[lines.length - 1] + chars[i];
+    if(ctx.measureText(trial).width > maxW && lines[lines.length - 1]){
+      if(lines.length >= maxLines){
+        var last = lines[lines.length - 1];
+        while(last.length > 1 && ctx.measureText(last + '\u2026').width > maxW) last = last.slice(0, -1);
+        lines[lines.length - 1] = last + '\u2026';
+        break;
+      }
+      lines.push(chars[i]);
+    } else {
+      lines[lines.length - 1] = trial;
+    }
+  }
+  return lines;
+}
+
 function mongShareImageSave(){
   if(!window._mongLastResult || !window._mongLastResult.r){
     showToast('해몽 결과가 준비된 뒤에 저장할 수 있어요');
@@ -538,30 +558,53 @@ function mongShareImageSave(){
   ctx.fillText('Lay-몽 해몽 결과', W/2, 110);
   ctx.globalAlpha = 1;
 
-  // score
+  // score (숫자+점 한 덩어리로 가운데 정렬)
+  var scoreStr = String(totalScore);
+  ctx.font = '900 210px "Noto Sans KR", sans-serif';
+  var scoreW = ctx.measureText(scoreStr).width;
+  ctx.font = '700 52px "Noto Sans KR", sans-serif';
+  var unitW = ctx.measureText('점').width;
+  var scoreBlockW = scoreW + unitW + 12;
+  var scoreLeft = (W - scoreBlockW) / 2;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
   ctx.font = '900 210px "Noto Sans KR", sans-serif';
   ctx.fillStyle = '#A39BD4';
-  ctx.fillText(String(totalScore), W/2, 515);
+  ctx.fillText(scoreStr, scoreLeft, 515);
   ctx.font = '700 52px "Noto Sans KR", sans-serif';
-  ctx.fillText('점', W/2 + 140, 555);
+  ctx.fillText('점', scoreLeft + scoreW + 12, 555);
 
   // mood
+  ctx.textAlign = 'center';
   ctx.font = '500 42px "Noto Sans KR", sans-serif';
   ctx.fillStyle = '#3b2c5d';
   ctx.fillText(moodText || '기분: (보통)', W/2, 650);
 
   // one-liner box
   var boxX = 90, boxW = W - 180;
-  var boxY = 730, boxH = 240;
-  ctx.fillStyle = 'rgba(255,255,255,.72)';
+  var boxY = 730, boxH = 260;
+  var padX = 48, padY = 40;
+  var textMaxW = boxW - padX * 2;
+  var lineH = 48;
+  var maxLines = 4;
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
   roundRect(ctx, boxX, boxY, boxW, boxH, 28);
   ctx.fill();
 
   ctx.fillStyle = '#1f1636';
-  ctx.font = '500 34px "Noto Sans KR", sans-serif';
-  wrapText(ctx, '“' + (one || '—') + '”', boxX + 42, boxY + 78, boxW - 84, 44, 3);
+  ctx.font = '500 36px "Noto Sans KR", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  var quote = one ? ('\u201C' + one + '\u201D') : '\u2014';
+  var lines = mongShareWrapLines(ctx, quote, textMaxW, maxLines);
+  var textBlockH = lines.length * lineH;
+  var textStartY = boxY + padY + Math.max(0, (boxH - padY * 2 - textBlockH) / 2) + 32;
+  for(var li = 0; li < lines.length; li++){
+    ctx.fillText(lines[li], boxX + padX, textStartY + li * lineH);
+  }
 
   // footer
+  ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(31,22,54,.55)';
   ctx.font = '500 30px "Noto Sans KR", sans-serif';
   ctx.fillText('내 꿈도 다시 풀어보기 → laylelay.com', W/2, 1210);
@@ -575,22 +618,6 @@ function mongShareImageSave(){
     c.arcTo(x, y+h, x, y, rr);
     c.arcTo(x, y, x+w, y, rr);
     c.closePath();
-  }
-  function wrapText(c, text, x, y, maxW, lineH, maxLines){
-    var words = String(text).split('');
-    var lines = [''];
-    for(var i=0;i<words.length;i++){
-      var t = lines[lines.length-1] + words[i];
-      if(c.measureText(t).width > maxW && lines[lines.length-1]){
-        if(lines.length >= maxLines) break;
-        lines.push(words[i]);
-      } else {
-        lines[lines.length-1] = t;
-      }
-    }
-    for(var li=0; li<Math.min(lines.length, maxLines); li++){
-      c.fillText(lines[li], x, y + li*lineH);
-    }
   }
 
   var a = document.createElement('a');
