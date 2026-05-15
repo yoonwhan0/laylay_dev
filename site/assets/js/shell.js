@@ -334,4 +334,25 @@
 
       updateModeGuide();
       select('mong');
+
+      var SHELL_FEEDBACK_FORM_URL =
+        'https://docs.google.com/forms/d/1eJvkXPVrrrJ8eo9l-4gILa3MVWRQ2hVpC1JqKgXHjcI/viewform';
+      var feedbackSurveyBtn = document.getElementById('shell-feedback-survey-btn');
+      if (feedbackSurveyBtn) {
+        feedbackSurveyBtn.addEventListener('click', function () {
+          if (currentKey === 'layz') {
+            window.open(SHELL_FEEDBACK_FORM_URL, '_blank', 'noopener,noreferrer');
+            return;
+          }
+          select('layz');
+          window.setTimeout(function () {
+            var ok = window.confirm(
+              'Lay-Z력 테스트도 해 보셨나요?\n\n그래도 바로 설문으로 이동할까요?\n(취소하면 지금 Lay-Z 화면에서 먼저 써 보실 수 있어요.)'
+            );
+            if (ok) {
+              window.open(SHELL_FEEDBACK_FORM_URL, '_blank', 'noopener,noreferrer');
+            }
+          }, 520);
+        });
+      }
     })();
