@@ -371,7 +371,11 @@
     position: fixed;
     top: 50%;
     bottom: auto;
-    right: max(16px, env(safe-area-inset-right, 0px));
+    /* 오른쪽에서 약 500px 안쪽 — 화면이 좁으면 자동으로 줄어 카드가 안 잘림 */
+    right: min(
+      500px,
+      max(max(12px, env(safe-area-inset-right, 0px)), calc(100vw - 300px))
+    );
     transform: translateY(-50%);
     z-index: 40;
     width: min(288px, calc(100vw - 28px));
