@@ -100,6 +100,14 @@
         <div class="dogang-title">🌙 레이도감</div>
         <div class="dogang-sub">다른 사람들의 꿈 해몽을 구경해보세요</div>
       </div>
+      <div class="mong-dogang-search">
+        <input
+          type="search"
+          id="mong-dogang-search"
+          placeholder="레이도감에서 꿈 검색하기"
+          autocomplete="off"
+        >
+      </div>
       <div class="dream-feed" data-laymong-feed-host id="dogang-feed-standalone"></div>
       <button type="button" class="mong-back-to-write" onclick="closeDreamGallery()">✦ 나의 꿈 적으러 가기</button>
     </div>
@@ -110,6 +118,10 @@
     <div class="orb"></div>
     <div class="load-title">꿈의 기운을 읽는 중...</div>
     <div class="load-sub" id="ls">별자리 운세를 분석하고 있어요</div>
+    <div class="load-progress-wrap" aria-hidden="true">
+      <div class="load-progress-bar" id="mong-load-bar"></div>
+    </div>
+    <div class="load-elapsed" id="mong-load-elapsed">0.0초</div>
     <div class="ldots"><span></span><span></span><span></span></div>
   </div>
 
@@ -191,6 +203,10 @@
     <button type="button" id="mong-share-mail" class="mong-share-btn" onclick="mongShareMail()">
       <span class="mong-share-ico" aria-hidden="true">📧</span>
       <span><strong>이메일로 보내기</strong><small>메일 앱이 열려요</small></span>
+    </button>
+    <button type="button" id="mong-share-image" class="mong-share-btn" onclick="mongShareImageSave()">
+      <span class="mong-share-ico" aria-hidden="true">🖼️</span>
+      <span><strong>이미지 저장</strong><small>점수와 한 줄 요약</small></span>
     </button>
     <button type="button" class="mong-share-btn" onclick="mongShareCopy()">
       <span class="mong-share-ico" aria-hidden="true">📋</span>

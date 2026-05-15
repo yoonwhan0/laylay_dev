@@ -82,6 +82,39 @@ let mTimer;
 function startMsgs(){let i=0;mTimer=setInterval(()=>{document.getElementById('ls').textContent=MSGS[i++%MSGS.length];},2000);}
 function stopMsgs(){clearInterval(mTimer);}
 
+/* ── Loading (시간 웨이팅 표시) ── */
+let mongWaitTimer = null;
+let mongWaitStartAt = null;
+function startMongWaitUI(){
+  try{
+    mongWaitStartAt = performance.now();
+    const el = document.getElementById('mong-load-elapsed');
+    if (el) el.textContent = '0.0초';
+    const bar = document.getElementById('mong-load-bar');
+    if (bar) bar.style.width = '0%';
+    if (mongWaitTimer) clearInterval(mongWaitTimer);
+    mongWaitTimer = setInterval(function(){
+      if (!mongWaitStartAt) return;
+      const sec = (performance.now() - mongWaitStartAt) / 1000;
+      if (el) el.textContent = sec.toFixed(1) + '초';
+      if (bar) {
+        // GPT 응답이 늦어질 수 있으니 100%까지 가지 않고 자연스럽게 멈추게
+        const pct = Math.min(96, sec * 7);
+        bar.style.width = pct.toFixed(1) + '%';
+      }
+    }, 110);
+  }catch(e){}
+}
+function stopMongWaitUI(){
+  try{
+    if (mongWaitTimer) clearInterval(mongWaitTimer);
+  }catch(e){}
+  mongWaitTimer = null;
+  mongWaitStartAt = null;
+  const bar = document.getElementById('mong-load-bar');
+  if (bar) bar.style.width = '100%';
+}
+
 /* ── Helpers ── */
 function stars(n,max=5){return '★'.repeat(n)+'☆'.repeat(max-n);}
 function starLabel(n){return['매우 나쁨','나쁨','보통','좋음','매우 좋음'][n-1]||'';}
@@ -181,6 +214,27 @@ function renderFeed(){
   document.querySelectorAll('[data-laymong-feed-host]').forEach(function(node){
     node.innerHTML = html;
   });
+  applyMongDreamSearchFilter_(window._mongDreamSearchQuery || '');
+}
+
+function applyMongDreamSearchFilter_(q){
+  q = String(q || '').trim().toLowerCase();
+  window._mongDreamSearchQuery = q;
+  var cards = document.querySelectorAll('[data-laymong-feed-host] .dream-card');
+  cards.forEach(function(card){
+    var text = (card.textContent || '').toLowerCase();
+    card.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+}
+
+function wireMongDreamSearch_(){
+  var input = document.getElementById('mong-dogang-search');
+  if(!input) return;
+  if(input.dataset._wired === '1') return;
+  input.dataset._wired = '1';
+  input.addEventListener('input', function(){
+    applyMongDreamSearchFilter_(this.value);
+  });
 }
 
 /* ── Mock data fallback ── */
@@ -240,6 +294,7 @@ function buildIntroCreditsFeed(){
 
 /* ── Render my result ── */
 function renderResult(r, dreamText, mood, moodEmoji){
+  stopMongWaitUI();
   window._mongLastResult = { r: r, dream: dreamText, mood: mood, moodEmoji: moodEmoji };
   const sum = r.재물운+r.애정운+r.직장운+r.건강운;
   const totalScore = sum * 5;
@@ -444,6 +499,107 @@ async function mongShareCopy(){
   }
   closeMongShareSheet();
 }
+
+function mongShareImageSave(){
+  if(!window._mongLastResult || !window._mongLastResult.r){
+    showToast('해몽 결과가 준비된 뒤에 저장할 수 있어요');
+    return;
+  }
+  var s = window._mongLastResult;
+  var r = s.r;
+  var sum = (r.재물운||0)+(r.애정운||0)+(r.직장운||0)+(r.건강운||0);
+  var totalScore = sum * 5;
+  var one = String(r.한줄평 || '').trim();
+  var moodLine = s.mood ? String(s.mood) : '';
+  var moodEmoji = s.moodEmoji ? String(s.moodEmoji) : '';
+  var moodText = (moodLine ? moodEmoji + ' ' + moodLine : '');
+
+  var canvas = document.createElement('canvas');
+  var W = 1080, H = 1350;
+  canvas.width = W; canvas.height = H;
+  var ctx = canvas.getContext('2d');
+
+  // background
+  var g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#ffffff');
+  g.addColorStop(1,'#2a2556');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,W,H);
+
+  // accent bar
+  ctx.fillStyle = '#A39BD4';
+  ctx.fillRect(0,0,W,18);
+
+  // title
+  ctx.fillStyle = '#1a1a1a';
+  ctx.globalAlpha = 0.9;
+  ctx.font = '700 44px "Noto Sans KR", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Lay-몽 해몽 결과', W/2, 110);
+  ctx.globalAlpha = 1;
+
+  // score
+  ctx.font = '900 210px "Noto Sans KR", sans-serif';
+  ctx.fillStyle = '#A39BD4';
+  ctx.fillText(String(totalScore), W/2, 515);
+  ctx.font = '700 52px "Noto Sans KR", sans-serif';
+  ctx.fillText('점', W/2 + 140, 555);
+
+  // mood
+  ctx.font = '500 42px "Noto Sans KR", sans-serif';
+  ctx.fillStyle = '#3b2c5d';
+  ctx.fillText(moodText || '기분: (보통)', W/2, 650);
+
+  // one-liner box
+  var boxX = 90, boxW = W - 180;
+  var boxY = 730, boxH = 240;
+  ctx.fillStyle = 'rgba(255,255,255,.72)';
+  roundRect(ctx, boxX, boxY, boxW, boxH, 28);
+  ctx.fill();
+
+  ctx.fillStyle = '#1f1636';
+  ctx.font = '500 34px "Noto Sans KR", sans-serif';
+  wrapText(ctx, '“' + (one || '—') + '”', boxX + 42, boxY + 78, boxW - 84, 44, 3);
+
+  // footer
+  ctx.fillStyle = 'rgba(31,22,54,.55)';
+  ctx.font = '500 30px "Noto Sans KR", sans-serif';
+  ctx.fillText('내 꿈도 다시 풀어보기 → laylelay.com', W/2, 1210);
+
+  function roundRect(c, x, y, w, h, r){
+    var rr = Math.min(r, w/2, h/2);
+    c.beginPath();
+    c.moveTo(x+rr, y);
+    c.arcTo(x+w, y, x+w, y+h, rr);
+    c.arcTo(x+w, y+h, x, y+h, rr);
+    c.arcTo(x, y+h, x, y, rr);
+    c.arcTo(x, y, x+w, y, rr);
+    c.closePath();
+  }
+  function wrapText(c, text, x, y, maxW, lineH, maxLines){
+    var words = String(text).split('');
+    var lines = [''];
+    for(var i=0;i<words.length;i++){
+      var t = lines[lines.length-1] + words[i];
+      if(c.measureText(t).width > maxW && lines[lines.length-1]){
+        if(lines.length >= maxLines) break;
+        lines.push(words[i]);
+      } else {
+        lines[lines.length-1] = t;
+      }
+    }
+    for(var li=0; li<Math.min(lines.length, maxLines); li++){
+      c.fillText(lines[li], x, y + li*lineH);
+    }
+  }
+
+  var a = document.createElement('a');
+  a.download = `laymong-${totalScore}점.png`;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+  showToast('이미지로 저장됐어요!');
+  closeMongShareSheet();
+}
 function mongShareKakao(){
   var pack = buildMongShareText();
   if(!pack.text){ showToast('공유할 내용이 아직 없어요'); return; }
@@ -567,6 +723,8 @@ function goToDreamGallery(opts){
   shell.classList.add('mong-shell--feed-focus');
   ensureSeed();
   renderFeed();
+  wireMongDreamSearch_();
+  applyMongDreamSearchFilter_(window._mongDreamSearchQuery || '');
   var hint = document.getElementById('mong-intro-hint-line');
   if (hint) hint.hidden = !opts.introHint;
   var inner = document.getElementById('mong-standalone-inner');
@@ -698,6 +856,7 @@ async function startDream(){
   if(!dream){document.getElementById('dream').focus();return;}
   const mood = selMood||'보통', moodEmoji = selMoodEmoji||'😐';
   setStep(1); startMsgs();
+  startMongWaitUI();
 
   const cal=document.getElementById('cal').value, gender=document.getElementById('gen').value,
         year=byEl.value, month=bmEl.value, day=bdEl.value, time=document.getElementById('bt').value;

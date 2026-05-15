@@ -445,6 +445,24 @@ textarea { resize: none; line-height: 1.7; }
 @keyframes ringO { 0%{transform:scale(1);opacity:.7} 100%{transform:scale(1.65);opacity:0} }
 .load-title { font-size: 17px; font-weight: 500; margin-bottom: 7px; }
 .load-sub { font-size: 13px; color: var(--txt2); font-weight: 300; min-height: 20px; }
+.load-progress-wrap {
+  width: min(340px, 100%);
+  margin: 14px auto 6px;
+}
+.load-progress-bar {
+  height: 10px;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(201,168,76,.95) 0%, rgba(163,155,212,.8) 100%);
+  box-shadow: 0 0 28px rgba(201,168,76,.18);
+  transition: width .12s linear;
+}
+.load-elapsed {
+  font-size: 12px;
+  color: var(--txt3);
+  font-weight: 300;
+  margin-top: 6px;
+}
 .ldots { display: flex; gap: 5px; justify-content: center; margin-top: 18px; }
 .ldots span { width: 5px; height: 5px; border-radius: 50%; background: var(--lav); animation: db 1.4s ease-in-out infinite; }
 .ldots span:nth-child(2){animation-delay:.2s} .ldots span:nth-child(3){animation-delay:.4s}
@@ -614,6 +632,23 @@ textarea { resize: none; line-height: 1.7; }
 .dogang-header { margin-bottom: 1.25rem; }
 .dogang-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; letter-spacing: -.01em; }
 .dogang-sub { font-size: 12px; color: var(--txt3); font-weight: 300; }
+.mong-dogang-search {
+  margin: 0 0 14px;
+}
+.mong-dogang-search input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 0.5px solid rgba(163,155,212,.28);
+  background: rgba(0,0,0,.25);
+  color: var(--txt);
+  font-family: inherit;
+  font-size: 12.5px;
+  outline: none;
+}
+.mong-dogang-search input::placeholder {
+  color: rgba(163,155,212,.55);
+}
 
 .dream-feed { display: flex; flex-direction: column; gap: 10px; }
 

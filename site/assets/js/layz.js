@@ -747,6 +747,7 @@ function goResult(score){
 }
 
 function renderResult(lz,r,kws){
+  const topP = layzPercentileTop(lz);
   const yest=st.hist.find(h=>h.date===prevDate(1));
   const diff=yest?lz-yest.score:null;
   const sleepAns=st.answers[6];
@@ -812,7 +813,12 @@ function renderResult(lz,r,kws){
             {l:'부족한 수면',v:sleepDeficit||lz+'점'}
           ].map(s=>`<div class="sc"><div class="sv" style="color:${r.accent}">${s.v}</div><div class="sl">${s.l}</div></div>`).join('')}
         </div>
-        <p style="margin-top:.85rem;text-align:center;font-size:12px;color:var(--mute);line-height:1.55">이번 결과 기준 <strong style="color:var(--or)">상위 약 ${layzPercentileTop(lz)}%</strong> 예시 · 로그인 적립 <strong>${getLoginLayBonus()}</strong>회</p>
+        <div style="margin-top:.85rem;text-align:center">
+          <p style="margin:0;font-size:12px;color:var(--mute);line-height:1.55">이번 결과 기준 <strong style="color:var(--or)">상위 약 ${topP}%</strong> 예시 · 로그인 적립 <strong>${getLoginLayBonus()}</strong>회</p>
+          <div style="margin:.55rem auto 0;width:min(320px,84%);height:10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.06);overflow:hidden">
+            <div style="height:100%;width:${topP}%;background:linear-gradient(90deg, rgba(232,68,10,.65), rgba(255,195,71,.7));border-radius:999px"></div>
+          </div>
+        </div>
       </div>
     </div>
 
