@@ -699,11 +699,22 @@ function showIntro(){
 
 function startQuiz(){st.cur=0;st.answers=[];st.lzTierForShare=null;renderQ();}
 
+function layzQuizBack(){
+  if(st.cur<=0){showIntro();return;}
+  st.cur--;
+  st.answers.pop();
+  renderQ();
+}
+
 function renderQ(){
   const q=Qs[st.cur];
   const pct=Math.round(st.cur/Qs.length*100);
+  const backBtn=st.cur>0
+    ?`<button type="button" class="layz-q-back" onclick="layzQuizBack()" aria-label="이전 질문으로">← 이전 질문</button>`
+    :`<button type="button" class="layz-q-back" onclick="showIntro()" aria-label="시작 화면으로">← 나가기</button>`;
   setApp(`
     <div data-laylay-region="layz-q">
+    ${backBtn}
     <div class="prog-wrap">
       <div class="prog-meta">
         <span class="prog-label">${String(st.cur+1).padStart(2,'0')} / ${String(Qs.length).padStart(2,'0')}</span>

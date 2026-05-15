@@ -43,6 +43,9 @@ body{font-family:var(--font);color:var(--txt);-webkit-font-smoothing:antialiased
 .prog-track{background:#ffe5d4;border-radius:4px;height:4px}
 .prog-fill{background:linear-gradient(90deg,#ffaa7a,var(--or));height:4px;border-radius:4px;transition:width .45s cubic-bezier(.4,0,.2,1)}
 
+.layz-q-back{display:inline-flex;align-items:center;margin:0 0 1rem;padding:.35rem .15rem;background:none;border:none;font-size:13px;font-weight:500;color:var(--sub);cursor:pointer;font-family:var(--font);line-height:1.4;transition:color .12s}
+.layz-q-back:hover{color:var(--or)}
+
 /* Result */
 .rc{border-radius:var(--rl);overflow:hidden;margin-bottom:14px;border:1.5px solid var(--line)}
 .rc-head{padding:1.75rem 1.5rem 1.5rem;text-align:center}
