@@ -371,9 +371,9 @@
     position: fixed;
     top: 50%;
     bottom: auto;
-    /* 오른쪽에서 약 500px 안쪽 — 화면이 좁으면 자동으로 줄어 카드가 안 잘림 */
+    /* 오른쪽에서 약 200px 안쪽(350px 대비 ~150px 더 우측) — 좁은 화면은 자동 */
     right: min(
-      500px,
+      400px,
       max(max(12px, env(safe-area-inset-right, 0px)), calc(100vw - 300px))
     );
     transform: translateY(-50%);
