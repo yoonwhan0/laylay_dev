@@ -1,36 +1,64 @@
 # Lay Lay 시뮬 (Lay-Z / Lay-몽)
 
-브라우저에 올라가는 건 `site/` 아래 정적 파일이고, AI 호출은 같은 사이트 기준 경로 `POST /api/openai-dev`로만 나갑니다. 실제 배포는 팀에서 쓰는 스택(예: PHP로 프록시·응답만 만들고 정적은 그대로 두는 방식 등)에 맞춰 붙이면 됩니다.
+브라우저에 올라가는 건 `site/` 아래 정적 파일이고, AI 호출은 같은 사이트 기준 경로 **`POST /api/openai-dev`** 로만 나갑니다. 실제 배포는 팀에서 쓰는 스택(예: PHP로 프록시·응답만 만들고 정적은 그대로 두는 방식 등)에 맞춰 붙이면 됩니다.
 
-## 폴더 구조
-
-| 경로 | 역할 |
-|------|------|
-| `site/index.html` | 개발용 셸: 시뮬 탭 전환, 모델 선택, iframe에 `postMessage`로 설정 전달, 우측 “AI 담당 구역” 맵 |
-| `site/assets/css/` | 셸·각 시뮬 스타일 (`shell.css`, `lay-mong.css`, `layz.css`) |
-| `site/assets/js/` | 셸·각 시뮬 로직 (`shell.js`, `lay-mong.js`, `layz.js`) |
-| `site/sim/lay-mong.html` | Lay-몽 단독 페이지 |
-| `site/sim/layz.html` | Lay-Z력 테스트 단독 페이지 |
-| `netlify/functions/` | 현재 레포에 포함된 **참고용** API 스텁(같은 경로 `/api/*`를 PHP 등으로 바꿔도 프론트는 그대로 두면 됨) |
-
-## 로컬에서 볼 때
-
-프론트가 `fetch('/api/openai-dev', …)`를 쓰므로, **HTML을 파일로만 열면** 브라우저 정책상 API가 안 붙는 경우가 많습니다. 로컬에서도 정적 + API를 **한 오리진**으로 서빙하는 방식으로 맞추면 됩니다.
-
-## 키·보안 쪽 원칙
-
-- **API 키는 서버에서만** 갖고 있고, 브라우저·저장소로는 보내지 않는 구성이 기본입니다.
-- 이 레포의 참고 스텁은 개발 편의상 요청 바디에 키를 실을 수도 있게 되어 있으나, 운영에서는 막고 **백엔드만 upstream**을 호출하게 두는 게 맞습니다.
-
-## AI가 맡는 범위 (한 줄 요약)
-
-**점수·폼·레이아웃은 코드가 고정하고, 모델은 “말”과 “JSON 필드”만 채운다**고 보면 됩니다. 아래는 각 시뮬이 **무슨 프롬프트로, 무엇을 어떻게 설명하라고 시키는지** 정리입니다.
+이 문서는 **개발사에 인계할 때 “어디에 무엇이 있는지” 한눈에 잡으려는** 목적입니다. HTML 안 인라인 `style=""` 은 모두 외부 CSS 클래스로 빼두었습니다(아래 “인라인 코드 분리 원칙” 참고).
 
 ---
 
-## 프롬프트 상세
+## 1. 폴더·파일 매핑표 (전체)
 
-### Lay-Z — `fetchLayZCopy()` (`site/assets/js/layz.js`)
+```
+layaly_dev/
+├── README.md                  ← 이 문서
+├── netlify/
+│   └── functions/             ← 참고용 API 스텁 (PHP 등으로 교체 가능)
+└── site/                      ← 브라우저에 올라가는 정적 파일 전부
+    ├── index.html             ← 개발용 셸 (시뮬 탭 전환 + 모델 선택 + AI 담당 맵)
+    ├── assets/
+    │   ├── css/
+    │   │   ├── shell.css
+    │   │   ├── lay-mong.css
+    │   │   └── layz.css
+    │   └── js/
+    │       ├── shell.js
+    │       ├── lay-mong.js
+    │       └── layz.js
+    └── sim/
+        ├── lay-mong.html      ← Lay-몽 시뮬 단독 페이지
+        └── layz.html          ← Lay-Z 시뮬 단독 페이지
+```
+
+| 화면 / 모듈 | HTML | CSS | JS |
+|---|---|---|---|
+| **개발용 셸** (시뮬 전환·모델 선택·AI 담당 맵) | `site/index.html` | `site/assets/css/shell.css` | `site/assets/js/shell.js` |
+| **Lay-몽** (꿈 입력 → 해몽 → 도감) | `site/sim/lay-mong.html` | `site/assets/css/lay-mong.css` | `site/assets/js/lay-mong.js` |
+| **Lay-Z** (8문항 → 컨디션 점수 → 결과) | `site/sim/layz.html` | `site/assets/css/layz.css` | `site/assets/js/layz.js` |
+| **API 스텁(참고)** | — | — | `netlify/functions/openai-dev-chat.js` 등 |
+
+> HTML 파일 안에는 **`<style>` 블록이 없고** 인라인 `style="…"` 도 거의 없습니다. JS가 `style.display`로 직접 토글하는 자리(예: `#hd-hist`, `#dev-model-custom-wrap`, `#new-badge`)만 예외적으로 남아 있습니다.
+
+---
+
+## 2. AI 프롬프트 위치 (개발사가 가장 먼저 찾을 곳)
+
+> **점수·폼·레이아웃은 코드가 고정**하고, 모델은 **“말”과 “JSON 필드”** 만 채웁니다.
+
+| 시뮬 | 프롬프트 정의 파일 | 함수 / 변수 | 호출 경로 |
+|---|---|---|---|
+| **Lay-Z** | `site/assets/js/layz.js` | `fetchLayZCopy()` 안 `layzSystem` 배열 + 그 아래 `messages` 조립 | `POST /api/openai-dev` |
+| **Lay-몽** | `site/assets/js/lay-mong.js` | `startDream()` 안 `laymongSystem` 배열 + `prompt` 템플릿 | `POST /api/openai-dev` |
+| 셸 → 시뮬 모델 전달 | `site/assets/js/shell.js` | `postMessage({ source: 'laylay-shell', type: 'laylay-dev-sync', model })` | (브라우저 내 메시지) |
+
+찾는 빠른 키워드:
+- `layzSystem` 또는 `fetchLayZCopy` → Lay-Z 프롬프트
+- `laymongSystem` 또는 `startDream` → Lay-몽 프롬프트
+
+---
+
+## 3. AI가 맡는 범위 · 프롬프트 상세
+
+### 3-1. Lay-Z — `fetchLayZCopy()` (`site/assets/js/layz.js`)
 
 | 항목 | 내용 |
 |------|------|
@@ -57,9 +85,7 @@
 - **고정 점수**: `Lay-Z 지수(고정·변경 금지): N`.
 - **참고 티어**: 코드에서 이미 정한 `id`, 기본 이름, 기본 태그(색·구간은 고정, 이름/카피는 새로 써도 된다고 허용).
 
-즉, **“이 사람이 고른 문항 맥락 + 이미 정해진 점수·티어 껍데기”**를 주고, 그 위에 올릴 **문장·JSON 카피**를 쓰라고 시킵니다.
-
-#### 모델이 보내야 하는 JSON (한 객체)
+#### 모델이 보내야 하는 JSON
 
 UI가 그대로 파싱합니다. 키 이름이 정확히 일치해야 합니다.
 
@@ -75,7 +101,7 @@ UI가 그대로 파싱합니다. 키 이름이 정확히 일치해야 합니다.
 
 ---
 
-### Lay-몽 — `startDream()` (`site/assets/js/lay-mong.js`)
+### 3-2. Lay-몽 — `startDream()` (`site/assets/js/lay-mong.js`)
 
 | 항목 | 내용 |
 |------|------|
@@ -105,7 +131,7 @@ UI가 그대로 파싱합니다. 키 이름이 정확히 일치해야 합니다.
 
 그 아래에 **문장 수·말투(~요/예요)·한줄평 규칙·해시태그 5개 규칙·별점 1~5** 등을 글로 반복 지시하고, 마지막에 **JSON 스키마 한 블록**으로 키 이름을 고정합니다.
 
-#### 모델이 보내야 하는 JSON (한 객체)
+#### 모델이 보내야 하는 JSON
 
 | 키 | 역할 |
 |----|------|
@@ -120,17 +146,39 @@ UI가 그대로 파싱합니다. 키 이름이 정확히 일치해야 합니다.
 
 ---
 
-### 개발 셸 (`site/assets/js/shell.js`)
+### 3-3. 셸 (`site/assets/js/shell.js`)
 
-- iframe에 모델 문자열만 넘깁니다. 운영에서는 백엔드가 모델·키를 정하면 됩니다.
+- iframe에 모델 문자열만 넘깁니다 (`postMessage`).
+- 운영에서는 백엔드가 모델·키를 정하면 됩니다.
 
-### 구역 하이라이트
+### 3-4. 구역 하이라이트
 
-- `data-laylay-region`과 셸의 `COVERAGE_BY_SIM`이 “AI vs 고정” 맵입니다.
+- HTML의 `data-laylay-region="…"` + 셸의 `COVERAGE_BY_SIM` 이 “이 영역이 AI 영역인지 / 고정 규칙인지” 매핑입니다.
+- 우측 “AI 담당 영역” 패널의 항목을 누르면 시뮬 화면의 해당 구역이 빨갛게 깜빡입니다.
 
-## 결과 공유
+---
 
-**환경(PC/모바일)을 감지해서 그에 맞는 채널만** 시트에 노출하도록 짜뒀습니다 (`getLaylayShareEnv()`).
+## 4. API · 백엔드 인터페이스
+
+| 항목 | 값 |
+|---|---|
+| **엔드포인트** | `POST /api/openai-dev` |
+| **요청 본문(JSON)** | `{ messages, model, temperature, max_tokens, ... }` (OpenAI Chat Completions 형태와 같음) |
+| **응답** | `data.choices[0].message.content` 안에 **JSON 문자열** 한 덩어리 (위 스키마) |
+| **참고 구현** | `netlify/functions/openai-dev-chat.js` (Node 기준 스텁) |
+
+운영에서는 이 경로만 같은 오리진으로 응답을 내려주면 됩니다 — 프론트는 PHP/Node/Python 어떤 백엔드든 신경 쓰지 않습니다.
+
+### 키·보안 원칙
+
+- **API 키는 서버에서만** 갖고 있고, 브라우저·저장소로는 보내지 않는 구성이 기본입니다.
+- 이 레포의 참고 스텁은 개발 편의상 요청 바디에 키를 실을 수도 있게 되어 있으나, 운영에서는 막고 **백엔드만 upstream(OpenAI 등)을 호출**하게 두는 게 맞습니다.
+
+---
+
+## 5. 결과 공유 (Lay-Z / Lay-몽 공통)
+
+`getLaylayShareEnv()` 가 **환경(PC/모바일)을 감지해서** 그에 맞는 채널만 시트에 노출하도록 짜뒀습니다.
 
 | 환경 | 기본(primary) | 같이 보이는 옵션 |
 |------|----------------|------------------|
@@ -150,7 +198,43 @@ UI가 그대로 파싱합니다. 키 이름이 정확히 일치해야 합니다.
 
 `Kakao Developers`에서 발급한 **JavaScript 키**를 넣고, **플랫폼·도메인 등록**(http/https 모두)을 해두면 PC·모바일 어디서든 카톡 공유창이 정상 동작합니다.
 
-## 기타
+---
+
+## 6. 인라인 코드 분리 원칙 (개발사 인계 시 참고)
+
+이번 정리에서 따른 규칙:
+
+- HTML 파일 안에 **`<style>` 블록 없음** — 모든 시각 스타일은 `site/assets/css/*.css` 에 있습니다.
+- HTML 파일 안에 **`<script>` 블록 없음** — 모든 동작은 `site/assets/js/*.js` 에 있고 `<script defer src="…">` 로만 불러옵니다.
+- HTML 안 인라인 `style="…"` 도 가능한 한 클래스로 옮겼습니다. **남아 있는 자리**는 다음과 같으며, JS가 직접 토글하는 자리라 의도적으로 둔 것입니다.
+  - `site/sim/layz.html` `#hd-hist` (헤더 “내 기록” 버튼)
+  - `site/sim/lay-mong.html` `#new-badge` (도감 NEW 배지)
+  - `site/index.html` `#dev-model-custom-wrap` 은 `hidden` 속성으로 통일했습니다.
+- HTML 안 `onclick="…"` 같은 **인라인 이벤트 핸들러는 의도적으로 유지**했습니다 — 디자이너/기획자가 HTML만 보고 “어떤 버튼이 어떤 함수를 부르는지” 바로 읽을 수 있게 하기 위함입니다. 운영에서 CSP 등으로 막을 거라면 일괄 교체가 필요합니다.
+
+### 새 스타일/스크립트를 추가할 때
+
+| 작업 | 어디에 추가 |
+|---|---|
+| Lay-몽 시각 변경 | `site/assets/css/lay-mong.css` |
+| Lay-Z 시각 변경 | `site/assets/css/layz.css` |
+| 셸(전환·AI 맵) 시각 변경 | `site/assets/css/shell.css` |
+| Lay-몽 동작/프롬프트 변경 | `site/assets/js/lay-mong.js` |
+| Lay-Z 동작/프롬프트 변경 | `site/assets/js/layz.js` |
+| 셸 동작 변경 | `site/assets/js/shell.js` |
+
+> HTML 파일은 **마크업과 클래스 이름만** 손대는 것을 기본으로 봐주세요.
+
+---
+
+## 7. 로컬에서 보기
+
+프론트가 `fetch('/api/openai-dev', …)` 를 쓰므로, **HTML을 파일로만 열면** 브라우저 정책상 API가 안 붙는 경우가 많습니다. 로컬에서도 정적 + API를 **한 오리진**으로 서빙하는 방식으로 맞추면 됩니다 (예: 사내에서 쓰는 로컬 PHP 서버, 또는 임의의 정적 서버 + 별도 API 서버에 리버스 프록시).
+
+---
+
+## 8. 기타
 
 - 유의사항 문구는 시뮬용입니다. 론칭 시 기획·법무 확정본으로 교체하세요.
 - Lay-Z의 “상위 %” 등은 데모 성격입니다.
+- `netlify/functions/` 는 단지 **참고용 API 스텁** 입니다 — 같은 경로 `/api/*` 를 PHP 등으로 바꿔도 프론트는 그대로 두면 됩니다.

@@ -13,13 +13,53 @@
   .shell-head {
     display: flex;
     align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
+    justify-content: flex-start;
     gap: 10px 12px;
     padding: 10px 12px;
     border-bottom: 1px solid rgba(255,255,255,.08);
     background: rgba(12,10,9,.94);
     backdrop-filter: blur(10px);
+  }
+  .shell-head-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px 12px;
+  }
+  /* 개발 패널(좌·우) 토글 — 최초 진입 시 접힘 */
+  .shell-dev-toggle {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(255,255,255,.06);
+    color: rgba(243,237,230,.88);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .18s, border-color .18s;
+  }
+  .shell-dev-toggle:hover {
+    background: rgba(255,255,255,.1);
+    border-color: rgba(255,255,255,.22);
+  }
+  .shell-dev-toggle-bars {
+    width: 16px;
+    height: 12px;
+    flex-shrink: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(243,237,230,.88) 0 2px,
+      transparent 2px 5px
+    );
+    border-radius: 1px;
   }
   .shell-brand {
     font-size: 12px;
@@ -56,13 +96,11 @@
     background: linear-gradient(135deg, #5c4ec4 0%, #8b6bc9 45%, #b8943a 100%);
     border-color: rgba(201,168,76,.45);
     color: #fff;
-    box-shadow: 0 4px 22px rgba(92,78,196,.35), 0 0 0 1px rgba(255,255,255,.12) inset;
   }
   .tabs.tabs--layz .tab[aria-selected="true"] {
     background: linear-gradient(135deg, #e8440a 0%, #f06a1a 50%, #ffb347 100%);
     border-color: rgba(255,180,100,.4);
     color: #fff;
-    box-shadow: 0 4px 22px rgba(232,68,10,.4), 0 0 0 1px rgba(255,255,255,.1) inset;
   }
   .tabs.tabs--mong .tab[aria-selected="false"],
   .tabs.tabs--layz .tab[aria-selected="false"] {
@@ -70,6 +108,12 @@
     border-color: rgba(255,255,255,.12);
     color: rgba(243,237,230,.72);
     box-shadow: none;
+  }
+
+  /* 접힘: 좌·우 개발 패널 숨김 → 시뮬만 넓게 */
+  body.shell-dev-collapsed .dev-rail,
+  body.shell-dev-collapsed .cov-rail {
+    display: none !important;
   }
 
   .split {
@@ -133,6 +177,8 @@
     color: rgba(243,237,230,.4);
     line-height: 1.45;
   }
+  /* 우측 'AI 담당 영역' 패널 안 안내문 — 톤 한 단계 더 옅게 */
+  .dev-hint--cov { color: rgba(163,211,232,.42); }
   .dev-runtime {
     font-size: 10px;
     color: rgba(255,255,255,.9);
@@ -170,10 +216,8 @@
     inset: 0;
     pointer-events: none;
     z-index: 3;
-    box-shadow:
-      inset 0 0 140px rgba(0, 0, 0, 0.42),
-      inset 0 0 60px rgba(0, 0, 0, 0.22),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    /* 비네트/딥 섀도우 제거 — 테두리만 살짝 */
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   }
   .frame-viewport::after {
     content: '';
@@ -229,8 +273,8 @@
   .frame-wrap.frame-wrap--motion .frame-pane {
     filter: saturate(1.06) contrast(1.02);
   }
-  .frame-pane--mong { box-shadow: 8px 0 36px rgba(0,0,0,.4); }
-  .frame-pane--layz { box-shadow: -8px 0 36px rgba(0,0,0,.45); }
+  .frame-pane--mong,
+  .frame-pane--layz { box-shadow: none; }
   .frame-pane iframe {
     position: absolute;
     inset: 0;
@@ -322,6 +366,58 @@
     color: rgba(243,237,230,.38);
   }
 
+  /* 시뮬(게이미피케이션) 우측 중앙에 붙는 피드백 안내 — 구석 하단보다 잘 보이게 */
+  .shell-feedback-float {
+    position: fixed;
+    top: 50%;
+    bottom: auto;
+    right: max(16px, env(safe-area-inset-right, 0px));
+    transform: translateY(-50%);
+    z-index: 40;
+    width: min(288px, calc(100vw - 28px));
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(125, 211, 252, .38);
+    background: rgba(8, 14, 18, .96);
+    backdrop-filter: blur(12px);
+    box-shadow:
+      0 0 0 1px rgba(125, 211, 252, .12),
+      0 12px 48px rgba(0, 0, 0, .55);
+  }
+  .shell-feedback-float-text {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.45;
+    color: rgba(243, 237, 230, .92);
+    margin-bottom: 12px;
+  }
+  .shell-feedback-float-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(125, 211, 252, .42);
+    background: linear-gradient(135deg, rgba(14, 116, 144, .45) 0%, rgba(45, 90, 120, .5) 100%);
+    color: #ecfeff;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    text-align: center;
+    transition: border-color .15s, background .15s, transform .12s;
+  }
+  .shell-feedback-float-btn:hover {
+    border-color: rgba(125, 211, 252, .65);
+    background: linear-gradient(135deg, rgba(14, 116, 144, .65) 0%, rgba(45, 90, 120, .72) 100%);
+    transform: translateY(-1px);
+  }
+  .shell-feedback-float-btn:focus-visible {
+    outline: 2px solid rgba(125, 211, 252, .85);
+    outline-offset: 2px;
+  }
+
   @media (max-width: 720px) {
     .split { flex-direction: column; }
     .dev-rail {
@@ -339,4 +435,13 @@
       flex-shrink: 0;
     }
     .frame-wrap { min-height: 42vh; flex: 1; }
+    .shell-feedback-float {
+      top: auto;
+      bottom: max(10px, env(safe-area-inset-bottom, 0px));
+      right: max(10px, env(safe-area-inset-right, 0px));
+      left: max(10px, env(safe-area-inset-left, 0px));
+      transform: none;
+      width: auto;
+      max-width: none;
+    }
   }

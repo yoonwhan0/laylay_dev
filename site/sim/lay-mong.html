@@ -13,9 +13,9 @@
 <div class="shoot"></div>
 <div class="moon">
   <div class="moon-body">
-    <div class="mc" style="width:11px;height:11px;top:16px;left:14px;"></div>
-    <div class="mc" style="width:7px;height:7px;top:35px;left:28px;"></div>
-    <div class="mc" style="width:8px;height:8px;top:25px;left:42px;"></div>
+    <div class="mc mc-1"></div>
+    <div class="mc mc-2"></div>
+    <div class="mc mc-3"></div>
   </div>
 </div>
 
@@ -43,7 +43,7 @@
   <div id="s-form" data-laylay-ai="dream-form-context" data-laylay-region="mong-form">
     <div class="fg">
       <span class="fl">생년월일<button type="button" class="why-help" onclick="openBirthTip(event)" aria-expanded="false" aria-label="생년월일이 왜 필요한지 설명">?</button></span>
-      <div class="g2" style="margin-bottom:8px;">
+      <div class="g2 g2--mb">
         <div class="sw"><select id="cal"><option>양력</option><option>음력</option></select></div>
         <div class="sw"><select id="gen"><option>여자</option><option>남자</option><option>모름</option></select></div>
       </div>
@@ -66,7 +66,7 @@
       </div>
     </div>
     <div class="fg">
-      <span class="fl">꿈 내용 <span style="font-size:9px;letter-spacing:.04em;font-weight:300;text-transform:none;">(최대 300자)</span></span>
+      <span class="fl">꿈 내용 <span class="fl-sub">(최대 300자)</span></span>
       <div class="dw">
         <textarea id="dream" rows="5" maxlength="300" placeholder="오늘 꾼 꿈을 자세히 적어주세요&#10;예: 맑은 하늘을 날아오르다 바다로 떨어지는 꿈을 꿨어요..."></textarea>
         <span class="cc-lbl"><span id="cc">0</span>/300</span>
@@ -130,7 +130,7 @@
         <div class="dogang-header">
           <div class="dogang-title">🌙 레이도감</div>
           <div class="dogang-sub">다른 사람들의 꿈 해몽을 구경해보세요</div>
-          <div id="mong-feed-ai-slot" data-laylay-ai="dream-feed-note" style="font-size:10px;color:rgba(234,230,245,.38);margin-top:8px;line-height:1.4">향후 피드 요약·추천 문구 GPT 생성 등 확장 가능 (현재: 시드+내 해몽 저장).</div>
+          <div id="mong-feed-ai-slot" class="dev-feed-note" data-laylay-ai="dream-feed-note">향후 피드 요약·추천 문구 GPT 생성 등 확장 가능 (현재: 시드+내 해몽 저장).</div>
         </div>
         <div class="dream-feed" data-laymong-feed-host id="dogang-feed" data-laylay-region="mong-feed"></div>
       </div>
@@ -168,7 +168,7 @@
 </div>
 <div id="peek-dreams" class="peek-pop" hidden onclick="if(event.target===this)closePeekDreams()">
   <div class="peek-box" onclick="event.stopPropagation()"><div id="peek-dreams-body"></div>
-    <button type="button" class="tip-close" style="margin-top:.75rem" onclick="closePeekDreams()">닫기</button>
+    <button type="button" class="tip-close tip-close--mt" onclick="closePeekDreams()">닫기</button>
   </div>
 </div>
 <div id="mong-share-sheet" class="mong-share-sheet" hidden onclick="if(event.target===this)closeMongShareSheet()">

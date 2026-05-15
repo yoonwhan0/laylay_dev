@@ -22,6 +22,30 @@
       var inputCustom = document.getElementById('dev-model-custom');
       var covList = document.getElementById('cov-list');
       var covDetail = document.getElementById('cov-detail');
+      var devToggle = document.getElementById('shell-dev-toggle');
+
+      function syncDevPanelsToggle() {
+        if (!devToggle) return;
+        var collapsed = document.body.classList.contains('shell-dev-collapsed');
+        devToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        devToggle.title = collapsed
+          ? 'Dev tools 열기 — 모델·AI 담당 맵'
+          : 'Dev tools 닫기';
+      }
+      if (devToggle) {
+        syncDevPanelsToggle();
+        devToggle.addEventListener('click', function () {
+          document.body.classList.toggle('shell-dev-collapsed');
+          syncDevPanelsToggle();
+        });
+        window.addEventListener('keydown', function (e) {
+          if (e.key !== 'Escape') return;
+          if (document.body.classList.contains('shell-dev-collapsed')) return;
+          document.body.classList.add('shell-dev-collapsed');
+          syncDevPanelsToggle();
+          devToggle.focus();
+        });
+      }
 
       /** 시뮬별: 화면 구역이 AI 생성인지 / 고정·규칙인지 검수용 */
       var COVERAGE_BY_SIM = {
@@ -213,7 +237,7 @@
       tabs[1].el.addEventListener('click', function () { select('mong'); });
 
       function syncCustomModelVisible() {
-        wrapCustom.style.display = selPreset.value === '__custom__' ? 'block' : 'none';
+        wrapCustom.hidden = selPreset.value !== '__custom__';
       }
       selPreset.addEventListener('change', syncCustomModelVisible);
       syncCustomModelVisible();

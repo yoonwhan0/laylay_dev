@@ -135,6 +135,30 @@ body{font-family:var(--font);color:var(--txt);-webkit-font-smoothing:antialiased
 .info-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}
 .info-sheet{position:relative;margin:auto;width:100%;max-width:480px;background:var(--bg);border-radius:28px 28px 0 0;padding:1.5rem 1.5rem 3rem;max-height:90vh;overflow-y:auto;margin-top:auto}
 
+/* info modal — 내부 구성 */
+.info-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem}
+.info-title{font-size:18px;font-weight:900;letter-spacing:-.02em}
+.info-close{background:none;border:none;font-size:24px;cursor:pointer;color:var(--mute);padding:0;line-height:1;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .12s}
+.info-close:hover{background:var(--surf)}
+.info-char-wrap{text-align:center;margin-bottom:1.5rem}
+.info-char-img{width:200px;max-width:80%;display:inline-block}
+.info-cards{display:flex;flex-direction:column;gap:12px;margin-bottom:1.5rem}
+.info-card{padding:1rem 1.1rem;border-radius:var(--r);border-left:3.5px solid var(--or)}
+.info-card--orange{background:var(--or2);border-left-color:var(--or)}
+.info-card--gray{background:#f5f5f5;border-left-color:#555}
+.info-card--green{background:#f0faf6;border-left-color:#1D9E75}
+.info-card-title{font-size:13px;font-weight:700;margin-bottom:.4rem;color:var(--or3)}
+.info-card--gray .info-card-title{color:#333}
+.info-card--green .info-card-title{color:#085041}
+.info-card-desc{font-size:13.5px;color:var(--txt);line-height:1.65}
+.info-tier-box{background:#111;border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:1.5rem}
+.info-tier-row{display:flex;justify-content:space-between;align-items:center}
+.info-tier-col{display:flex;flex-direction:column;gap:4px}
+.info-tier-label{font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.06em}
+.info-tier-chips{display:flex;gap:6px;flex-wrap:wrap}
+.info-tier-chip{font-size:11px;background:rgba(255,255,255,.1);color:#fff;padding:.2rem .6rem;border-radius:2rem}
+.info-tier-chip--legend{background:var(--or)}
+
 /* Share modal */
 #share-modal{position:fixed;inset:0;z-index:200;display:none;align-items:flex-end;justify-content:center}
 #share-modal.on{display:flex}
@@ -142,6 +166,19 @@ body{font-family:var(--font);color:var(--txt);-webkit-font-smoothing:antialiased
 .share-sheet{position:relative;background:var(--bg);border-radius:28px 28px 0 0;padding:1.5rem 1.5rem 2.5rem;width:100%;max-width:480px}
 #card-preview{width:100%;border-radius:16px;display:block;margin-bottom:1rem}
 .share-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.75rem}
+
+/* share modal — 내부 구성 */
+.share-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.1rem}
+.share-title{font-size:16.5px;font-weight:700}
+.share-close{background:none;border:none;font-size:24px;cursor:pointer;color:var(--mute);padding:0;line-height:1}
+.share-hint{font-size:12px;color:var(--mute);text-align:center;margin-bottom:1rem}
+.share-btn-icon{display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;padding:.75rem}
+.share-btn-icon--p{border-radius:var(--r)}
+.share-btn-kakao{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font-size:14px;font-weight:700;padding:.75rem;margin-top:.55rem;border:1px solid #FEE500;background:#FEE500;color:#191919;border-radius:var(--r);cursor:pointer;font-family:var(--font)}
+.share-btn-kakao-badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:#191919;color:#FEE500;font-weight:900;font-size:11px;letter-spacing:-.02em}
+.share-row{display:flex;gap:8px;margin-top:.55rem}
+.share-row-btn{flex:1;background:none;border:1px solid var(--line);color:var(--txt);font-size:12.5px;cursor:pointer;font-family:var(--font);padding:.5rem;text-align:center;border-radius:var(--r)}
+.share-row-btn:hover{background:var(--surf)}
 
 /* Screen anim */
 .screen{animation:fadeUp .22s ease}

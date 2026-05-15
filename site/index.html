@@ -10,13 +10,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/shell.css">
 </head>
-<body>
+<body class="shell-dev-collapsed">
   <div class="shell-top">
     <header class="shell-head">
+      <button type="button" class="shell-dev-toggle" id="shell-dev-toggle" aria-expanded="false" aria-controls="dev-rail cov-rail" title="Dev tools — 모델·AI 담당 맵">
+        <span class="shell-dev-toggle-bars" aria-hidden="true"></span>
+        <span class="shell-dev-toggle-label">Dev tools</span>
+      </button>
+      <div class="shell-head-main">
       <span class="shell-brand">시뮬 전환</span>
       <div class="tabs tabs--mong" role="tablist" id="sim-tabs" aria-label="시뮬 선택">
         <button type="button" class="tab" role="tab" id="tab-layz" aria-selected="false" aria-controls="panel-sim">Lay-Z력 테스트</button>
         <button type="button" class="tab" role="tab" id="tab-mong" aria-selected="true" aria-controls="panel-sim">Lay-몽</button>
+      </div>
       </div>
     </header>
   </div>
@@ -41,7 +47,7 @@
           <option value="__custom__">직접 입력…</option>
         </select>
       </div>
-      <div class="dev-field" id="dev-model-custom-wrap" style="display:none">
+      <div class="dev-field" id="dev-model-custom-wrap" hidden>
         <label for="dev-model-custom">모델 ID</label>
         <input type="text" class="dev-input" id="dev-model-custom" placeholder="예: gpt-4o" spellcheck="false">
       </div>
@@ -62,10 +68,21 @@
 
     <aside class="cov-rail" id="cov-rail" aria-label="AI 담당 영역">
       <p class="cov-rail-caption">AI 담당 영역</p>
-      <p class="dev-hint" style="color: rgba(163,211,232,.42)">항목을 누르면 설명이 뜨고, 시뮬 화면에서 해당 구역이 붉게 깜빡여요.</p>
+      <p class="dev-hint dev-hint--cov">항목을 누르면 설명이 뜨고, 시뮬 화면에서 해당 구역이 붉게 깜빡여요.</p>
       <div class="cov-list" id="cov-list"></div>
       <div class="cov-detail muted" id="cov-detail">항목을 선택하면 상세 설명이 여기 표시됩니다.</div>
     </aside>
+  </div>
+
+  <!-- Dev 패널 접힘에도 보이도록: 우측 하단 상시 안내 (응답은 /viewform) -->
+  <div class="shell-feedback-float" role="status" aria-live="polite" aria-label="피드백 설문">
+    <p class="shell-feedback-float-text">서비스 이용 후 피드백을 작성해 주세요.</p>
+    <a
+      class="shell-feedback-float-btn"
+      href="https://docs.google.com/forms/d/1eJvkXPVrrrJ8eo9l-4gILa3MVWRQ2hVpC1JqKgXHjcI/viewform"
+      target="_blank"
+      rel="noopener noreferrer"
+    >설문지 작성하러 가기</a>
   </div>
 
   <script defer src="assets/js/shell.js"></script>
