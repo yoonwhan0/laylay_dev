@@ -217,9 +217,9 @@ async function fetchLayZCopy(lz, baseTier, answers){
     lines,
     '',
     '반드시 유효한 JSON 하나만 출력. 키 정확히 일치.',
-    '{"tierName":"…","tierTag":"…","head":"2문장 이내 한 덩어리(임팩트 있는 헤드)","desc":"5~9문장 본문. 공감·구체 묘사·가벼운 유머 가능. 문항 요약에서 단서를 2회 이상 인용하듯 짚을 것.","recs":[{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"}],"rx":{"title":"수면 가이드 제목","sub":"한 줄 부제","items":["항목1","항목2","항목3"]}}',
+    '{"tierName":"…","tierTag":"…","head":"2문장 이내 한 덩어리(임팩트 있는 헤드)","desc":"5~9문장 본문. 공감·구체 묘사·가벼운 유머 가능. 문항 요약에서 단서를 2회 이상 인용하듯 짚을 것.","recs":[{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"}],"rx":{"title":"수면 가이드 제목","sub":"한 줄 부제","items":[{"icon":"sleep","text":"항목1"},{"icon":"phone-off","text":"항목2"},{"icon":"bed","text":"항목3"}]}}',
     'recs는 정확히 3개. 각 rec.desc는 4~8문장 분량으로 행동 이유·기대 효과·주의를 풍부하게.',
-    'rx.items는 정확히 3개. 각 항목은 2~5문장(짧은 단락)으로 수면·회복에 도움이 되는 실천을 구체적으로.'
+    'rx.items는 정확히 3개. icon은 이모지가 아니라 아래 키 중 하나만: sleep, phone-off, bed, light, stretch, alarm, temperature, walk, drink, moon. text는 2~5문장 실천 가이드.'
   ].join('\n');
 
   const apiKey = laylayEffectiveApiKey();
@@ -259,6 +259,98 @@ async function fetchLayZCopy(lz, baseTier, answers){
   } catch (e) {
     return null;
   }
+}
+
+function normalizeLayZRxItem(raw) {
+  if (typeof raw === 'string') {
+    var text = raw.trim();
+    return text ? { icon: '', text: text } : null;
+  }
+  if (!raw || typeof raw !== 'object') return null;
+  var text = String(raw.text || raw.desc || raw.body || '').trim();
+  if (!text) return null;
+  return {
+    icon: String(raw.icon || raw.emoji || '').trim(),
+    text: text,
+  };
+}
+
+var LAYZ_RX_ICON_SVGS = {
+  sleep:
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="13" r="6.5" stroke="currentColor" stroke-width="1.7"/><path d="M11 10v3.2l2 1.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M15.5 5.5l.9.9M17.2 4.2l.8 1.5M18.8 6.2l-1.4.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  'phone-off':
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="4.5" width="8" height="15" rx="1.8" stroke="currentColor" stroke-width="1.7"/><path d="M10.2 17.2h3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.5"/><path d="M6.2 6.2l11.6 11.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  bed:
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 14v4M20 14v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 14h16v-3.2a2.2 2.2 0 00-2.2-2.2H9.8a2.8 2.8 0 00-2.8 2.8V14z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M7.2 11.2c.6-.9 1.5-1.4 2.5-1.4M14.8 11.2c.7-.8 1.6-1.2 2.6-1.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  light:
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.5 18h5M10 21h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12 3.5a5 5 0 013.2 8.8c-.8.7-1.2 1.6-1.2 2.7H10c0-1.1-.4-2-1.2-2.7A5 5 0 0112 3.5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+  stretch:
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="6.2" r="2.2" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 20v-5.5l2.2-3.2 1.3 2.2 2-3.4 2 3.4v6.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  alarm:
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="13" r="6.5" stroke="currentColor" stroke-width="1.7"/><path d="M12 10v3.5l2.2 1.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M5.5 6.5L4 5M18.5 6.5L20 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  temperature:
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4.5a2.6 2.6 0 00-2.6 2.6V14a4.6 4.6 0 105.2 0V7.1A2.6 2.6 0 0012 4.5z" stroke="currentColor" stroke-width="1.7"/><path d="M12 16.8v.8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  walk:
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="13.2" cy="5.8" r="2" stroke="currentColor" stroke-width="1.6"/><path d="M11.2 20l1.4-5.2 2.4 1.2 1.8-4.6-3.2-1.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  drink:
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8.5 5h7l-1.2 11.5a2.2 2.2 0 01-2.2 2H11.9a2.2 2.2 0 01-2.2-2L8.5 5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M7 5h10M9 3.5h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  moon:
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18.2 14.8a6.8 6.8 0 11-5.4-11.6 7.2 7.2 0 105.4 11.6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>'
+};
+
+var LAYZ_RX_ICON_ALIASES = {
+  sleep: 'sleep', zzz: 'sleep', clock: 'sleep', '😴': 'sleep', '💤': 'sleep',
+  'phone-off': 'phone-off', phone_off: 'phone-off', phone: 'phone-off', nophone: 'phone-off', '📵': 'phone-off', '📱': 'phone-off',
+  bed: 'bed', '🛏': 'bed', '🛏️': 'bed',
+  light: 'light', lamp: 'light', '💡': 'light',
+  stretch: 'stretch', yoga: 'stretch', '🧘': 'stretch',
+  alarm: 'alarm', time: 'alarm', '⏰': 'alarm',
+  temperature: 'temperature', temp: 'temperature', '🌡': 'temperature', '🌡️': 'temperature',
+  walk: 'walk', '🚶': 'walk',
+  drink: 'drink', tea: 'drink', shower: 'drink', '☕': 'drink', '🚿': 'drink',
+  moon: 'moon', '🌙': 'moon'
+};
+
+function layzNormalizeRxIconKey(raw) {
+  var s = String(raw || '').trim().toLowerCase();
+  if (!s) return '';
+  if (LAYZ_RX_ICON_ALIASES[s]) return LAYZ_RX_ICON_ALIASES[s];
+  if (LAYZ_RX_ICON_SVGS[s]) return s;
+  return '';
+}
+
+function layzGuessRxIconKey(text) {
+  var t = String(text || '');
+  if (/폰|스마트폰|sns|알림|블루라이트|화면|디지털|phone|screen/i.test(t)) return 'phone-off';
+  if (/침대|눕|누워|잠|수면|낮잠|안대|이불|bed/i.test(t)) return 'bed';
+  if (/샤워|씻|목욕|따뜻한.?음료|차.?한|물.?한|음료/i.test(t)) return 'drink';
+  if (/스트레칭|호흡|yoga|stretch/i.test(t)) return 'stretch';
+  if (/조명|밝은.?조명|어둡|불.?끄|라이트/i.test(t)) return 'light';
+  if (/알람|같은.?시간|일찍.?일어나/i.test(t)) return 'alarm';
+  if (/시간|루틴|일찍/i.test(t)) return 'sleep';
+  if (/온도|시원|18|20.?도/i.test(t)) return 'temperature';
+  if (/산책|걷|밖|햇빛/i.test(t)) return 'walk';
+  if (/밤|달|moon/i.test(t)) return 'moon';
+  return 'sleep';
+}
+
+function layzRxIconSvg(key) {
+  return LAYZ_RX_ICON_SVGS[key] || LAYZ_RX_ICON_SVGS.sleep;
+}
+
+function layzRxIconMarkup(item, idx) {
+  var normalized = normalizeLayZRxItem(item);
+  var key = '';
+  if (normalized) {
+    key = layzNormalizeRxIconKey(normalized.icon) || layzGuessRxIconKey(normalized.text);
+  }
+  if (!key) key = ['sleep', 'phone-off', 'bed'][idx] || 'sleep';
+  return layzRxIconSvg(key);
+}
+
+function layzRxItemText(item) {
+  var normalized = normalizeLayZRxItem(item);
+  return normalized ? normalized.text : String(item || '');
 }
 
 function mergeTierWithAI(base, ai) {
@@ -303,16 +395,14 @@ function mergeTierWithAI(base, ai) {
     }
   }
   if (ai.rx && String(ai.rx.title || '').trim() && String(ai.rx.sub || '').trim() && Array.isArray(ai.rx.items)) {
-    var items = ai.rx.items
-      .map(function (t) {
-        return String(t || '').trim();
-      })
+    var rxItems = ai.rx.items
+      .map(normalizeLayZRxItem)
       .filter(Boolean);
-    if (items.length >= 3) {
+    if (rxItems.length >= 3) {
       out.rx = {
         title: String(ai.rx.title).trim(),
         sub: String(ai.rx.sub).trim(),
-        items: items.slice(0, 3),
+        items: rxItems.slice(0, 3),
       };
       changed = true;
     }
@@ -379,11 +469,13 @@ function applyLayZCopyToDom(lz, r, merged) {
   if (ri && merged.rx.items) {
     ri.innerHTML = merged.rx.items
       .map(function (item, idx) {
+        var icon = layzRxIconMarkup(item, idx);
+        var text = layzRxItemText(item);
         return (
-          '<div class="rx-item"><div class="rx-num">' +
-          (idx + 1) +
+          '<div class="rx-item"><div class="rx-num rx-num--svg" aria-hidden="true">' +
+          icon +
           '</div><div style="font-size:13.5px;color:rgba(255,255,255,.85);line-height:1.65;white-space:pre-line">' +
-          item +
+          text +
           '</div></div>'
         );
       })
