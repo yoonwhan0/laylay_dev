@@ -187,16 +187,57 @@ function laylayEffectiveModel(){
 }
 
 
+function buildLayZAnswerProfile(answers, lz, baseTier) {
+  var a = answers || [];
+  function pick(i) {
+    return a[i] && a[i].t ? String(a[i].t) : '';
+  }
+  function kw(i) {
+    return a[i] && a[i].kw ? String(a[i].kw) : '';
+  }
+  var fatigueSum = a.reduce(function (sum, x) {
+    return sum + (x && typeof x.s === 'number' ? x.s : 0);
+  }, 0);
+  var stance =
+    lz <= 19
+      ? '컨디션 여유 — 루틴 유지·예방 처방'
+      : lz <= 39
+        ? '경계선 — 슬슬 방전 신호, 가벼운 회복 처방'
+        : lz <= 59
+          ? '번아웃 예고 — 저녁·수면 우선 처방'
+          : lz <= 79
+            ? '강한 피로 — 오늘 밤 회복 집중 처방'
+            : '극한 레이지 — 최소 부담·수면 최우선 처방';
+  return [
+    '=== 오늘 이 사람 포지션 (카피·처방의 출발점) ===',
+    'Lay-Z 지수: ' + lz + '점 · 참고 구간: ' + (baseTier ? baseTier.tag : ''),
+    '종합 포지션: ' + stance,
+    '누적 피로 신호(문항 점수 합, 높을수록 더 지침): ' + fatigueSum,
+    '기상 패턴: ' + (pick(0) || '(미응답)'),
+    '오전 멘탈: ' + (pick(1) || kw(1) || '(미응답)'),
+    '신체 신호: ' + (pick(2) || '(미응답)'),
+    '피곤 말버릇: ' + (pick(3) || kw(3) || '(미응답)'),
+    '회복이 되는 순간: ' + (pick(4) || '(미응답)'),
+    '귀가 후 루틴: ' + (pick(5) || kw(5) || '(미응답)'),
+    '어젯밤 수면: ' + (pick(6) || '(미응답)'),
+    '오늘 제일 힘든 것: ' + (pick(7) || kw(7) || '(미응답)'),
+    '→ 위 포지션에서만 head·desc·recs·rx를 쓸 것. 다른 사람에게도 맞는 문장 금지.'
+  ].join('\n');
+}
+
 async function fetchLayZCopy(lz, baseTier, answers){
   const layzSystem = [
-    '당신은 브랜드 "Lay-Z"의 오늘 컨디션 카피 작가입니다.',
+    '당신은 브랜드 "Lay-Z"의 오늘 컨디션 코치이자 카피 작가입니다.',
+    '역할: 사용자가 고른 8문항만 보고 「오늘 이 사람의 포지션」을 유추한 뒤, 그 포지션에서만 통하는 처방·공감·행동을 씁니다. 누구에게나 맞는 일반 조언은 금지.',
     '말투: 친근한 반말/해요체 혼용 가능하나 가볍고 유머 있게. 진부한 운세체·번역투·과한 한자어 나열은 피합니다.',
     '의학·법률·투자·진단처럼 들리는 단정은 금지. 재미·자기인식용이며 점수는 이미 확정입니다.',
-    '카피는 짧게 끊기지 말고 여유 있게: 공감 한두 문장, 오늘 상태를 구체적으로 풀어 쓰기, 문항에서 드러난 뉘앙스를 한두 번은 직접 짚어 주기.',
-    'rx(레이레이 수면 가이드)는 본문·recs와 같은 톤이지만 내용은 별도로 설계합니다. 흐름: 8문항 답에서 오늘의 수면·피로·저녁 루틴 신호를 유추 → 그 신호에 맞는 오늘 밤 처방 3개. 범용 수면 상식만 나열하지 말고, 사용자가 고른 답의 표현·상황을 인용하거나 패러프레이즈하세요.',
+    'head·desc·recs·rx 전 구간이 같은 「오늘의 한 사람」 이야기여야 합니다. 문항 보기 문장을 그대로 또는 패러프레이즈해 최소 4회 이상 전체 JSON에 흩뿌리세요.',
+    'rx(수면 가이드)는 recs와 역할 분리: recs=낮·저녁 행동, rx=오늘 밤 잠들기 처방. rx는 반드시 기상·수면·귀가 루틴 답에서 읽은 신호 → 맞춤 처방 3개.',
     '출력은 반드시 요청된 JSON 한 덩어리만. JSON 바깥 텍스트·마크다운·코드펜스 금지.',
     'Lay-Z 지수 숫자는 사용자가 준 값이며 절대 바꾸거나 재해석하지 마세요.'
   ].join('\n');
+
+  const profile = buildLayZAnswerProfile(answers, lz, baseTier);
 
   const lines = (answers || []).map(function (a, i) {
     var q = Qs[i];
@@ -214,20 +255,27 @@ async function fetchLayZCopy(lz, baseTier, answers){
     'Lay-Z 지수(고정·변경 금지): ' + lz,
     '참고 티어(색·구간만 고정, 이름/카피는 자유롭게 새로 써도 됨): id=' + baseTier.id + ', 기본이름=' + baseTier.name + ', 기본태그=' + baseTier.tag,
     '',
-    '문항별 선택:',
+    profile,
+    '',
+    '문항별 선택(원문):',
     lines,
     '',
     '반드시 유효한 JSON 하나만 출력. 키 정확히 일치.',
-    '{"tierName":"…","tierTag":"…","head":"2문장 이내 한 덩어리(임팩트 있는 헤드)","desc":"5~9문장 본문. 공감·구체 묘사·가벼운 유머 가능. 문항 요약에서 단서를 2회 이상 인용하듯 짚을 것.","recs":[{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"}],"rx":{"title":"오늘 밤 맞춤 수면 가이드 제목","sub":"유추한 오늘 수면 이슈를 한 줄로","items":[{"icon":"sleep","text":"항목1"},{"icon":"phone-off","text":"항목2"},{"icon":"bed","text":"항목3"}]}}',
-    'recs는 정확히 3개. 각 rec.desc는 4~8문장 분량으로 행동 이유·기대 효과·주의를 풍부하게.',
+    '{"tierName":"…","tierTag":"…","head":"…","desc":"…","recs":[{"tag":"…","title":"…","desc":"…"},…],"rx":{"title":"…","sub":"…","items":[{"icon":"sleep","text":"…"},…]}}',
     '',
-    'rx(수면 가이드) 작성 규칙 — 반드시 준수:',
-    '1) title·sub: 「수면 가이드」「푹 쉬는 법」처럼 누구에게나 통하는 제목만 쓰지 말 것. 오늘 8문항·Lay-Z 지수에서 읽힌 수면/피로 신호를 요약 (예: 「알람 여러 번 끄고 일어난 날, 밤엔 이렇게」).',
-    '2) items 정확히 3개. 각 text는 3~6문장. 구조: (가) 오늘 답에서 읽은 구체 신호 1~2문장 → (나) 그 신호에 맞는 오늘 밤 처방 2~4문장.',
-    '3) 8문항 중 수면·기상·퇴근 루틴·저녁 행동·어젯밤 수면·오전 멘탈 답을 최소 2개 이상, 서로 다른 항목에서 반드시 반영. 사용자가 고른 보기 문장을 직접 인용하거나 패러프레이즈.',
-    '4) 금지: 블루라이트·규칙적 수면·수면 환경 조절 등 범용 팁만 단독으로 나열. 쓸 경우 반드시 오늘 선택과 연결해 이유를 설명.',
-    '5) icon은 키 하나만: sleep, phone-off, bed, light, stretch, alarm, temperature, walk, drink, moon (처방 내용과 맞출 것).',
-    '6) recs와 rx.items는 같은 문장을 복붙하지 말고, recs=낮/저녁 행동, rx=오늘 밤 잠들기·수면 루틴 처방으로 역할 분리.'
+    '공통 품질:',
+    '- tierName·tierTag: 오늘 포지션을 담은 이름 (TIERS 기본명 그대로 복붙만 하지 말 것).',
+    '- head: 2문장 이내, 오늘 포지션 한 방에. 문항 단서 1회 이상.',
+    '- desc: 6~10문장. 기상·멘탈·저녁·수면 중 최소 3개 축을 구체 인용하며 「지금 이 사람」 그리기.',
+    '- recs 3개: tag는 짧은 영문/한글 라벨(예: unwind, move, hydrate). title·desc는 오늘 답에만 통하는 행동. desc 4~8문장.',
+    '',
+    'rx(수면 가이드) — 이 사람만을 위한 오늘 밤 처방:',
+    '1) title·sub: 포지션 요약형 (범용 「수면 가이드」「푹 쉬는 법」 단독 금지).',
+    '2) items 3개: text 4~7문장. (신호) 오늘 답 인용 1~2문장 → (처방) 오늘 밤 구체 행동 2~5문장.',
+    '3) 기상(1)·수면(7)·귀가(6)·회복(5) 답을 서로 다른 항목에서 각각 1회 이상 반영.',
+    '4) 범용 수면 상식만 단독 나열 금지. 블루라이트·규칙적 수면은 오늘 선택과 연결될 때만.',
+    '5) icon 키: sleep, phone-off, bed, light, stretch, alarm, temperature, walk, drink, moon, music, book, mask, breathe, sofa — 처방과 1:1 매칭, 3개는 가능하면 서로 다르게.',
+    '6) recs 문장과 rx 문장 복붙 금지.'
   ].join('\n');
 
   const apiKey = laylayEffectiveApiKey();
@@ -242,8 +290,8 @@ async function fetchLayZCopy(lz, baseTier, answers){
         { role: 'system', content: layzSystem },
         { role: 'user', content: user },
       ],
-      max_tokens: 3000,
-      temperature: 0.78,
+      max_tokens: 3600,
+      temperature: 0.82,
     }),
   });
   const data = await res.json().catch(function () { return {}; });
@@ -303,7 +351,17 @@ var LAYZ_RX_ICON_SVGS = {
   drink:
     '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8.5 5h7l-1.2 11.5a2.2 2.2 0 01-2.2 2H11.9a2.2 2.2 0 01-2.2-2L8.5 5z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M7 5h10M9 3.5h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
   moon:
-    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18.2 14.8a6.8 6.8 0 11-5.4-11.6 7.2 7.2 0 105.4 11.6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>'
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18.2 14.8a6.8 6.8 0 11-5.4-11.6 7.2 7.2 0 105.4 11.6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+  music:
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.5 17.5a1.8 1.8 0 11-3.6 0 1.8 1.8 0 013.6 0zM17.5 15.5a1.8 1.8 0 11-3.6 0 1.8 1.8 0 013.6 0z" stroke="currentColor" stroke-width="1.6"/><path d="M11.9 15.7V6.8l7.1-1.5v8.9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  book:
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6.5 5.5h11a1.8 1.8 0 011.8 1.8V19l-3.2-1.8-3.3 1.8-3.3-1.8L6.5 19V7.3a1.8 1.8 0 011.8-1.8z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+  mask:
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 10.5c1.2-2.2 3.4-3.5 6-3.5s4.8 1.3 6 3.5v2.2c0 2.6-2.1 4.8-4.8 4.8H10.8A4.8 4.8 0 016 12.7v-2.2z" stroke="currentColor" stroke-width="1.7"/><path d="M9 12.2h1.4M13.6 12.2H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  breathe:
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="2.2" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 20c1-4 2.2-6 3.5-6s2.5 2 3.5 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M7 13.5c1.2-2.2 2.8-3.2 5-3.2s3.8 1 5 3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  sofa:
+    '<svg class="rx-ico" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5v3.5a1.5 1.5 0 001.5 1.5h11A1.5 1.5 0 0019 16V12.5" stroke="currentColor" stroke-width="1.7"/><path d="M5 12.5h14v-2.2a2.8 2.8 0 00-2.8-2.8H7.8A2.8 2.8 0 005 12.3v.2z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M5.5 17.5V19M18.5 17.5V19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>'
 };
 
 var LAYZ_RX_ICON_ALIASES = {
@@ -316,8 +374,18 @@ var LAYZ_RX_ICON_ALIASES = {
   temperature: 'temperature', temp: 'temperature', '🌡': 'temperature', '🌡️': 'temperature',
   walk: 'walk', '🚶': 'walk',
   drink: 'drink', tea: 'drink', shower: 'drink', '☕': 'drink', '🚿': 'drink',
-  moon: 'moon', '🌙': 'moon'
+  moon: 'moon', '🌙': 'moon',
+  music: 'music', '🎵': 'music', '🎧': 'music',
+  book: 'book', read: 'book', '📖': 'book',
+  mask: 'mask', eyemask: 'mask', '수면안대': 'mask',
+  breathe: 'breathe', breath: 'breathe', meditate: 'breathe', 명상: 'breathe',
+  sofa: 'sofa', couch: 'sofa', 소파: 'sofa'
 };
+
+var LAYZ_RX_ICON_POOL = [
+  'sleep', 'phone-off', 'bed', 'light', 'stretch', 'alarm', 'temperature',
+  'walk', 'drink', 'moon', 'music', 'book', 'mask', 'breathe', 'sofa'
+];
 
 function layzNormalizeRxIconKey(raw) {
   var s = String(raw || '').trim().toLowerCase();
@@ -329,30 +397,70 @@ function layzNormalizeRxIconKey(raw) {
 
 function layzGuessRxIconKey(text) {
   var t = String(text || '');
+  if (/안대|mask/i.test(t)) return 'mask';
+  if (/명상|호흡|breathe|meditat/i.test(t)) return 'breathe';
+  if (/소파|쇼파|sofa|couch|눕고.?폰/i.test(t)) return 'sofa';
+  if (/음악|멜로디|플레이리스트|music/i.test(t)) return 'music';
+  if (/책|독서|읽기|read/i.test(t)) return 'book';
   if (/폰|스마트폰|sns|알림|블루라이트|화면|디지털|phone|screen/i.test(t)) return 'phone-off';
-  if (/침대|눕|누워|잠|수면|낮잠|안대|이불|bed/i.test(t)) return 'bed';
+  if (/침대|눕|누워|잠|수면|낮잠|이불|bed/i.test(t)) return 'bed';
   if (/샤워|씻|목욕|따뜻한.?음료|차.?한|물.?한|음료/i.test(t)) return 'drink';
-  if (/스트레칭|호흡|yoga|stretch/i.test(t)) return 'stretch';
+  if (/스트레칭|yoga|stretch/i.test(t)) return 'stretch';
   if (/조명|밝은.?조명|어둡|불.?끄|라이트/i.test(t)) return 'light';
   if (/알람|같은.?시간|일찍.?일어나/i.test(t)) return 'alarm';
-  if (/시간|루틴|일찍/i.test(t)) return 'sleep';
+  if (/뒤척|알람.?여러|시간|루틴|일찍/i.test(t)) return 'sleep';
   if (/온도|시원|18|20.?도/i.test(t)) return 'temperature';
   if (/산책|걷|밖|햇빛/i.test(t)) return 'walk';
   if (/밤|달|moon/i.test(t)) return 'moon';
+  return '';
+}
+
+function layzGuessRxIconFromAnswers(answers, slot) {
+  var a = answers || [];
+  var picks = [
+    layzGuessRxIconKey(a[0] && a[0].t ? a[0].t : ''),
+    layzGuessRxIconKey((a[6] && a[6].t) || ''),
+    layzGuessRxIconKey((a[5] && a[5].t) || (a[4] && a[4].t) || ''),
+    layzGuessRxIconKey((a[1] && a[1].t) || (a[3] && a[3].t) || '')
+  ].filter(Boolean);
+  if (picks[slot]) return picks[slot];
+  return ['sleep', 'phone-off', 'bed'][slot] || 'moon';
+}
+
+function layzPickDistinctRxIcon(preferred, used) {
+  var key = layzNormalizeRxIconKey(preferred) || layzGuessRxIconKey(preferred) || preferred;
+  if (key && !used[key] && LAYZ_RX_ICON_SVGS[key]) return key;
+  for (var i = 0; i < LAYZ_RX_ICON_POOL.length; i++) {
+    var k = LAYZ_RX_ICON_POOL[i];
+    if (!used[k]) return k;
+  }
   return 'sleep';
+}
+
+function layzEnrichRxItems(items, answers) {
+  var out = (items || []).map(normalizeLayZRxItem).filter(Boolean).slice(0, 3);
+  var used = {};
+  for (var i = 0; i < out.length; i++) {
+    var item = out[i];
+    var fromAi = layzNormalizeRxIconKey(item.icon);
+    var fromText = layzGuessRxIconKey(item.text);
+    var fromAnswers = layzGuessRxIconFromAnswers(answers, i);
+    var key = fromText || fromAi || fromAnswers;
+    key = layzPickDistinctRxIcon(key, used);
+    used[key] = true;
+    item.icon = key;
+  }
+  return out;
 }
 
 function layzRxIconSvg(key) {
   return LAYZ_RX_ICON_SVGS[key] || LAYZ_RX_ICON_SVGS.sleep;
 }
 
-function layzRxIconMarkup(item, idx) {
+function layzRxIconMarkup(item) {
   var normalized = normalizeLayZRxItem(item);
-  var key = '';
-  if (normalized) {
-    key = layzNormalizeRxIconKey(normalized.icon) || layzGuessRxIconKey(normalized.text);
-  }
-  if (!key) key = ['sleep', 'phone-off', 'bed'][idx] || 'sleep';
+  var key = normalized ? layzNormalizeRxIconKey(normalized.icon) || layzGuessRxIconKey(normalized.text) : '';
+  if (!key) key = 'sleep';
   return layzRxIconSvg(key);
 }
 
@@ -418,7 +526,7 @@ function mergeTierWithAI(base, ai) {
   return { tier: changed ? out : base, applied: changed };
 }
 
-function applyLayZCopyToDom(lz, r, merged) {
+function applyLayZCopyToDom(lz, r, merged, answers) {
   var h = document.getElementById('layz-ai-head');
   var d = document.getElementById('layz-ai-desc');
   var badge = document.getElementById('layz-tier-badge');
@@ -474,10 +582,11 @@ function applyLayZCopyToDom(lz, r, merged) {
     rs.textContent = merged.rx.sub;
     rs.style.opacity = '1';
   }
-  if (ri && merged.rx.items) {
-    ri.innerHTML = merged.rx.items
-      .map(function (item, idx) {
-        var icon = layzRxIconMarkup(item, idx);
+  if (ri && merged.rx && merged.rx.items) {
+    var rxItems = layzEnrichRxItems(merged.rx.items, answers || []);
+    ri.innerHTML = rxItems
+      .map(function (item) {
+        var icon = layzRxIconMarkup(item);
         var text = layzRxItemText(item);
         return (
           '<div class="rx-item"><div class="rx-num rx-num--svg" aria-hidden="true">' +
@@ -1009,7 +1118,7 @@ function renderResult(lz,r,kws){
     stopLayZAiLoading();
     var mr = mergeTierWithAI(r, ai);
     st.lzTierForShare = mr.tier;
-    applyLayZCopyToDom(lz, r, mr.tier);
+    applyLayZCopyToDom(lz, r, mr.tier, st.answers);
     setLayZShareButtonReady(true);
     if (ai && mr.applied) reportLayZRuntime('GPT 카피', elapsed, '본문·추천·수면 반영');
     else if (ai) reportLayZRuntime('GPT', elapsed, '형식 부족·TIERS 유지');
@@ -1031,7 +1140,7 @@ function renderResult(lz,r,kws){
     var elapsed = Math.round(performance.now() - tAi0);
     stopLayZAiLoading();
     st.lzTierForShare = r;
-    applyLayZCopyToDom(lz, r, r);
+    applyLayZCopyToDom(lz, r, r, st.answers);
     setLayZShareButtonReady(true);
     reportLayZRuntime('TIERS', elapsed, '네트워크');
     if (stBar) {

@@ -115,8 +115,8 @@ body{font-family:var(--font);color:var(--txt);-webkit-font-smoothing:antialiased
 .rx-box::before{content:'';position:absolute;right:-20px;bottom:-20px;width:120px;height:120px;background:var(--or);border-radius:50%;opacity:.08}
 .rx-item{display:flex;align-items:flex-start;gap:.75rem;padding:.7rem 0;border-top:1px solid rgba(255,255,255,.08)}
 .rx-item:first-child{border-top:none;padding-top:0}
-.rx-num{width:32px;height:32px;background:var(--or);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;line-height:0}
-.rx-num--svg .rx-ico{width:18px;height:18px;color:#1a1a1a;display:block}
+.rx-num{width:34px;height:34px;background:var(--or);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;line-height:0;box-shadow:0 2px 8px rgba(232,68,10,.28)}
+.rx-num--svg .rx-ico{width:19px;height:19px;color:#1a1a1a;display:block}
 
 /* Character animations */
 .char-sleep{animation:cSleep 3.5s ease-in-out infinite}
