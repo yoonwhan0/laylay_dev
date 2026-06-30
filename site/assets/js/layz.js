@@ -193,6 +193,7 @@ async function fetchLayZCopy(lz, baseTier, answers){
     '말투: 친근한 반말/해요체 혼용 가능하나 가볍고 유머 있게. 진부한 운세체·번역투·과한 한자어 나열은 피합니다.',
     '의학·법률·투자·진단처럼 들리는 단정은 금지. 재미·자기인식용이며 점수는 이미 확정입니다.',
     '카피는 짧게 끊기지 말고 여유 있게: 공감 한두 문장, 오늘 상태를 구체적으로 풀어 쓰기, 문항에서 드러난 뉘앙스를 한두 번은 직접 짚어 주기.',
+    'rx(레이레이 수면 가이드)는 본문·recs와 같은 톤이지만 내용은 별도로 설계합니다. 흐름: 8문항 답에서 오늘의 수면·피로·저녁 루틴 신호를 유추 → 그 신호에 맞는 오늘 밤 처방 3개. 범용 수면 상식만 나열하지 말고, 사용자가 고른 답의 표현·상황을 인용하거나 패러프레이즈하세요.',
     '출력은 반드시 요청된 JSON 한 덩어리만. JSON 바깥 텍스트·마크다운·코드펜스 금지.',
     'Lay-Z 지수 숫자는 사용자가 준 값이며 절대 바꾸거나 재해석하지 마세요.'
   ].join('\n');
@@ -217,9 +218,16 @@ async function fetchLayZCopy(lz, baseTier, answers){
     lines,
     '',
     '반드시 유효한 JSON 하나만 출력. 키 정확히 일치.',
-    '{"tierName":"…","tierTag":"…","head":"2문장 이내 한 덩어리(임팩트 있는 헤드)","desc":"5~9문장 본문. 공감·구체 묘사·가벼운 유머 가능. 문항 요약에서 단서를 2회 이상 인용하듯 짚을 것.","recs":[{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"}],"rx":{"title":"수면 가이드 제목","sub":"한 줄 부제","items":[{"icon":"sleep","text":"항목1"},{"icon":"phone-off","text":"항목2"},{"icon":"bed","text":"항목3"}]}}',
+    '{"tierName":"…","tierTag":"…","head":"2문장 이내 한 덩어리(임팩트 있는 헤드)","desc":"5~9문장 본문. 공감·구체 묘사·가벼운 유머 가능. 문항 요약에서 단서를 2회 이상 인용하듯 짚을 것.","recs":[{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"},{"tag":"…","title":"…","desc":"…"}],"rx":{"title":"오늘 밤 맞춤 수면 가이드 제목","sub":"유추한 오늘 수면 이슈를 한 줄로","items":[{"icon":"sleep","text":"항목1"},{"icon":"phone-off","text":"항목2"},{"icon":"bed","text":"항목3"}]}}',
     'recs는 정확히 3개. 각 rec.desc는 4~8문장 분량으로 행동 이유·기대 효과·주의를 풍부하게.',
-    'rx.items는 정확히 3개. icon은 이모지가 아니라 아래 키 중 하나만: sleep, phone-off, bed, light, stretch, alarm, temperature, walk, drink, moon. text는 2~5문장 실천 가이드.'
+    '',
+    'rx(수면 가이드) 작성 규칙 — 반드시 준수:',
+    '1) title·sub: 「수면 가이드」「푹 쉬는 법」처럼 누구에게나 통하는 제목만 쓰지 말 것. 오늘 8문항·Lay-Z 지수에서 읽힌 수면/피로 신호를 요약 (예: 「알람 여러 번 끄고 일어난 날, 밤엔 이렇게」).',
+    '2) items 정확히 3개. 각 text는 3~6문장. 구조: (가) 오늘 답에서 읽은 구체 신호 1~2문장 → (나) 그 신호에 맞는 오늘 밤 처방 2~4문장.',
+    '3) 8문항 중 수면·기상·퇴근 루틴·저녁 행동·어젯밤 수면·오전 멘탈 답을 최소 2개 이상, 서로 다른 항목에서 반드시 반영. 사용자가 고른 보기 문장을 직접 인용하거나 패러프레이즈.',
+    '4) 금지: 블루라이트·규칙적 수면·수면 환경 조절 등 범용 팁만 단독으로 나열. 쓸 경우 반드시 오늘 선택과 연결해 이유를 설명.',
+    '5) icon은 키 하나만: sleep, phone-off, bed, light, stretch, alarm, temperature, walk, drink, moon (처방 내용과 맞출 것).',
+    '6) recs와 rx.items는 같은 문장을 복붙하지 말고, recs=낮/저녁 행동, rx=오늘 밤 잠들기·수면 루틴 처방으로 역할 분리.'
   ].join('\n');
 
   const apiKey = laylayEffectiveApiKey();
@@ -234,8 +242,8 @@ async function fetchLayZCopy(lz, baseTier, answers){
         { role: 'system', content: layzSystem },
         { role: 'user', content: user },
       ],
-      max_tokens: 2400,
-      temperature: 0.72,
+      max_tokens: 3000,
+      temperature: 0.78,
     }),
   });
   const data = await res.json().catch(function () { return {}; });
@@ -937,12 +945,12 @@ function renderResult(lz,r,kws){
       <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:.6rem">
         <div>
           <div style="font-size:10.5px;color:rgba(255,255,255,.45);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem">레이레이 수면 가이드</div>
-          <div id="layz-rx-title" style="font-size:15px;font-weight:700;color:#fff;line-height:1.4;opacity:.42">수면 가이드 생성 중…</div>
-          <div id="layz-rx-sub" style="font-size:12px;color:rgba(255,255,255,.38);margin-top:.25rem">잠깐만 기다려 주세요</div>
+          <div id="layz-rx-title" style="font-size:15px;font-weight:700;color:#fff;line-height:1.4;opacity:.42">오늘 답 기반 수면 처방 작성 중…</div>
+          <div id="layz-rx-sub" style="font-size:12px;color:rgba(255,255,255,.38);margin-top:.25rem">8문항에서 읽은 신호를 유추하고 있어요</div>
         </div>
         <img src="${IMG_C3}" alt="" style="width:72px;flex-shrink:0;margin-left:.75rem;opacity:.85" loading="lazy">
       </div>
-      <div id="layz-rx-items" style="padding:.85rem .5rem;color:rgba(255,255,255,.38);font-size:12.5px;text-align:center;line-height:1.5">체크리스트 항목을 준비하고 있어요.</div>
+      <div id="layz-rx-items" style="padding:.85rem .5rem;color:rgba(255,255,255,.38);font-size:12.5px;text-align:center;line-height:1.5">오늘 밤 맞춤 처방 3가지를 준비하고 있어요.</div>
     </div>
     </div>
 
@@ -972,7 +980,7 @@ function renderResult(lz,r,kws){
   var stepMsgs = [
     '8문항 응답을 패턴으로 묶는 중…',
     'Lay-Z 톤에 맞게 말맛 다듬는 중…',
-    '추천 행동·수면 가이드를 풀어 쓰는 중…',
+    '8문항에서 오늘 밤 수면 처방을 유추하는 중…',
     'JSON으로 정리해 화면에 붙이는 중…'
   ];
   var stepIdx = 0;
