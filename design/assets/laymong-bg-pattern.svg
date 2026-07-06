@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <g fill="none" stroke="#c8c4d8" stroke-width="1.2" opacity="0.55">
+    <path d="M24 36c8-6 16-6 24 0s16 6 24 0"/>
+    <path d="M140 28l6 10 10 2-7 7 2 10-10-5-10 5 2-10-7-7 10-2z"/>
+    <text x="88" y="44" font-family="Poppins,sans-serif" font-size="14" fill="#c8c4d8" stroke="none">Z</text>
+    <text x="156" y="92" font-family="Poppins,sans-serif" font-size="12" fill="#c8c4d8" stroke="none">z</text>
+    <path d="M36 120c0-8 6-14 14-14s14 6 14 14-6 14-14 14-14-6-14-14z"/>
+    <path d="M120 132c10 0 18 8 18 18s-8 18-18 18"/>
+    <path d="M168 156c4-8 12-10 18-4"/>
+    <path d="M12 168c6-4 12-4 18 0"/>
+    <path d="M72 76c-4 6-4 12 0 18"/>
+    <path d="M176 36c-6 4-12 4-18 0"/>
+  </g>
+</svg>
