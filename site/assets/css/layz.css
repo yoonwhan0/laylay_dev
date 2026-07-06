@@ -619,6 +619,190 @@ button {
   margin-bottom: 16px;
 }
 
+.laymong-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.laymong-section-head .laymong-section-title {
+  margin-bottom: 0;
+}
+
+.ai-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 100px;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+.ai-badge--ai {
+  background: rgba(142, 111, 214, 0.38);
+  color: #f0e8ff;
+  border: 1px solid rgba(200, 170, 255, 0.4);
+}
+
+.ai-badge--fixed {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.mong-result-block {
+  margin-bottom: 32px;
+}
+
+.layz-result-block {
+  margin-bottom: 28px;
+  text-align: left;
+}
+
+.result-hero .layz-result-block {
+  text-align: center;
+}
+
+.result-hero .laymong-section-head {
+  justify-content: center;
+  gap: 10px;
+}
+
+.layz-result-block .laymong-section-head {
+  margin-bottom: 12px;
+}
+
+.layz-result-block .laymong-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--lay-black);
+}
+
+.center-panel--result .ai-badge--ai {
+  background: rgba(142, 111, 214, 0.14);
+  color: #6d28d9;
+  border: 1px solid rgba(142, 111, 214, 0.32);
+}
+
+.center-panel--result .ai-badge--fixed {
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.mode-badge--outline {
+  background: transparent;
+  border: 1px solid var(--main-color);
+  color: var(--main-color);
+}
+
+.sleep-guide--bare {
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.sleep-guide-subtitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.sleep-guide-lead {
+  margin-bottom: 1rem;
+}
+
+.mong-score-sub {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+.mong-mood-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 18px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.mong-oneline-box {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 22px 24px;
+}
+
+.mong-oneline-text {
+  font-size: 17px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.mong-section-hint {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  margin: -8px 0 12px;
+}
+
+.mong-analysis-wrap {
+  margin-bottom: 0;
+}
+
+.mong-analysis-item {
+  cursor: pointer;
+}
+
+.mong-analysis-item.is-open .mong-chevron {
+  transform: rotate(0deg);
+}
+
+.mong-analysis-body {
+  display: none;
+  padding: 16px 30px 22px;
+  font-size: 15px;
+  line-height: 1.78;
+  color: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: none;
+  background: rgba(0, 0, 0, 0.12);
+  margin-bottom: 0;
+  white-space: pre-line;
+}
+
+.mong-analysis-body.show {
+  display: block;
+}
+
+.mong-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mong-tag {
+  display: inline-block;
+  padding: 9px 14px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.mong-tag--mute {
+  opacity: 0.5;
+}
+
 .mong-analysis-list {
   display: flex;
   flex-direction: column;

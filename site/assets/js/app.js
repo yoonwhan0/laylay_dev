@@ -36,7 +36,9 @@ let state = {
   layzAi: null,
   laymong: { gender: "남성", mood: "", dream: "", agreed: false, noticeOpen: false },
   lastFortune: null,
+  lastMongMood: "",
   laymongLoadingStep: 0,
+  mongAnalysisOpen: {},
 };
 
 function answerScores(answers) {
@@ -125,6 +127,8 @@ async function runMongAiFlow() {
     render();
     await new Promise((r) => setTimeout(r, 500));
     state.lastFortune = fortune;
+    state.lastMongMood = form.mood;
+    state.mongAnalysisOpen = {};
     saveMongResult(fortune, form.dream);
     if (window.LayMongFeed) window.LayMongFeed.addMineFromResult(fortune, form.dream, form.mood);
     navigate("#/laymong/result");
@@ -136,14 +140,15 @@ async function runMongAiFlow() {
   }
 }
 
-function renderSleepGuide(rx, fallbackItems) {
+function renderSleepGuide(rx, fallbackItems, bare = false) {
   if (!rx || !rx.items || !rx.items.length) {
-    return fallbackItems;
+    if (!bare) return fallbackItems;
+    const match = fallbackItems.match(/<div class="guide-list">[\s\S]*<\/div>/);
+    return match ? match[0] : fallbackItems;
   }
-  return `
-    <p class="sleep-guide-label">레이레이 수면 가이드</p>
-    <h3>${rx.title || "오늘의 수면 가이드"}</h3>
-    ${rx.sub ? `<p class="result-summary" style="margin-bottom:1rem">${rx.sub}</p>` : ""}
+  const inner = `
+    <h3 class="sleep-guide-subtitle">${rx.title || "오늘의 수면 가이드"}</h3>
+    ${rx.sub ? `<p class="result-summary sleep-guide-lead">${rx.sub}</p>` : ""}
     <div class="guide-list">
       ${rx.items
         .map(
@@ -157,6 +162,23 @@ function renderSleepGuide(rx, fallbackItems) {
         )
         .join("")}
     </div>`;
+  if (bare) return inner;
+  return `
+    <p class="sleep-guide-label">레이레이 수면 가이드</p>
+    ${inner}`;
+}
+
+function layzAnswerStats(answers, score) {
+  const mentalScore = answers[1]?.score ?? 0;
+  const eveningScore = answers[6]?.score ?? 0;
+  const mental = mentalScore >= 2 ? "주의" : "정상";
+  const sleepFeel = score >= 55 ? "피곤" : score <= 35 ? "상쾌" : "보통";
+  const deficit = score >= 60 ? "2~3시간" : score >= 45 ? "1시간" : "0시간";
+  return [
+    { label: "멘탈", value: mental },
+    { label: "수면 상태", value: sleepFeel },
+    { label: "수면 부족", value: deficit },
+  ];
 }
 
 const LAYMONG_LOADING_MESSAGES = [
@@ -461,20 +483,61 @@ function renderLaymongEncyclopedia() {
   `;
 }
 
+function renderSectionHead(title, kind) {
+  const badge =
+    kind === "ai"
+      ? '<span class="ai-badge ai-badge--ai">AI</span>'
+      : kind === "fixed"
+        ? '<span class="ai-badge ai-badge--fixed">고정</span>'
+        : "";
+  return `<div class="laymong-section-head"><h3 class="laymong-section-title">${title}</h3>${badge}</div>`;
+}
+
+function getFortuneCards(f) {
+  if (f.fortuneCards && f.fortuneCards.length) return f.fortuneCards;
+  const cards = (f.analysis || []).map((a) => ({
+    key: a.label || a.key,
+    stars: a.stars,
+    level: a.level,
+    desc: a.desc || f.detail || "",
+  }));
+  if (f.overview) {
+    cards.push({ key: "총론", stars: null, level: "전체 요약", desc: f.overview });
+  }
+  return cards;
+}
+
 function renderLaymongResult() {
   const f = state.lastFortune || FORTUNES.find((x) => x.keyword === "default");
-  const analysis = (f.analysis || [])
-    .map(
-      (a) => `
-      <div class="mong-analysis-item">
-        <div class="mong-analysis-left">
-          <span class="mong-analysis-label">${a.label}</span>
-          <span class="mong-analysis-badge">${a.level}<span class="mong-analysis-stars">${renderStars(a.stars)}</span></span>
+  const cards = getFortuneCards(f);
+  const moodLine = state.lastMongMood || state.laymong.mood || "";
+  const oneliner = f.oneliner || f.badge || f.summary || "";
+  const tags = f.tags && f.tags.length ? f.tags : [];
+
+  const analysisHtml = cards
+    .map((c, i) => {
+      const open = !!state.mongAnalysisOpen[i];
+      const starsHtml =
+        c.stars != null
+          ? `<span class="mong-analysis-stars">${renderStars(c.stars)}</span>`
+          : "";
+      return `
+      <div class="mong-analysis-wrap">
+        <div class="mong-analysis-item${open ? " is-open" : ""}" data-action="mong-analysis-toggle" data-index="${i}" role="button" tabindex="0">
+          <div class="mong-analysis-left">
+            <span class="mong-analysis-label">${c.key}</span>
+            <span class="mong-analysis-badge">${c.level}${starsHtml}</span>
+          </div>
+          <img src="assets/chevron.svg" class="mong-chevron" alt="" />
         </div>
-        <img src="assets/chevron.svg" class="mong-chevron" alt="" />
-      </div>`
-    )
+        <div class="mong-analysis-body${open ? " show" : ""}" id="mong-ab-${i}">${c.desc || "설명을 불러오지 못했어요."}</div>
+      </div>`;
+    })
     .join("");
+
+  const tagsHtml = tags.length
+    ? tags.map((t) => `<span class="mong-tag">${t}</span>`).join("")
+    : '<span class="mong-tag mong-tag--mute">#오늘의작은실천</span>';
 
   return `
     <div class="center-panel-wrap">
@@ -483,37 +546,59 @@ function renderLaymongResult() {
           <p class="laymong-report-label">Lay Mong Report</p>
           <h2 class="laymong-result-title">꿈으로 본 오늘 나의 운세는?</h2>
 
-          <div class="laymong-score-row">
-            <span class="laymong-score">${f.score}</span><span class="laymong-score-unit">점</span>
+          <div class="mong-result-block" data-laylay-region="mong-score">
+            ${renderSectionHead("종합 점수", "ai")}
+            <div class="laymong-score-row">
+              <span class="laymong-score">${f.score}</span><span class="laymong-score-unit">점</span>
+            </div>
+            <p class="mong-score-sub">별 ${Math.round((f.score || 0) / 5)}개 × 5점</p>
           </div>
 
-          <div class="laymong-badge-wrap">
-            <div class="laymong-badge">${f.badge}</div>
+          ${
+            moodLine
+              ? `<div class="mong-result-block" data-laylay-region="mong-ui">
+            ${renderSectionHead("꿈을 적을 때 기분", "fixed")}
+            <div class="mong-mood-pill">${moodLine}</div>
+          </div>`
+              : ""
+          }
+
+          <div class="mong-result-block" data-laylay-region="mong-oneline">
+            ${renderSectionHead("오늘의 한 줄", "ai")}
+            <div class="mong-oneline-box">
+              <p class="mong-oneline-text">"${oneliner}"</p>
+            </div>
           </div>
-          <p class="laymong-result-summary">${f.summary}</p>
 
           <div class="laymong-character laymong-character--result">
             <img src="assets/result-character.svg" alt="레이몽 캐릭터" />
           </div>
 
-          <h3 class="laymong-section-title">오늘의 운세 분석</h3>
-          <div class="mong-analysis-list">${analysis}</div>
-
-          <h3 class="laymong-section-title">오늘의 행운</h3>
-          <div class="mong-lucky-grid">
-            <div class="mong-lucky-box"><dt>행운의 색</dt><dd>${f.lucky.color}</dd></div>
-            <div class="mong-lucky-box"><dt>행운의 숫자</dt><dd>${f.lucky.number}</dd></div>
-            <div class="mong-lucky-box"><dt>행운의 물건</dt><dd>${f.lucky.item}</dd></div>
+          <div class="mong-result-block" data-laylay-region="mong-fortune">
+            ${renderSectionHead("운세 분석", "ai")}
+            <p class="mong-section-hint">항목을 누르면 AI 해몽 본문이 펼쳐져요</p>
+            <div class="mong-analysis-list">${analysisHtml}</div>
           </div>
 
-          <h3 class="laymong-section-title">오늘의 총평</h3>
-          <p class="mong-overview">${f.overview}</p>
+          <div class="mong-result-block" data-laylay-region="mong-lucky">
+            ${renderSectionHead("오늘의 행운", "ai")}
+            <div class="mong-lucky-grid">
+              <div class="mong-lucky-box"><dt>행운의 색</dt><dd>${f.lucky.color}</dd></div>
+              <div class="mong-lucky-box"><dt>행운의 숫자</dt><dd>${f.lucky.number}</dd></div>
+              <div class="mong-lucky-box"><dt>행운의 물건</dt><dd>${f.lucky.item}</dd></div>
+            </div>
+          </div>
+
+          <div class="mong-result-block" data-laylay-region="mong-tags">
+            ${renderSectionHead("오늘 이렇게 해봐요", "ai")}
+            <div class="mong-tag-list">${tagsHtml}</div>
+          </div>
 
           <div class="btn-stack">
             <button class="btn-laymong" data-action="laymong-share">꿈 해몽 공유하기</button>
             <div class="btn-row-2">
               <button class="btn-laymong-outline" data-action="laymong">다시 꿈 해몽하기</button>
-              <button class="btn-laymong-outline" data-action="laymong-history">레이몽 도감 보러가기</button>
+              <button class="btn-laymong-outline" data-action="laymong-history">지난 꿈 기록 보기</button>
             </div>
           </div>
         </div>
@@ -615,10 +700,11 @@ function renderResult() {
   const pointerPct = Math.min(100, Math.max(0, score));
   const modeIndex = ["Active", "Easy", "Slow", "Lazy", "LayLay"].indexOf(mode.name);
   const pointerLeft = modeIndex >= 0 ? (modeIndex / 4) * 100 : pointerPct;
+  const stats = layzAnswerStats(state.answers, score);
+  const aiTierName = ai && ai.applied && ai.tierName ? ai.tierName : null;
 
   const fallbackSleep = `
-    <p class="sleep-guide-label">레이레이 수면 가이드</p>
-    <h3>편안한 밤을 위한 팁</h3>
+    <h3 class="sleep-guide-subtitle">편안한 밤을 위한 팁</h3>
     <div class="guide-list">
       <div class="guide-item"><span class="guide-num">01</span><div><strong>정해진 시간에 잠자기</strong><p>매일 같은 시간에 자고 일어나면 몸이 리듬을 찾을 수 있어.</p></div></div>
       <div class="guide-item"><span class="guide-num">02</span><div><strong>스마트폰 멀리하기</strong><p>잠들기 1시간 전에는 스마트폰을 멀리해보자.</p></div></div>
@@ -631,36 +717,46 @@ function renderResult() {
         <div class="panel-inner">
           <div class="result-hero">
             <div class="result-card-label">Lay-Z Report</div>
-            <div class="result-card-title">오늘 나의 게으름 지수는?</div>
-            <div class="result-score">${score}</div>
 
-            <div class="mode-scale">
-              <div class="mode-pointer-wrap" style="left:${pointerLeft}%">
-                <div class="mode-pointer"></div>
+            <div class="layz-result-block" data-laylay-region="layz-score">
+              ${renderSectionHead("오늘 나의 게으름 지수", "fixed")}
+              <div class="result-score">${score}</div>
+
+              <div class="mode-scale">
+                <div class="mode-pointer-wrap" style="left:${pointerLeft}%">
+                  <div class="mode-pointer"></div>
+                </div>
+                <div class="mode-track mode-track--border">
+                  <div class="mode-fill mode-fill--segment" style="width:${Math.max(12, pointerLeft + 8)}%"></div>
+                </div>
+                <div class="mode-labels">
+                  <span class="${mode.name === "Active" ? "active" : ""}">Active</span>
+                  <span class="${mode.name === "Easy" ? "active" : ""}">Easy</span>
+                  <span class="${mode.name === "Slow" ? "active" : ""}">slow</span>
+                  <span class="${mode.name === "Lazy" ? "active" : ""}">Lazy</span>
+                  <span class="${mode.name === "LayLay" ? "active" : ""}">LayLay</span>
+                </div>
               </div>
-              <div class="mode-track mode-track--border">
-                <div class="mode-fill mode-fill--segment" style="width:${Math.max(12, pointerLeft + 8)}%"></div>
-              </div>
-              <div class="mode-labels">
-                <span class="${mode.name === "Active" ? "active" : ""}">Active</span>
-                <span class="${mode.name === "Easy" ? "active" : ""}">Easy</span>
-                <span class="${mode.name === "Slow" ? "active" : ""}">slow</span>
-                <span class="${mode.name === "Lazy" ? "active" : ""}">Lazy</span>
-                <span class="${mode.name === "LayLay" ? "active" : ""}">LayLay</span>
+
+              <div class="mode-badge-wrap">
+                <span class="mode-badge">${mode.label}</span>
               </div>
             </div>
 
-            <div class="mode-badge-wrap">
-              <span class="mode-badge">${mode.label}</span>
-            </div>
-
-            <div class="result-message">
-              <h3>${displayTitle}</h3>
-              <p>${displayDesc}</p>
-            </div>
-
-            <div class="result-tags">
-              ${displayTags.map((t) => `<span class="tag tag--orange">${t}</span>`).join("")}
+            <div class="layz-result-block" data-laylay-region="layz-ai-copy">
+              ${renderSectionHead("AI 코칭 메시지", "ai")}
+              ${
+                aiTierName
+                  ? `<div class="mode-badge-wrap"><span class="mode-badge mode-badge--outline">${aiTierName}</span></div>`
+                  : ""
+              }
+              <div class="result-message">
+                <h3>${displayTitle}</h3>
+                <p>${displayDesc}</p>
+              </div>
+              <div class="result-tags">
+                ${displayTags.map((t) => `<span class="tag tag--orange">${t}</span>`).join("")}
+              </div>
             </div>
 
             <div class="result-illust">
@@ -673,30 +769,35 @@ function renderResult() {
             </div>
           </div>
 
-          <h3 class="section-title section-title--center">오늘 나의 상태 요약</h3>
-          <div class="stats-grid">
-            <div class="stat-box"><dt>멘탈</dt><dd>정상</dd></div>
-            <div class="stat-box"><dt>수면 상태</dt><dd>만족</dd></div>
-            <div class="stat-box"><dt>수면 부족</dt><dd>0시간</dd></div>
+          <div class="layz-result-block" data-laylay-region="layz-stats">
+            ${renderSectionHead("오늘 상태 스냅샷", "fixed")}
+            <div class="stats-grid">
+              ${stats.map((s) => `<div class="stat-box"><dt>${s.label}</dt><dd>${s.value}</dd></div>`).join("")}
+            </div>
+            <p class="result-summary">${summaryText}</p>
           </div>
-          <p class="result-summary">${summaryText}</p>
 
-          <h3 class="section-title section-title--center">오늘 컨디션에 맞는 행동 추천</h3>
-          <div class="recommend-list">
-            ${recommends
-              .map(
-                (r) => `
+          <div class="layz-result-block" data-laylay-region="layz-rec">
+            ${renderSectionHead("오늘 컨디션에 맞는 행동 추천", "ai")}
+            <div class="recommend-list">
+              ${recommends
+                .map(
+                  (r) => `
               <article class="recommend-card recommend-card--full">
                 <span class="badge">${r.badge}</span>
                 <h4>${r.title}</h4>
                 <p>${r.desc}</p>
               </article>`
-              )
-              .join("")}
+                )
+                .join("")}
+            </div>
           </div>
 
-          <div class="sleep-guide">
-            ${renderSleepGuide(ai && ai.rx ? ai.rx : null, fallbackSleep)}
+          <div class="layz-result-block layz-result-block--sleep" data-laylay-region="layz-rx">
+            ${renderSectionHead("레이레이 수면 가이드", "ai")}
+            <div class="sleep-guide sleep-guide--bare">
+              ${renderSleepGuide(ai && ai.rx ? ai.rx : null, fallbackSleep, true)}
+            </div>
           </div>
 
           <div class="btn-stack result-bottom-btns">
@@ -961,10 +1062,14 @@ function handleClick(e) {
           badge: r.badge,
           title: r.title || r.badge,
           summary: r.summary,
+          oneliner: r.oneliner || r.summary,
           analysis: r.analysis,
+          fortuneCards: r.fortuneCards,
           lucky: r.lucky || { color: "파란색", number: 27, item: "노트" },
           overview: r.overview || r.summary,
+          tags: r.tags || [],
         };
+        state.mongAnalysisOpen = {};
         navigate("#/laymong/result");
       }
       break;
@@ -972,6 +1077,13 @@ function handleClick(e) {
     case "laymong-history":
       navigate("#/laymong/history");
       break;
+    case "mong-analysis-toggle": {
+      const idx = Number(btn.dataset.index);
+      if (Number.isNaN(idx)) break;
+      state.mongAnalysisOpen[idx] = !state.mongAnalysisOpen[idx];
+      render();
+      break;
+    }
     case "laymong-share":
       openShareModal();
       break;

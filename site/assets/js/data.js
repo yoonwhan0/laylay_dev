@@ -306,10 +306,13 @@ function saveMongResult(fortune, dreamText = "") {
     dreamTitle: dreamText.trim().split("\n")[0].slice(0, 40) || fortune.title,
     dreamDetail: dreamText.trim(),
     summary: fortune.summary,
+    oneliner: fortune.oneliner || fortune.summary,
     score: fortune.score,
     analysis: fortune.analysis,
+    fortuneCards: fortune.fortuneCards,
     lucky: fortune.lucky,
     overview: fortune.overview,
+    tags: fortune.tags || [],
     date: new Date().toISOString(),
   };
   const history = getMongHistory();

@@ -36,18 +36,53 @@
 
   function parsedToFortune(parsed) {
     var sum = (parsed.재물운 || 0) + (parsed.애정운 || 0) + (parsed.직장운 || 0) + (parsed.건강운 || 0);
+    var fortuneCards = [
+      {
+        key: '재물운',
+        stars: parsed.재물운 || 3,
+        level: starLabel(parsed.재물운),
+        desc: String(parsed.재물운설명 || '').trim(),
+      },
+      {
+        key: '애정운',
+        stars: parsed.애정운 || 3,
+        level: starLabel(parsed.애정운),
+        desc: String(parsed.애정운설명 || '').trim(),
+      },
+      {
+        key: '직장운',
+        stars: parsed.직장운 || 3,
+        level: starLabel(parsed.직장운),
+        desc: String(parsed.직장운설명 || '').trim(),
+      },
+      {
+        key: '건강운',
+        stars: parsed.건강운 || 3,
+        level: starLabel(parsed.건강운),
+        desc: String(parsed.건강운설명 || '').trim(),
+      },
+      {
+        key: '총론',
+        stars: null,
+        level: '전체 요약',
+        desc: String(parsed.총론설명 || '').trim(),
+      },
+    ];
     return {
       score: sum * 5,
       badge: String(parsed.한줄평 || '').trim(),
       title: String(parsed.한줄평 || '').trim(),
       summary: String(parsed.한줄평 || '').trim(),
+      oneliner: String(parsed.한줄평 || '').trim(),
       overview: String(parsed.총론설명 || parsed.한줄평 || '').trim(),
-      analysis: [
-        { label: '재물운', stars: parsed.재물운 || 3, level: starLabel(parsed.재물운) },
-        { label: '애정운', stars: parsed.애정운 || 3, level: starLabel(parsed.애정운) },
-        { label: '직장운', stars: parsed.직장운 || 3, level: starLabel(parsed.직장운) },
-        { label: '건강운', stars: parsed.건강운 || 3, level: starLabel(parsed.건강운) },
-      ],
+      analysis: fortuneCards
+        .filter(function (c) {
+          return c.key !== '총론';
+        })
+        .map(function (c) {
+          return { label: c.key, stars: c.stars, level: c.level, desc: c.desc };
+        }),
+      fortuneCards: fortuneCards,
       lucky: {
         color: String(parsed.행운의색 || '-'),
         number: parsed.행운의숫자 != null ? parsed.행운의숫자 : '-',
