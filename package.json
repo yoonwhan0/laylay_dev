@@ -1,0 +1,11 @@
+{
+  "name": "laytime-mvp",
+  "private": true,
+  "description": "Laytime — Lay-Z Check · Lay Mong MVP",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "devDependencies": {
+    "netlify-cli": "^22.0.0"
+  }
+}

@@ -3,11 +3,6 @@
   functions = "netlify/functions"
 
 [[redirects]]
-  from = "/api/psyche"
-  to = "/.netlify/functions/psyche-pioneers"
-  status = 200
-
-[[redirects]]
   from = "/api/openai-dev"
   to = "/.netlify/functions/openai-dev-chat"
   status = 200

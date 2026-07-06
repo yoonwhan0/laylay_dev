@@ -1,7 +1,8 @@
-# 로컬 배포 도구 캐시
-.netlify
-
-# Secrets (never commit)
+.netlify/
+node_modules/
 .env
 .env.*
 !.env.example
+
+.DS_Store
+Thumbs.db
