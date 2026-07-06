@@ -20,6 +20,8 @@
   --laymong-bg-end: #040409;
   --laymong-star: #fadc78;
   --header-h: 100px;
+  --footer-h: 426px;
+  --viewport-main: calc(100dvh - var(--header-h));
   --panel-w: 600px;
   --font-display: Poppins, Pretendard, sans-serif;
 }
@@ -54,19 +56,27 @@ button {
 }
 
 .page {
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
 .page-body {
-  flex: 1;
+  flex: 0 0 auto;
+  min-height: var(--viewport-main);
   padding-top: var(--header-h);
-  background: var(--gray2);
+  background-color: var(--gray2);
+  background-image: none;
+}
+
+.page-body > #app {
+  min-height: var(--viewport-main);
+  display: flex;
+  flex-direction: column;
 }
 
 .page-body--hub {
-  background: var(--bg1);
+  background-color: var(--bg1);
+  background-image: none;
 }
 
 .page-body--laymong {
@@ -80,36 +90,43 @@ button {
 .hub-main {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  min-height: calc(100vh - var(--header-h) - 426px);
+  flex: 1;
+  min-height: var(--viewport-main);
   max-width: 1920px;
+  width: 100%;
   margin: 0 auto;
+  background: var(--bg1);
 }
 
 .hub-col {
-  padding: 100px 100px 60px;
+  padding: clamp(48px, 8vh, 100px) clamp(40px, 5vw, 100px) clamp(32px, 5vh, 60px);
   display: flex;
   flex-direction: column;
-  min-height: 980px;
+  min-height: 0;
+  background: var(--bg1);
 }
 
 .hub-col--left {
   border-right: 1px solid var(--lay-black);
+  background: var(--bg1);
 }
 
 .hub-title {
   font-family: var(--font-display);
-  font-size: 50px;
+  font-size: clamp(36px, 3.5vw, 50px);
   font-weight: 700;
   letter-spacing: -1.5px;
   line-height: 1.5;
-  margin-bottom: 20px;
+  margin-bottom: clamp(12px, 2vh, 20px);
+  flex-shrink: 0;
 }
 
 .hub-desc {
-  font-size: 20px;
+  font-size: clamp(16px, 1.4vw, 20px);
   font-weight: 300;
   line-height: 1.7;
   max-width: 420px;
+  flex-shrink: 0;
 }
 
 .hub-desc p + p {
@@ -137,23 +154,28 @@ button {
 
 .hub-illust {
   margin-top: auto;
-  padding-top: 40px;
+  padding-top: clamp(16px, 3vh, 40px);
   display: flex;
   justify-content: center;
   align-items: flex-end;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .hub-illust img {
   max-width: 100%;
+  width: 100%;
   height: auto;
+  max-height: clamp(140px, 28vh, 293px);
+  object-fit: contain;
 }
 
 .hub-illust--layz img {
-  max-width: 520px;
+  max-width: 490px;
 }
 
 .hub-illust--mong img {
-  max-width: 700px;
+  max-width: 550px;
 }
 
 /* Lay Mong — panel shell defined after .center-panel (cascade fix) */
@@ -219,7 +241,7 @@ button {
 }
 
 .laymong-hero h1 {
-  font-size: 50px;
+  font-size: clamp(36px, 3.5vw, 50px);
   font-weight: 700;
   letter-spacing: -1.5px;
   line-height: 1.2;
@@ -227,21 +249,23 @@ button {
 }
 
 .laymong-hero p {
-  font-size: 20px;
-  margin-top: 16px;
+  font-size: clamp(16px, 1.4vw, 20px);
+  margin-top: clamp(10px, 1.5vh, 16px);
   color: rgba(255, 255, 255, 0.85);
 }
 
 .laymong-character {
   display: flex;
   justify-content: center;
-  margin: 24px 0 40px;
+  margin: clamp(12px, 2vh, 24px) 0 clamp(20px, 3vh, 40px);
 }
 
 .laymong-character img {
-  max-width: 390px;
+  max-width: min(390px, 75vw);
   width: 100%;
   height: auto;
+  max-height: clamp(120px, 22vh, 200px);
+  object-fit: contain;
 }
 
 .laymong-form {
@@ -1127,60 +1151,69 @@ button {
 
 /* Center panel */
 .center-panel-wrap {
+  flex: 1;
   display: flex;
   justify-content: center;
-  padding: 0 24px 80px;
+  align-items: stretch;
+  min-height: var(--viewport-main);
+  padding: 0 24px;
 }
 
 .center-panel {
   width: min(100%, var(--panel-w));
   background: var(--bg1);
-  min-height: calc(100vh - var(--header-h) - 426px);
-  padding: 80px 50px 60px;
+  min-height: auto;
+  padding: clamp(48px, 8vh, 80px) clamp(24px, 4vw, 50px) clamp(40px, 6vh, 60px);
   position: relative;
 }
 
-.center-panel--tall {
-  min-height: 1140px;
+/* 첫 화면 = 헤더 아래 뷰포트 채움, 푸터는 살짝 아래 */
+.center-panel--tall,
+.center-panel--loading,
+.center-panel.center-panel--laymong:not(.center-panel--laymong-result):not(.center-panel--laymong-history),
+.center-panel--laymong-loading {
+  min-height: var(--viewport-main);
+  display: flex;
+  flex-direction: column;
 }
 
-.center-panel--loading {
-  min-height: 980px;
+.center-panel--tall .panel-inner,
+.center-panel--loading .loading-panel,
+.center-panel--laymong-loading .loading-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .center-panel--result {
-  min-height: 3180px;
-  padding-bottom: 80px;
+  min-height: auto;
+  padding-bottom: 60px;
 }
 
 .center-panel--history {
-  min-height: 1200px;
-  padding-bottom: 80px;
+  min-height: auto;
+  padding-bottom: 60px;
 }
 
 /* Lay Mong — 보라 그라데이션 패널 (must follow .center-panel) */
 .center-panel.center-panel--laymong {
   background: linear-gradient(180deg, var(--laymong-bg-start) 30%, var(--laymong-bg-end) 100%);
   color: #fff;
-  min-height: 1560px;
-  padding: 80px 50px 60px;
+  padding: clamp(48px, 8vh, 80px) clamp(24px, 4vw, 50px) clamp(40px, 6vh, 60px);
   border: none;
 }
 
 .center-panel--laymong-result {
-  min-height: 1900px;
+  min-height: auto;
 }
 
 .center-panel--laymong-history {
-  min-height: 2200px;
-}
-
-.center-panel--laymong-loading {
-  min-height: 980px;
+  min-height: auto;
 }
 
 .center-panel--laymong-loading .loading-panel {
-  padding-top: 200px;
+  justify-content: center;
+  padding-top: 0;
 }
 
 .loading-text--light {
@@ -1188,6 +1221,7 @@ button {
 }
 
 .panel-inner {
+  width: 100%;
   max-width: 500px;
   margin: 0 auto;
 }
@@ -1251,13 +1285,18 @@ button {
 .hero-illust {
   display: flex;
   justify-content: center;
-  margin: 36px auto 24px;
-  max-width: 420px;
+  margin: clamp(20px, 4vh, 36px) auto clamp(16px, 3vh, 24px);
+  max-width: min(420px, 70vw);
+  flex: 1 1 auto;
+  align-items: center;
+  min-height: 0;
 }
 
 .hero-illust img {
   width: 100%;
   height: auto;
+  max-height: clamp(160px, 32vh, 320px);
+  object-fit: contain;
 }
 
 .landing-note {
@@ -1271,8 +1310,25 @@ button {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100%;
   max-width: 500px;
   margin: 0 auto;
+  flex-shrink: 0;
+}
+
+.center-panel--tall > .btn-stack {
+  margin-top: auto;
+  width: 100%;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.center-panel--tall > .layz-notice-block {
+  width: 100%;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .btn {
@@ -1414,11 +1470,13 @@ button {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
 }
 
 .quiz-option {
   display: flex;
   align-items: center;
+  width: 100%;
   min-height: 60px;
   padding: 12px 20px;
   border: 1px solid var(--lay-black);
@@ -1460,8 +1518,9 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 185px;
-  gap: 40px;
+  justify-content: center;
+  padding-top: 0;
+  gap: clamp(24px, 4vh, 40px);
 }
 
 .loading-text {
@@ -1474,13 +1533,15 @@ button {
 .loading-illust {
   display: flex;
   justify-content: center;
-  max-width: 420px;
+  max-width: min(420px, 70vw);
   width: 100%;
 }
 
 .loading-illust img {
-  width: 100%;
+  max-height: clamp(140px, 30vh, 300px);
+  width: auto;
   height: auto;
+  object-fit: contain;
 }
 
 /* Result */
@@ -2343,22 +2404,22 @@ button {
 .site-footer {
   background: var(--bg1);
   border-top: 1px solid var(--lay-black);
+  flex-shrink: 0;
 }
 
 .footer-main {
   max-width: 1920px;
   margin: 0 auto;
-  padding: 48px 100px;
+  padding: 40px 100px 32px;
   display: grid;
   grid-template-columns: 1.2fr 1fr 1fr 1fr;
-  gap: 40px;
+  gap: 32px;
   border-bottom: 1px solid #eee;
-  min-height: 281px;
 }
 
 .footer-logo-text {
   font-family: Poppins, sans-serif;
-  font-size: 72px;
+  font-size: 64px;
   font-weight: 700;
   line-height: 0.9;
   letter-spacing: -2px;
@@ -2390,7 +2451,7 @@ button {
 .footer-bottom {
   max-width: 1920px;
   margin: 0 auto;
-  padding: 24px 100px 40px;
+  padding: 20px 100px 28px;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -2439,11 +2500,16 @@ button {
 
   .hub-main {
     grid-template-columns: 1fr;
+    min-height: var(--viewport-main);
   }
 
   .hub-col {
     padding: 48px 24px;
-    min-height: auto;
+    min-height: min(420px, 55vh);
+  }
+
+  .hub-illust img {
+    max-height: clamp(120px, 22vh, 220px);
   }
 
   .hub-col--left {

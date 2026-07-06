@@ -340,8 +340,12 @@ function formatDate(iso) {
 }
 
 function navigate(hash) {
-  if (hash !== location.hash) location.hash = hash;
-  render();
+  const target = hash.startsWith("#") ? hash : "#" + hash;
+  if (target !== location.hash) {
+    location.hash = target;
+  } else {
+    render();
+  }
 }
 
 function formatRelativeTime(iso) {
@@ -904,15 +908,28 @@ function renderHistory() {
   `;
 }
 
+function normalizeRoute(hash) {
+  const raw = (hash || location.hash || "#/").replace(/^#/, "");
+  if (!raw || raw === "/") return "/";
+  return raw.startsWith("/") ? raw : "/" + raw;
+}
+
+function syncPageBodyTheme(route) {
+  if (!pageBody) return;
+  const isHub = route === "/";
+  const isLaymong = route.startsWith("/laymong");
+
+  pageBody.classList.remove("page-body--hub", "page-body--laymong");
+  if (isHub) pageBody.classList.add("page-body--hub");
+  else if (isLaymong) pageBody.classList.add("page-body--laymong");
+}
+
 function render() {
   if (!window.LayData || !app || !pageBody) return;
-  const route = location.hash.slice(1) || "/";
-  const isHub = route === "/" || route === "";
-  const isLaymong = route.startsWith("/laymong");
-  pageBody.classList.toggle("page-body--hub", isHub);
-  pageBody.classList.toggle("page-body--laymong", isLaymong);
+  const route = normalizeRoute(location.hash);
+  syncPageBodyTheme(route);
 
-  if (isHub) {
+  if (route === "/") {
     app.innerHTML = renderHub();
   } else if (route === "/layz") {
     app.innerHTML = renderLayzIntro();
