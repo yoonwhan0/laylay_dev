@@ -35,11 +35,40 @@ let state = {
   lastMode: null,
   layzAi: null,
   laymong: { gender: "남성", mood: "", dream: "", agreed: false, noticeOpen: false },
+  layzNoticeOpen: false,
   lastFortune: null,
   lastMongMood: "",
   laymongLoadingStep: 0,
   mongAnalysisOpen: {},
+  shareKind: "laymong",
 };
+
+const LAYZ_NOTICE_ITEMS = [
+  "본 테스트는 재미와 브랜드 경험을 목적으로 제공되며, 의료 · 건강 · 심리 상태를 진단하기 위한 서비스가 아닙니다.",
+  "테스트 결과는 참여자가 선택한 응답을 기준으로 산출됩니다.",
+  "참여 시점과 컨디션, 응답 방식에 따라 결과가 달라질 수 있습니다.",
+  "테스트 결과의 정확성은 보장하지 않으며 결과만을 근거로 건강 또는 생활과 관련된 중요한 결정을 내리지 않기를 권장합니다.",
+  "지속적인 피로, 수면 문제 또는 신체적 · 심리적 불편이 있는 경우 테스트 결과와 관계없이 관련 전문가와 상담하시기 바랍니다.",
+  "결과 카드를 외부 SNS 등에 공유하는 경우, 카드 또는 화면에 개인정보가 포함되어 있지 않은지 확인해 주세요.",
+  "외부 플랫폼에 공유된 콘텐츠는 해당 플랫폼의 운영정책이 적용됩니다.",
+  "테스트 문항, 결과 유형, 점수 산정 기준 및 운영 방식은 서비스 개선이나 당사 사정에 따라 사전 안내 후 변경될 수 있습니다.",
+  "불가피한 경우 서비스가 일시 중단되거나 종료될 수 있습니다.",
+  "테스트에 사용된 모든 문구, 캐릭터, 이미지 및 결과 카드의 저작권은 레이레이에 있습니다.",
+  "당사의 사전 서면 동의 없이 콘텐츠를 복제 · 가공 · 배포하거나 상업적으로 이용하는 행위를 금지하며, 이를 위반할 경우 관련 법령에 따라 법적 조치를 취할 수 있습니다.",
+];
+
+const LAYMONG_NOTICE_ITEMS = [
+  "본 서비스는 꿈을 소재로 가볍게 즐기는 재미, 참고용 콘텐츠입니다.",
+  "제공되는 꿈 해석과 운세는 의학적 · 심리학적 진단, 법률, 재무 등 전문적인 조언을 대신하지 않으며, 중요한 의사결정의 근거로 사용하는 것은 권장하지 않습니다.",
+  "입력하신 꿈의 내용, 당시의 기분, 생년월일 및 태어난 시간은 꿈 해석과 운세 결과를 생성하는 용도로만 사용됩니다. 해당 정보는 레이레이 회원정보에 연결되거나 회원 프로필 형태로 저장되지 않습니다.",
+  "입력 내용과 결과는 자동으로 생성되므로 실제 사실이나 전통적인 해몽 해석과 다를 수 있으며, 결과의 정확성, 완전성, 특정한 효과를 보장하지 않습니다.",
+  "불안이나 수면 문제, 심리적 어려움이 지속되는 경우에는 본 결과와 관계없이 관련 전문가에게 상담하시기 바랍니다.",
+  "서비스의 문구, 결과 구성 및 운영 방식은 서비스 개선 또는 운영상 필요에 따라 변경되거나 종료될 수 있습니다.",
+];
+
+function renderNoticeList(items) {
+  return `<ul class="notice-list">${items.map((t) => `<li>${t}</li>`).join("")}</ul>`;
+}
 
 function answerScores(answers) {
   return answers.map((a) => (typeof a === "number" ? a : a.score));
@@ -140,15 +169,14 @@ async function runMongAiFlow() {
   }
 }
 
-function renderSleepGuide(rx, fallbackItems, bare = false) {
+function renderSleepGuide(rx, fallbackItems) {
   if (!rx || !rx.items || !rx.items.length) {
-    if (!bare) return fallbackItems;
-    const match = fallbackItems.match(/<div class="guide-list">[\s\S]*<\/div>/);
-    return match ? match[0] : fallbackItems;
+    return fallbackItems;
   }
-  const inner = `
-    <h3 class="sleep-guide-subtitle">${rx.title || "오늘의 수면 가이드"}</h3>
-    ${rx.sub ? `<p class="result-summary sleep-guide-lead">${rx.sub}</p>` : ""}
+  return `
+    <p class="sleep-guide-label">레이레이 수면 가이드</p>
+    <h3>${rx.title || "편안한 밤을 위한 팁"}</h3>
+    ${rx.sub ? `<p class="result-summary" style="margin-bottom:1rem">${rx.sub}</p>` : ""}
     <div class="guide-list">
       ${rx.items
         .map(
@@ -162,20 +190,13 @@ function renderSleepGuide(rx, fallbackItems, bare = false) {
         )
         .join("")}
     </div>`;
-  if (bare) return inner;
-  return `
-    <p class="sleep-guide-label">레이레이 수면 가이드</p>
-    ${inner}`;
 }
 
-function layzAnswerStats(answers, score) {
-  const mentalScore = answers[1]?.score ?? 0;
-  const eveningScore = answers[6]?.score ?? 0;
-  const mental = mentalScore >= 2 ? "주의" : "정상";
-  const sleepFeel = score >= 55 ? "피곤" : score <= 35 ? "상쾌" : "보통";
+function layzAnswerStats(score) {
+  const sleepFeel = score >= 55 ? "피곤" : "만족";
   const deficit = score >= 60 ? "2~3시간" : score >= 45 ? "1시간" : "0시간";
   return [
-    { label: "멘탈", value: mental },
+    { label: "혈압", value: "정상" },
     { label: "수면 상태", value: sleepFeel },
     { label: "수면 부족", value: deficit },
   ];
@@ -195,14 +216,43 @@ function getActiveFortune() {
   return state.lastFortune || FORTUNES.find((x) => x.keyword === "default");
 }
 
-function openShareModal() {
-  const f = getActiveFortune();
+function openShareModal(kind = "laymong") {
+  state.shareKind = kind;
+  const labelEl = document.querySelector(".share-card-label");
+  const titleEl = document.getElementById("share-modal-title");
   const scoreEl = document.getElementById("share-score");
   const badgeEl = document.getElementById("share-badge");
   const summaryEl = document.getElementById("share-summary");
-  if (scoreEl) scoreEl.textContent = f.score;
-  if (badgeEl) badgeEl.textContent = f.badge;
-  if (summaryEl) summaryEl.textContent = f.summary;
+  const card = document.getElementById("share-card-capture");
+  const scoreWrap = document.querySelector(".share-card-score");
+
+  if (kind === "layz") {
+    const score = state.lastScore;
+    const mode = state.lastMode;
+    const ai = state.layzAi;
+    const copy = RESULT_COPY[mode?.name] || RESULT_COPY.Easy;
+    const title = ai?.title || copy.title;
+    const desc = ai?.desc || copy.desc;
+    if (labelEl) labelEl.textContent = "Lay-Z Report";
+    if (titleEl) titleEl.textContent = "오늘 나의 게으름 지수는?";
+    if (scoreEl) scoreEl.textContent = score ?? "";
+    if (badgeEl) badgeEl.textContent = mode?.label || title;
+    if (summaryEl) summaryEl.textContent = desc;
+    if (scoreWrap) scoreWrap.style.display = "";
+    card?.classList.add("share-card--layz");
+    card?.classList.remove("share-card--laymong");
+  } else {
+    const f = getActiveFortune();
+    if (labelEl) labelEl.textContent = "Lay Mong Report";
+    if (titleEl) titleEl.textContent = "꿈으로 본 오늘 나의 운세는?";
+    if (scoreEl) scoreEl.textContent = f.score;
+    if (badgeEl) badgeEl.textContent = f.badge;
+    if (summaryEl) summaryEl.textContent = f.summary;
+    if (scoreWrap) scoreWrap.style.display = "";
+    card?.classList.add("share-card--laymong");
+    card?.classList.remove("share-card--layz");
+  }
+
   shareModal?.classList.add("open");
   shareModal?.setAttribute("aria-hidden", "false");
 }
@@ -224,13 +274,16 @@ async function saveShareImage() {
   try {
     const blob = await htmlToImage.toBlob(card, {
       pixelRatio: 2,
-      backgroundColor: "#2c2545",
+      backgroundColor: state.shareKind === "layz" ? "#fff5ef" : "#2c2545",
       cacheBust: true,
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `laymong-report-${Date.now()}.png`;
+    link.download =
+      state.shareKind === "layz"
+        ? `layz-report-${Date.now()}.png`
+        : `laymong-report-${Date.now()}.png`;
     link.click();
     URL.revokeObjectURL(url);
   } catch (err) {
@@ -240,8 +293,16 @@ async function saveShareImage() {
 }
 
 async function shareKakao() {
-  const f = getActiveFortune();
-  const text = `Lay Mong Report\n${f.badge} (${f.score}점)\n${f.summary}`;
+  let text;
+  if (state.shareKind === "layz") {
+    const mode = state.lastMode;
+    const ai = state.layzAi;
+    const copy = RESULT_COPY[mode?.name] || RESULT_COPY.Easy;
+    text = `Lay-Z Report\n${state.lastScore}점 · ${mode?.label || ""}\n${ai?.desc || copy.desc}`;
+  } else {
+    const f = getActiveFortune();
+    text = `Lay Mong Report\n${f.badge} (${f.score}점)\n${f.summary}`;
+  }
 
   if (navigator.share) {
     try {
@@ -355,10 +416,13 @@ function renderLayzIntro() {
           <button class="btn btn-primary" data-action="start">지금 바로 시작하기</button>
           <button class="btn btn-outline btn-outline--sm" data-action="info">Lay-Z Check란?</button>
         </div>
-        <a href="#" class="landing-footer-link" data-action="notice">
-          이용 전 확인해주세요
-          <img src="assets/chevron.svg" alt="" />
-        </a>
+        <div class="layz-notice-block">
+          <button type="button" class="landing-footer-link layz-notice ${state.layzNoticeOpen ? "open" : ""}" data-action="toggle-layz-notice">
+            이용 전 확인해주세요
+            <img src="assets/chevron.svg" alt="" />
+          </button>
+          ${state.layzNoticeOpen ? `<div class="layz-notice-body">${renderNoticeList(LAYZ_NOTICE_ITEMS)}</div>` : ""}
+        </div>
       </section>
     </div>
   `;
@@ -441,10 +505,7 @@ function renderLaymong() {
           </button>
           ${
             state.laymong.noticeOpen
-              ? `<div class="laymong-notice-body">
-            <p>Lay Mong은 오락 목적의 꿈 해몽·운세 콘텐츠입니다. 의학·법률·재정 등 전문적 조언을 대체하지 않습니다.</p>
-            <p>입력하신 꿈 내용은 해몽 결과 생성에만 사용되며, 서비스 품질 개선 목적으로 활용될 수 있습니다.</p>
-          </div>`
+              ? `<div class="laymong-notice-body">${renderNoticeList(LAYMONG_NOTICE_ITEMS)}</div>`
               : ""
           }
         </div>
@@ -470,7 +531,7 @@ function renderLaymongEncyclopedia() {
         </div>
 
         <div class="laymong-search panel-inner">
-          <input type="search" class="laymong-search-input" id="mong-feed-search" placeholder="꿈 키워드로 검색" autocomplete="off" />
+          <input type="search" class="laymong-search-input" id="mong-feed-search" placeholder="백호랑 산책하는 꿈" autocomplete="off" />
           <span class="laymong-search-icon" aria-hidden="true">⌕</span>
         </div>
 
@@ -483,61 +544,28 @@ function renderLaymongEncyclopedia() {
   `;
 }
 
-function renderSectionHead(title, kind) {
-  const badge =
-    kind === "ai"
-      ? '<span class="ai-badge ai-badge--ai">AI</span>'
-      : kind === "fixed"
-        ? '<span class="ai-badge ai-badge--fixed">고정</span>'
-        : "";
-  return `<div class="laymong-section-head"><h3 class="laymong-section-title">${title}</h3>${badge}</div>`;
-}
-
-function getFortuneCards(f) {
-  if (f.fortuneCards && f.fortuneCards.length) return f.fortuneCards;
-  const cards = (f.analysis || []).map((a) => ({
-    key: a.label || a.key,
-    stars: a.stars,
-    level: a.level,
-    desc: a.desc || f.detail || "",
-  }));
-  if (f.overview) {
-    cards.push({ key: "총론", stars: null, level: "전체 요약", desc: f.overview });
-  }
-  return cards;
-}
-
 function renderLaymongResult() {
   const f = state.lastFortune || FORTUNES.find((x) => x.keyword === "default");
-  const cards = getFortuneCards(f);
-  const moodLine = state.lastMongMood || state.laymong.mood || "";
-  const oneliner = f.oneliner || f.badge || f.summary || "";
-  const tags = f.tags && f.tags.length ? f.tags : [];
-
-  const analysisHtml = cards
-    .map((c, i) => {
+  const analysisHtml = (f.analysis || [])
+    .map((a, i) => {
       const open = !!state.mongAnalysisOpen[i];
-      const starsHtml =
-        c.stars != null
-          ? `<span class="mong-analysis-stars">${renderStars(c.stars)}</span>`
-          : "";
+      const desc = a.desc || "";
+      const toggleAttrs = desc
+        ? ` data-action="mong-analysis-toggle" data-index="${i}" role="button" tabindex="0"`
+        : "";
       return `
       <div class="mong-analysis-wrap">
-        <div class="mong-analysis-item${open ? " is-open" : ""}" data-action="mong-analysis-toggle" data-index="${i}" role="button" tabindex="0">
+        <div class="mong-analysis-item${open ? " is-open" : ""}"${toggleAttrs}>
           <div class="mong-analysis-left">
-            <span class="mong-analysis-label">${c.key}</span>
-            <span class="mong-analysis-badge">${c.level}${starsHtml}</span>
+            <span class="mong-analysis-label">${a.label}</span>
+            <span class="mong-analysis-badge">${a.level}<span class="mong-analysis-stars">${renderStars(a.stars)}</span></span>
           </div>
           <img src="assets/chevron.svg" class="mong-chevron" alt="" />
         </div>
-        <div class="mong-analysis-body${open ? " show" : ""}" id="mong-ab-${i}">${c.desc || "설명을 불러오지 못했어요."}</div>
+        ${desc ? `<div class="mong-analysis-body${open ? " show" : ""}" id="mong-ab-${i}">${desc}</div>` : ""}
       </div>`;
     })
     .join("");
-
-  const tagsHtml = tags.length
-    ? tags.map((t) => `<span class="mong-tag">${t}</span>`).join("")
-    : '<span class="mong-tag mong-tag--mute">#오늘의작은실천</span>';
 
   return `
     <div class="center-panel-wrap">
@@ -546,59 +574,37 @@ function renderLaymongResult() {
           <p class="laymong-report-label">Lay Mong Report</p>
           <h2 class="laymong-result-title">꿈으로 본 오늘 나의 운세는?</h2>
 
-          <div class="mong-result-block" data-laylay-region="mong-score">
-            ${renderSectionHead("종합 점수", "ai")}
-            <div class="laymong-score-row">
-              <span class="laymong-score">${f.score}</span><span class="laymong-score-unit">점</span>
-            </div>
-            <p class="mong-score-sub">별 ${Math.round((f.score || 0) / 5)}개 × 5점</p>
+          <div class="laymong-score-row">
+            <span class="laymong-score">${f.score}</span><span class="laymong-score-unit">점</span>
           </div>
 
-          ${
-            moodLine
-              ? `<div class="mong-result-block" data-laylay-region="mong-ui">
-            ${renderSectionHead("꿈을 적을 때 기분", "fixed")}
-            <div class="mong-mood-pill">${moodLine}</div>
-          </div>`
-              : ""
-          }
-
-          <div class="mong-result-block" data-laylay-region="mong-oneline">
-            ${renderSectionHead("오늘의 한 줄", "ai")}
-            <div class="mong-oneline-box">
-              <p class="mong-oneline-text">"${oneliner}"</p>
-            </div>
+          <div class="laymong-badge-wrap">
+            <div class="laymong-badge">${f.badge}</div>
           </div>
+          <p class="laymong-result-summary">${f.summary}</p>
 
           <div class="laymong-character laymong-character--result">
             <img src="assets/result-character.svg" alt="레이몽 캐릭터" />
           </div>
 
-          <div class="mong-result-block" data-laylay-region="mong-fortune">
-            ${renderSectionHead("운세 분석", "ai")}
-            <p class="mong-section-hint">항목을 누르면 AI 해몽 본문이 펼쳐져요</p>
-            <div class="mong-analysis-list">${analysisHtml}</div>
+          <h3 class="laymong-section-title">오늘의 운세 분석</h3>
+          <div class="mong-analysis-list">${analysisHtml}</div>
+
+          <h3 class="laymong-section-title">오늘의 행운</h3>
+          <div class="mong-lucky-grid">
+            <div class="mong-lucky-box"><dt>행운의 색</dt><dd>${f.lucky.color}</dd></div>
+            <div class="mong-lucky-box"><dt>행운의 숫자</dt><dd>${f.lucky.number}</dd></div>
+            <div class="mong-lucky-box"><dt>행운의 물건</dt><dd>${f.lucky.item}</dd></div>
           </div>
 
-          <div class="mong-result-block" data-laylay-region="mong-lucky">
-            ${renderSectionHead("오늘의 행운", "ai")}
-            <div class="mong-lucky-grid">
-              <div class="mong-lucky-box"><dt>행운의 색</dt><dd>${f.lucky.color}</dd></div>
-              <div class="mong-lucky-box"><dt>행운의 숫자</dt><dd>${f.lucky.number}</dd></div>
-              <div class="mong-lucky-box"><dt>행운의 물건</dt><dd>${f.lucky.item}</dd></div>
-            </div>
-          </div>
-
-          <div class="mong-result-block" data-laylay-region="mong-tags">
-            ${renderSectionHead("오늘 이렇게 해봐요", "ai")}
-            <div class="mong-tag-list">${tagsHtml}</div>
-          </div>
+          <h3 class="laymong-section-title">오늘의 총론</h3>
+          <p class="mong-overview">${f.overview || ""}</p>
 
           <div class="btn-stack">
             <button class="btn-laymong" data-action="laymong-share">꿈 해몽 공유하기</button>
             <div class="btn-row-2">
               <button class="btn-laymong-outline" data-action="laymong">다시 꿈 해몽하기</button>
-              <button class="btn-laymong-outline" data-action="laymong-history">지난 꿈 기록 보기</button>
+              <button class="btn-laymong-outline" data-action="laymong-encyclopedia">레이몽 도감 보러가기</button>
             </div>
           </div>
         </div>
@@ -700,14 +706,14 @@ function renderResult() {
   const pointerPct = Math.min(100, Math.max(0, score));
   const modeIndex = ["Active", "Easy", "Slow", "Lazy", "LayLay"].indexOf(mode.name);
   const pointerLeft = modeIndex >= 0 ? (modeIndex / 4) * 100 : pointerPct;
-  const stats = layzAnswerStats(state.answers, score);
-  const aiTierName = ai && ai.applied && ai.tierName ? ai.tierName : null;
+  const stats = layzAnswerStats(score);
 
   const fallbackSleep = `
-    <h3 class="sleep-guide-subtitle">편안한 밤을 위한 팁</h3>
+    <p class="sleep-guide-label">레이레이 수면 가이드</p>
+    <h3>편안한 밤을 위한 팁</h3>
     <div class="guide-list">
       <div class="guide-item"><span class="guide-num">01</span><div><strong>정해진 시간에 잠자기</strong><p>매일 같은 시간에 자고 일어나면 몸이 리듬을 찾을 수 있어.</p></div></div>
-      <div class="guide-item"><span class="guide-num">02</span><div><strong>스마트폰 멀리하기</strong><p>잠들기 1시간 전에는 스마트폰을 멀리해보자.</p></div></div>
+      <div class="guide-item"><span class="guide-num">02</span><div><strong>스마트폰 멀리하기</strong><p>잠들기 1시간 전에는 스마트폰을 멀리해보자. 더 깊은 잠을 도와줄 거야.</p></div></div>
       <div class="guide-item"><span class="guide-num">03</span><div><strong>편안한 수면 환경 만들기</strong><p>어두운 방과 적절한 온도를 유지하면 더욱 편안한 수면을 누릴 수 있어.</p></div></div>
     </div>`;
 
@@ -717,46 +723,36 @@ function renderResult() {
         <div class="panel-inner">
           <div class="result-hero">
             <div class="result-card-label">Lay-Z Report</div>
+            <div class="result-card-title">오늘 나의 게으름 지수는?</div>
+            <div class="result-score">${score}</div>
 
-            <div class="layz-result-block" data-laylay-region="layz-score">
-              ${renderSectionHead("오늘 나의 게으름 지수", "fixed")}
-              <div class="result-score">${score}</div>
-
-              <div class="mode-scale">
-                <div class="mode-pointer-wrap" style="left:${pointerLeft}%">
-                  <div class="mode-pointer"></div>
-                </div>
-                <div class="mode-track mode-track--border">
-                  <div class="mode-fill mode-fill--segment" style="width:${Math.max(12, pointerLeft + 8)}%"></div>
-                </div>
-                <div class="mode-labels">
-                  <span class="${mode.name === "Active" ? "active" : ""}">Active</span>
-                  <span class="${mode.name === "Easy" ? "active" : ""}">Easy</span>
-                  <span class="${mode.name === "Slow" ? "active" : ""}">slow</span>
-                  <span class="${mode.name === "Lazy" ? "active" : ""}">Lazy</span>
-                  <span class="${mode.name === "LayLay" ? "active" : ""}">LayLay</span>
-                </div>
+            <div class="mode-scale">
+              <div class="mode-pointer-wrap" style="left:${pointerLeft}%">
+                <div class="mode-pointer"></div>
               </div>
-
-              <div class="mode-badge-wrap">
-                <span class="mode-badge">${mode.label}</span>
+              <div class="mode-track mode-track--border">
+                <div class="mode-fill mode-fill--segment" style="width:${Math.max(12, pointerLeft + 8)}%"></div>
+              </div>
+              <div class="mode-labels">
+                <span class="${mode.name === "Active" ? "active" : ""}">Active</span>
+                <span class="${mode.name === "Easy" ? "active" : ""}">Easy</span>
+                <span class="${mode.name === "Slow" ? "active" : ""}">slow</span>
+                <span class="${mode.name === "Lazy" ? "active" : ""}">Lazy</span>
+                <span class="${mode.name === "LayLay" ? "active" : ""}">LayLay</span>
               </div>
             </div>
 
-            <div class="layz-result-block" data-laylay-region="layz-ai-copy">
-              ${renderSectionHead("AI 코칭 메시지", "ai")}
-              ${
-                aiTierName
-                  ? `<div class="mode-badge-wrap"><span class="mode-badge mode-badge--outline">${aiTierName}</span></div>`
-                  : ""
-              }
-              <div class="result-message">
-                <h3>${displayTitle}</h3>
-                <p>${displayDesc}</p>
-              </div>
-              <div class="result-tags">
-                ${displayTags.map((t) => `<span class="tag tag--orange">${t}</span>`).join("")}
-              </div>
+            <div class="mode-badge-wrap">
+              <span class="mode-badge">${mode.label}</span>
+            </div>
+
+            <div class="result-message">
+              <h3>${displayTitle}</h3>
+              <p>${displayDesc}</p>
+            </div>
+
+            <div class="result-tags">
+              ${displayTags.map((t) => `<span class="tag tag--orange">${t}</span>`).join("")}
             </div>
 
             <div class="result-illust">
@@ -769,35 +765,28 @@ function renderResult() {
             </div>
           </div>
 
-          <div class="layz-result-block" data-laylay-region="layz-stats">
-            ${renderSectionHead("오늘 상태 스냅샷", "fixed")}
-            <div class="stats-grid">
-              ${stats.map((s) => `<div class="stat-box"><dt>${s.label}</dt><dd>${s.value}</dd></div>`).join("")}
-            </div>
-            <p class="result-summary">${summaryText}</p>
+          <h3 class="section-title section-title--center">오늘 나의 상태 요약</h3>
+          <div class="stats-grid">
+            ${stats.map((s) => `<div class="stat-box"><dt>${s.label}</dt><dd>${s.value}</dd></div>`).join("")}
           </div>
+          <p class="result-summary">${summaryText}</p>
 
-          <div class="layz-result-block" data-laylay-region="layz-rec">
-            ${renderSectionHead("오늘 컨디션에 맞는 행동 추천", "ai")}
-            <div class="recommend-list">
-              ${recommends
-                .map(
-                  (r) => `
+          <h3 class="section-title section-title--center">오늘 컨디션에 맞는 행동 추천</h3>
+          <div class="recommend-list">
+            ${recommends
+              .map(
+                (r) => `
               <article class="recommend-card recommend-card--full">
                 <span class="badge">${r.badge}</span>
                 <h4>${r.title}</h4>
                 <p>${r.desc}</p>
               </article>`
-                )
-                .join("")}
-            </div>
+              )
+              .join("")}
           </div>
 
-          <div class="layz-result-block layz-result-block--sleep" data-laylay-region="layz-rx">
-            ${renderSectionHead("레이레이 수면 가이드", "ai")}
-            <div class="sleep-guide sleep-guide--bare">
-              ${renderSleepGuide(ai && ai.rx ? ai.rx : null, fallbackSleep, true)}
-            </div>
+          <div class="sleep-guide">
+            ${renderSleepGuide(ai && ai.rx ? ai.rx : null, fallbackSleep)}
           </div>
 
           <div class="btn-stack result-bottom-btns">
@@ -1047,6 +1036,10 @@ function handleClick(e) {
     case "laymong-encyclopedia":
       navigate("#/laymong/encyclopedia");
       break;
+    case "toggle-layz-notice":
+      state.layzNoticeOpen = !state.layzNoticeOpen;
+      render();
+      break;
     case "toggle-notice":
       state.laymong.noticeOpen = !state.laymong.noticeOpen;
       render();
@@ -1085,7 +1078,7 @@ function handleClick(e) {
       break;
     }
     case "laymong-share":
-      openShareModal();
+      openShareModal("laymong");
       break;
     case "share-close":
       closeShareModal();
@@ -1111,10 +1104,6 @@ function handleClick(e) {
       break;
     case "info":
       modal.classList.add("open");
-      break;
-    case "notice":
-      e.preventDefault();
-      alert("Lay-Z Check는 오락 목적의 콘텐츠입니다. 의학적 진단이 아닙니다.");
       break;
     case "home":
       navigate("#/");
@@ -1149,15 +1138,7 @@ function handleClick(e) {
       navigate("#/history");
       break;
     case "share":
-      if (navigator.share) {
-        navigator.share({
-          title: "Lay-Z Check 결과",
-          text: `오늘 나의 Lay-Z 지수는 ${state.lastScore}점! (${state.lastMode?.label})`,
-          url: location.href,
-        });
-      } else {
-        alert(`나의 Lay-Z 지수: ${state.lastScore}점 (${state.lastMode?.label})`);
-      }
+      openShareModal("layz");
       break;
     case "clear-all":
       if (confirm("모든 Lay-Z 기록을 삭제할까요?\n삭제한 기록은 다시 복구할 수 없어요.")) {

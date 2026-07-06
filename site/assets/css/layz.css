@@ -1325,6 +1325,54 @@ button {
   transform: rotate(90deg);
 }
 
+.layz-notice-block {
+  margin-top: 48px;
+  text-align: left;
+}
+
+.layz-notice {
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.layz-notice.open img {
+  transform: rotate(-90deg);
+}
+
+.layz-notice-body,
+.laymong-notice-body {
+  margin-top: 16px;
+  padding: 16px 18px;
+  border: 1px dashed rgba(255, 94, 4, 0.45);
+  border-radius: 8px;
+  background: rgba(255, 94, 4, 0.04);
+}
+
+.notice-list {
+  margin: 0;
+  padding-left: 1.1em;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--gray5);
+}
+
+.notice-list li + li {
+  margin-top: 10px;
+}
+
+.laymong-notice-body .notice-list {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.laymong-notice-body {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+}
+
 /* Quiz */
 .quiz-progress {
   margin: 29px 0 40px;
@@ -2210,6 +2258,39 @@ button {
   max-width: 309px;
   height: auto;
   margin: 0 auto;
+}
+
+.share-card--layz {
+  background: rgba(255, 94, 4, 0.06);
+  border: 1px solid rgba(255, 94, 4, 0.35);
+}
+
+.share-card--layz .share-card-logo {
+  filter: none;
+}
+
+.share-card--layz .share-card-label {
+  color: var(--main-color);
+}
+
+.share-card--layz .share-card-title,
+.share-card--layz .share-card-score,
+.share-card--layz .share-card-score-unit {
+  color: var(--lay-black);
+}
+
+.share-card--layz .share-card-badge {
+  border-color: var(--main-color);
+  color: var(--main-color);
+  background: #fff;
+}
+
+.share-card--layz .share-card-summary {
+  color: var(--gray5);
+}
+
+.share-card--layz .share-card-character {
+  border-top-color: rgba(255, 94, 4, 0.15);
 }
 
 .share-btn-save,
