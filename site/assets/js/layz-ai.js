@@ -8,6 +8,37 @@
     return String(text || '').trim();
   }
 
+  function fmtHead(text) {
+    return window.LayTextFormat ? window.LayTextFormat.formatResultHead(text) : prose(text, true);
+  }
+
+  function fmtDesc(text) {
+    return window.LayTextFormat ? window.LayTextFormat.formatResultDesc(text) : prose(text);
+  }
+
+  function fmtRecDesc(text) {
+    return window.LayTextFormat ? window.LayTextFormat.formatRecommendDesc(text) : prose(text);
+  }
+
+  function fmtSleepText(text) {
+    return window.LayTextFormat ? window.LayTextFormat.formatSleepItemText(text) : prose(text);
+  }
+
+  function fmtBadge(tag) {
+    return window.LayTextFormat ? window.LayTextFormat.toKoreanBadge(tag) : String(tag || '추천');
+  }
+
+  var RX_FALLBACK_TITLES = ['정해진 시간에 잠자기', '스마트폰 멀리하기', '편안한 수면 환경 만들기'];
+
+  function mapRxItem(it, index) {
+    if (typeof it === 'string') {
+      return { title: RX_FALLBACK_TITLES[index] || '', text: fmtSleepText(it) };
+    }
+    var title = prose(it.title || it.name || RX_FALLBACK_TITLES[index] || '', true);
+    var text = fmtSleepText(it.text || it.desc || '');
+    return { title: title, text: text };
+  }
+
   function effectiveModel() {
     try {
       return sessionStorage.getItem('laylay_dev_openai_model') || 'gpt-4o-mini';
@@ -56,9 +87,14 @@
       '말투: 친근한 반말/해요체 혼용 가능하나 가볍고 유머 있게. 진부한 운세체·번역투는 피합니다.',
       '의학·법률·투자·진단처럼 들리는 단정은 금지. Lay-Z 지수 숫자는 절대 바꾸지 마세요.',
       'head·desc·summary·recs·rx 전 구간이 같은 「오늘의 한 사람」 이야기여야 합니다.',
-      '문장은 짧게 끊기지 말고 공감·구체 묘사·가벼운 유머로 넉넉히 채우세요. 문항에서 고른 보기 텍스트를 desc·summary·recs에 각각 2회 이상 자연스럽게 인용하듯 짚으세요.',
-      'rx(수면 가이드)는 recs와 역할 분리: recs=낮·저녁 행동, rx=오늘 밤 잠들기 처방 3개.',
-      'JSON 문자열 값(desc·summary·recs[].desc·rx.sub·rx.items[].text)은 문장 2~3개마다 반드시 \\n 줄바꿈을 넣어 가독성을 확보하세요. HTML·마크다운 태그는 금지.',
+      'head는 결과 카드 굵은 헤드라인: 최대 2문장·2줄. 한 줄이 이상적이고 두 줄이면 문장 사이 \\n 1회만.',
+      'desc는 결과 카드 본문: 최대 2~3문장·3줄 이내. 가운데 정렬용으로 짧게.',
+      'tierTag는 한글 키워드 정확히 3개만(쉼표/· 구분). 4개 이상 금지.',
+      'recs[].tag는 반드시 한글 1~4자(휴식, 호흡, 산책 등). 영어 금지.',
+      'recs[].desc는 최대 2~3문장·3줄 이내.',
+      'rx(수면 가이드)는 recs와 역할 분리. rx.sub(부제 문단)는 출력하지 마세요.',
+      'rx.items는 정확히 3개. 각각 title(큰 제목 한 줄) + text(본문 1~2문장) 구조.',
+      'JSON 문자열 값은 문장마다 \\n 줄바꿈 가능. HTML·마크다운 태그는 금지.',
       '출력은 반드시 요청된 JSON 한 덩어리만.',
     ].join('\n');
 
@@ -70,16 +106,15 @@
       profile,
       '',
       '=== 분량·형식 (필수) ===',
-      'head: 2문장 이내 한 덩어리, 오늘 포지션을 한 번에 보여주는 헤드라인.',
-      'desc: 7~11문장. 공감·오늘 상태 구체 묘사·문항 단서 2회 이상·가벼운 유머. 문장 2~3개마다 \\n.',
-      'summary: 4~7문장. desc와 같은 사실을 반복하지 말고, 「오늘 나의 상태 요약」 영역용으로 한 걸음 더 정리한 톤. 문장 2개마다 \\n.',
-      'tierName·tierTag: Mode를 대체 가능한 짧은 이름·태그(쉼표/·로 구분 가능).',
-      'recs: 정확히 3개. 각 desc는 5~9문장(이유·기대·주의·작은 행동). 문장 2~3개마다 \\n.',
-      'rx: title, sub(2~4문장, 문장마다 \\n), items 정확히 3개. 각 item text는 3~6문장으로 실천을 구체적으로. 문장 2개마다 \\n.',
+      'head: 최대 2문장·2줄. 오늘 포지션 헤드라인. 두 줄이면 \\n 1회.',
+      'desc: 최대 2~3문장·3줄. 짧은 공감·상태 묘사.',
+      'summary: 4~7문장. desc와 다른 각도로 정리. 문장 2개마다 \\n.',
+      'tierTag: 한글 키워드 정확히 3개.',
+      'recs: 정확히 3개. tag=한글, title=한 줄, desc=최대 3줄.',
+      'rx: title만(예: 편안한 밤을 위한 팁), sub는 생략. items 3개는 각각 title+text(1~2문장).',
       '',
       '반드시 유효한 JSON 하나만 출력.',
-      '{"tierName":"…","tierTag":"…","head":"…","desc":"…","summary":"…","recs":[{"tag":"…","title":"…","desc":"…"},…],"rx":{"title":"…","sub":"…","items":[{"icon":"sleep","text":"…"},…]}}',
-      'recs 3개, rx.items 3개. icon 키: sleep, phone-off, bed, light, stretch, alarm, temperature, walk, drink, moon, music, book, mask, breathe, sofa',
+      '{"tierName":"…","tierTag":"키워드1,키워드2,키워드3","head":"…","desc":"…","summary":"…","recs":[{"tag":"휴식","title":"…","desc":"…"},…],"rx":{"title":"편안한 밤을 위한 팁","items":[{"title":"정해진 시간에 잠자기","text":"…"},…]}}',
     ].join('\n');
 
     var res = await fetch('/api/openai-dev', {
@@ -118,15 +153,15 @@
     var copy = resultCopy[mode.name] || resultCopy.Easy || {};
     if (!ai) {
       return {
-        title: copy.title,
-        desc: prose(copy.desc),
-        tags: copy.tags || [],
+        title: fmtHead(copy.title),
+        desc: fmtDesc(copy.desc),
+        tags: (copy.tags || []).slice(0, 3),
         summary: prose(fallback.summary),
         recommends: fallback.recommends.map(function (r) {
           return {
-            badge: r.badge,
-            title: r.title,
-            desc: prose(r.desc),
+            badge: fmtBadge(r.badge),
+            title: prose(r.title, true),
+            desc: fmtRecDesc(r.desc),
           };
         }),
         rx: null,
@@ -138,9 +173,9 @@
       recs.length >= 3
         ? recs.slice(0, 3).map(function (x) {
             return {
-              badge: prose(x.tag || '추천', true),
+              badge: fmtBadge(x.tag || '추천'),
               title: prose(x.title, true),
-              desc: prose(x.desc),
+              desc: fmtRecDesc(x.desc),
             };
           })
         : fallback.recommends;
@@ -148,17 +183,13 @@
     if (ai.rx && Array.isArray(ai.rx.items) && ai.rx.items.length >= 3) {
       rx = {
         title: prose(ai.rx.title || '편안한 밤을 위한 팁', true),
-        sub: prose(ai.rx.sub),
-        items: ai.rx.items.slice(0, 3).map(function (it) {
-          if (typeof it === 'string') return { text: prose(it) };
-          return { text: prose(it.text || it.desc) };
-        }),
+        items: ai.rx.items.slice(0, 3).map(mapRxItem),
       };
     }
-    var descText = prose(ai.desc || copy.desc);
+    var descText = fmtDesc(ai.desc || copy.desc);
     var summaryText = prose(ai.summary || ai.desc || fallback.summary);
     return {
-      title: prose(ai.head || copy.title, true),
+      title: fmtHead(ai.head || copy.title),
       desc: descText,
       tags: String(ai.tierTag || '')
         .trim()
@@ -168,7 +199,7 @@
         })
         .filter(Boolean)
         .concat(copy.tags || [])
-        .slice(0, 4),
+        .slice(0, 3),
       summary: summaryText,
       recommends: recommends,
       rx: rx,

@@ -1666,6 +1666,11 @@ button {
   font-weight: 600;
   margin-bottom: 8px;
   white-space: pre-line;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .result-message p {
@@ -1673,14 +1678,20 @@ button {
   color: var(--gray6);
   font-weight: 500;
   white-space: pre-line;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
 .result-tags {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 10px;
   justify-content: center;
   margin: 20px 0;
+  max-width: 100%;
 }
 
 .tag {
@@ -1688,6 +1699,8 @@ button {
   border-radius: 100px;
   font-size: 12px;
   background: #fafafa;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tag--orange {
@@ -1793,6 +1806,11 @@ button {
   line-height: 1.8;
   color: var(--lay-black);
   white-space: pre-line;
+  text-align: justify;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
 .recommend-card .badge {
@@ -1859,6 +1877,10 @@ button {
   line-height: 1.7;
   color: var(--lay-black);
   white-space: pre-line;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .guide-num {

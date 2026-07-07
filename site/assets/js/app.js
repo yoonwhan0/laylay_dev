@@ -190,7 +190,6 @@ function renderSleepGuide(rx, fallbackItems) {
   return `
     <p class="sleep-guide-label">레이레이 수면 가이드</p>
     <h3>${formatAiHtml(rx.title || "편안한 밤을 위한 팁", { singleLine: true })}</h3>
-    ${rx.sub ? `<p class="result-summary" style="margin-bottom:1rem">${formatAiHtml(rx.sub)}</p>` : ""}
     <div class="guide-list">
       ${rx.items
         .map(
@@ -198,6 +197,7 @@ function renderSleepGuide(rx, fallbackItems) {
         <div class="guide-item">
           <span class="guide-num">${String(i + 1).padStart(2, "0")}</span>
           <div>
+            ${item.title ? `<strong>${formatAiHtml(item.title, { singleLine: true })}</strong>` : ""}
             <p>${formatAiHtml(item.text || item)}</p>
           </div>
         </div>`
@@ -247,11 +247,12 @@ function openShareModal(kind = "laymong") {
     const copy = RESULT_COPY[mode?.name] || RESULT_COPY.Easy;
     const title = ai?.title || copy.title;
     const desc = ai?.desc || copy.desc;
+    const shareDesc = window.LayTextFormat ? window.LayTextFormat.formatResultDesc(desc) : desc;
     if (labelEl) labelEl.textContent = "Lay-Z Report";
     if (titleEl) titleEl.textContent = "오늘 나의 게으름 지수는?";
     if (scoreEl) scoreEl.textContent = score ?? "";
     if (badgeEl) badgeEl.textContent = mode?.label || title;
-    if (summaryEl) summaryEl.textContent = normalizeAiText(desc);
+    if (summaryEl) summaryEl.textContent = normalizeAiText(shareDesc);
     if (scoreWrap) scoreWrap.style.display = "";
     card?.classList.add("share-card--layz");
     card?.classList.remove("share-card--laymong");
@@ -718,7 +719,7 @@ function renderResult() {
   const details = ai && ai.recommends ? ai : getResultDetails(mode.name);
   const displayTitle = ai && ai.title ? ai.title : copy.title;
   const displayDesc = ai && ai.desc ? ai.desc : copy.desc;
-  const displayTags = ai && ai.tags && ai.tags.length ? ai.tags : copy.tags;
+  const displayTags = (ai && ai.tags && ai.tags.length ? ai.tags : copy.tags).slice(0, 3);
   const summaryText = ai && ai.summary ? ai.summary : details.summary;
   const recommends = ai && ai.recommends ? ai.recommends : details.recommends;
   const pointerPct = Math.min(100, Math.max(0, score));
