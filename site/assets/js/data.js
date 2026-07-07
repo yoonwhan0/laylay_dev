@@ -101,22 +101,22 @@ const RESULT_COPY = {
     desc: "오늘은 정말 느긋하게 지나가는 날이야!",
     tags: ["뇌 셔터 내림", "피곤 구독중", "현관 탈주 불가형"],
     summary:
-      "알람이 울리면 5~10분 더 잠에 빠져드는 너, 오늘은 그럴만한 날이야. 머릿속은 셔터 내리고 피곤함이 가득한 것 같고 어깨와 목은 뭉쳐있어. 딱히 힘든 일은 없지만 그냥 하루를 버티며 지나가는 느낌이야. 오늘은 좀 느리게 흘러가도 괜찮아, 너 자신에게 여유를 줘.",
+      "알람이 울리면 5~10분 더 잠에 빠져드는 너, 오늘은 그럴만한 날이야.\n머릿속은 셔터 내리고 피곤함이 가득한 것 같고 어깨와 목은 뭉쳐있어.\n딱히 힘든 일은 없지만 그냥 하루를 버티며 지나가는 느낌이야. 오늘은 좀 느리게 흘러가도 괜찮아, 너 자신에게 여유를 줘.",
     recommends: [
       {
         badge: "휴식",
         title: "소파에서 잠깐 휴식 취하기",
-        desc: "소파에 누워서 잠깐의 휴식을 취해보는 건 어때? 짧은 낮잠이 뇌의 피로를 풀어줄 수 있어. 몸이 느리게 움직일 때, 이런 작은 휴식이 큰 도움이 돼! 잠깐의 휴식으로 다시 에너지를 충전해보자.",
+        desc: "소파에 누워서 잠깐의 휴식을 취해보는 건 어때? 짧은 낮잠이 뇌의 피로를 풀어줄 수 있어.\n몸이 느리게 움직일 때, 이런 작은 휴식이 큰 도움이 돼! 잠깐의 휴식으로 다시 에너지를 충전해보자.",
       },
       {
         badge: "활동",
         title: "가벼운 스트레칭하기",
-        desc: "하루가 느리게 지나간다고 해서 움직이지 말라는 법은 없어! 짧은 시간이라도 가벼운 스트레칭으로 몸을 풀어보자. 혈액순환이 좋아지면 피로감도 덜 느낄 수 있으니, 잠깐의 운동이 큰 도움이 될 거야!",
+        desc: "하루가 느리게 지나간다고 해서 움직이지 말라는 법은 없어! 짧은 시간이라도 가벼운 스트레칭으로 몸을 풀어보자.\n혈액순환이 좋아지면 피로감도 덜 느낄 수 있으니, 잠깐의 운동이 큰 도움이 될 거야!",
       },
       {
         badge: "마음 챙김",
         title: "짧은 명상 시간 가지기",
-        desc: "잠깐의 고요함이 필요할 때, 명상은 정말 좋은 선택이야. 5분만이라도 조용한 곳에 앉아 호흡에 집중해 보면 마음이 한결 편해질 거야. 마음이 가벼워지면 피로감도 줄어들 수 있으니, 시도해보길 추천해!",
+        desc: "잠깐의 고요함이 필요할 때, 명상은 정말 좋은 선택이야. 5분만이라도 조용한 곳에 앉아 호흡에 집중해 보면 마음이 한결 편해질 거야.\n마음이 가벼워지면 피로감도 줄어들 수 있으니, 시도해보길 추천해!",
       },
     ],
   },
@@ -146,9 +146,19 @@ const DEFAULT_SUMMARY = RESULT_COPY.Easy.summary;
 
 function getResultDetails(modeName) {
   const copy = RESULT_COPY[modeName] || RESULT_COPY.Easy;
+  const prose = (text, singleLine) => {
+    if (window.LayTextFormat) {
+      return window.LayTextFormat.formatProse(text, singleLine ? { singleLine: true } : undefined);
+    }
+    return String(text || "").trim();
+  };
   return {
-    summary: copy.summary || DEFAULT_SUMMARY,
-    recommends: copy.recommends || DEFAULT_RECOMMENDS,
+    summary: prose(copy.summary || DEFAULT_SUMMARY),
+    recommends: (copy.recommends || DEFAULT_RECOMMENDS).map((r) => ({
+      badge: r.badge,
+      title: r.title,
+      desc: prose(r.desc),
+    })),
   };
 }
 

@@ -22,13 +22,15 @@ const {
   FORTUNES = [],
 } = window.LayData || {};
 
-function normalizeAiText(text) {
+function normalizeAiText(text, options) {
+  if (window.LayTextFormat) return window.LayTextFormat.formatProse(text, options);
   if (text == null || text === "") return "";
   return String(text).replace(/\\n/g, "\n").replace(/\r\n/g, "\n");
 }
 
-function formatAiHtml(text) {
-  return normalizeAiText(text)
+function formatAiHtml(text, options) {
+  if (window.LayTextFormat) return window.LayTextFormat.formatHtml(text, options);
+  return normalizeAiText(text, options)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
@@ -187,7 +189,7 @@ function renderSleepGuide(rx, fallbackItems) {
   }
   return `
     <p class="sleep-guide-label">레이레이 수면 가이드</p>
-    <h3>${rx.title || "편안한 밤을 위한 팁"}</h3>
+    <h3>${formatAiHtml(rx.title || "편안한 밤을 위한 팁", { singleLine: true })}</h3>
     ${rx.sub ? `<p class="result-summary" style="margin-bottom:1rem">${formatAiHtml(rx.sub)}</p>` : ""}
     <div class="guide-list">
       ${rx.items

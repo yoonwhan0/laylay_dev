@@ -1665,6 +1665,7 @@ button {
   font-size: 24px;
   font-weight: 600;
   margin-bottom: 8px;
+  white-space: pre-line;
 }
 
 .result-message p {
@@ -1784,6 +1785,7 @@ button {
   font-size: 20px;
   font-weight: 600;
   margin: 18px 0 8px;
+  white-space: pre-line;
 }
 
 .recommend-card--full p {
@@ -1827,6 +1829,7 @@ button {
   font-weight: 600;
   margin-bottom: 20px;
   text-align: center;
+  white-space: pre-line;
 }
 
 .guide-list {

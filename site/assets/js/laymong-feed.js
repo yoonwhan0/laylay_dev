@@ -114,7 +114,18 @@
   }
 
   function renderCard(item) {
-    var dreamShort = item.dream && item.dream.length > 72 ? item.dream.slice(0, 72) + '…' : item.dream || '';
+    var dreamRaw = item.dream || '';
+    var dreamShort;
+    if (dreamRaw.length > 72) {
+      dreamShort =
+        (window.LayTextFormat
+          ? window.LayTextFormat.formatHtml(dreamRaw.slice(0, 72))
+          : escapeHtml(dreamRaw.slice(0, 72))) + '…';
+    } else {
+      dreamShort = window.LayTextFormat
+        ? window.LayTextFormat.formatHtml(dreamRaw)
+        : escapeHtml(dreamRaw);
+    }
     return (
       '<article class="mong-history-card mong-feed-card">' +
       '<div class="mong-history-card-head">' +
@@ -125,7 +136,7 @@
       '<div class="mong-history-section">' +
       '<p class="mong-history-label">꿈 내용</p>' +
       '<p class="mong-history-text">“' +
-      escapeHtml(dreamShort) +
+      dreamShort +
       '”</p></div>' +
       '<div class="mong-history-section">' +
       '<p class="mong-history-label">' +

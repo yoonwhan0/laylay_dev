@@ -1,6 +1,13 @@
 'use strict';
 
 (function () {
+  function prose(text, singleLine) {
+    if (window.LayTextFormat) {
+      return window.LayTextFormat.formatProse(text, singleLine ? { singleLine: true } : undefined);
+    }
+    return String(text || '').trim();
+  }
+
   var MOCK = {
     재물운: 4,
     애정운: 3,
@@ -72,29 +79,29 @@
         key: '재물운',
         stars: parsed.재물운 || 3,
         level: starLabel(parsed.재물운),
-        desc: String(parsed.재물운설명 || '').trim(),
+        desc: prose(parsed.재물운설명),
       },
       {
         key: '애정운',
         stars: parsed.애정운 || 3,
         level: starLabel(parsed.애정운),
-        desc: String(parsed.애정운설명 || '').trim(),
+        desc: prose(parsed.애정운설명),
       },
       {
         key: '직장운',
         stars: parsed.직장운 || 3,
         level: starLabel(parsed.직장운),
-        desc: String(parsed.직장운설명 || '').trim(),
+        desc: prose(parsed.직장운설명),
       },
       {
         key: '건강운',
         stars: parsed.건강운 || 3,
         level: starLabel(parsed.건강운),
-        desc: String(parsed.건강운설명 || '').trim(),
+        desc: prose(parsed.건강운설명),
       },
     ];
-    var oneline = String(parsed.한줄평 || '').trim();
-    var overview = String(parsed.총론설명 || '').trim();
+    var oneline = prose(parsed.한줄평, true);
+    var overview = prose(parsed.총론설명);
     var summaryLine = oneline;
     if (overview) {
       var first = overview.split(/\n/)[0];
@@ -131,6 +138,7 @@
       '생년월일·성별·태어난 시간(있을 때)은 상징 해석의 참고 재료입니다. 총론과 운세 설명 곳곳에 1~2회 자연스럽게 녹이세요.',
       '각 운세 설명은 짧게 끊기지 말고 공감·상징·다음 행동 제안으로 넉넉히 이어지게 쓰세요.',
       '재물/애정/직장/건강 네 축은 서로 다른 각도로 서술하세요.',
+      'JSON 문자열 값(운세 설명·총론설명)은 문장 2~3개마다 반드시 \\n 줄바꿈을 넣어 가독성을 확보하세요. HTML·마크다운 태그는 금지.',
       '출력은 반드시 요청된 JSON 한 덩어리만. 마크다운·코드펜스 금지.',
       '운세는 재미·상징이며 의학·법률·투자·단정적 진단 조언이 아님.',
     ].join('\n');
@@ -148,8 +156,8 @@
       '"""',
       '',
       '=== 분량·형식 (필수) ===',
-      '재물운설명·애정운설명·직장운설명·건강운설명: 각 6~10문장. 꿈 키워드 2회 이상, 기분·생년 정보 중 1가지 이상 연결, 마지막에 작은 행동 제안 1줄.',
-      '총론설명: 8~14문장. 꿈 흐름 요약 + 기분 + 생년·시간(알 때) 상징 + 위로·유머·여운 중 2가지 이상.',
+      '재물운설명·애정운설명·직장운설명·건강운설명: 각 6~10문장. 꿈 키워드 2회 이상, 기분·생년 정보 중 1가지 이상 연결, 마지막에 작은 행동 제안 1줄. 문장 2~3개마다 \\n.',
+      '총론설명: 8~14문장. 꿈 흐름 요약 + 기분 + 생년·시간(알 때) 상징 + 위로·유머·여운 중 2가지 이상. 문장 2~3개마다 \\n.',
       '한줄평: 1문장, 36~52자 권장. 꿈에서 건진 이미지·비유 1조각. 상투·설교 금지.',
       '행운의색·행운의숫자·행운의물건: 꿈·기분·생년 중 하나와 연결된 짧은 단어.',
       '행동해시태그: #으로 시작 5개 (UI 미노출이나 JSON 키는 채울 것).',

@@ -1,6 +1,13 @@
 'use strict';
 
 (function () {
+  function prose(text, singleLine) {
+    if (window.LayTextFormat) {
+      return window.LayTextFormat.formatProse(text, singleLine ? { singleLine: true } : undefined);
+    }
+    return String(text || '').trim();
+  }
+
   function effectiveModel() {
     try {
       return sessionStorage.getItem('laylay_dev_openai_model') || 'gpt-4o-mini';
@@ -51,6 +58,7 @@
       'head·desc·summary·recs·rx 전 구간이 같은 「오늘의 한 사람」 이야기여야 합니다.',
       '문장은 짧게 끊기지 말고 공감·구체 묘사·가벼운 유머로 넉넉히 채우세요. 문항에서 고른 보기 텍스트를 desc·summary·recs에 각각 2회 이상 자연스럽게 인용하듯 짚으세요.',
       'rx(수면 가이드)는 recs와 역할 분리: recs=낮·저녁 행동, rx=오늘 밤 잠들기 처방 3개.',
+      'JSON 문자열 값(desc·summary·recs[].desc·rx.sub·rx.items[].text)은 문장 2~3개마다 반드시 \\n 줄바꿈을 넣어 가독성을 확보하세요. HTML·마크다운 태그는 금지.',
       '출력은 반드시 요청된 JSON 한 덩어리만.',
     ].join('\n');
 
@@ -63,11 +71,11 @@
       '',
       '=== 분량·형식 (필수) ===',
       'head: 2문장 이내 한 덩어리, 오늘 포지션을 한 번에 보여주는 헤드라인.',
-      'desc: 7~11문장. 공감·오늘 상태 구체 묘사·문항 단서 2회 이상·가벼운 유머.',
-      'summary: 4~7문장. desc와 같은 사실을 반복하지 말고, 「오늘 나의 상태 요약」 영역용으로 한 걸음 더 정리한 톤.',
+      'desc: 7~11문장. 공감·오늘 상태 구체 묘사·문항 단서 2회 이상·가벼운 유머. 문장 2~3개마다 \\n.',
+      'summary: 4~7문장. desc와 같은 사실을 반복하지 말고, 「오늘 나의 상태 요약」 영역용으로 한 걸음 더 정리한 톤. 문장 2개마다 \\n.',
       'tierName·tierTag: Mode를 대체 가능한 짧은 이름·태그(쉼표/·로 구분 가능).',
-      'recs: 정확히 3개. 각 desc는 5~9문장(이유·기대·주의·작은 행동).',
-      'rx: title, sub(2~4문장), items 정확히 3개. 각 item text는 3~6문장으로 실천을 구체적으로.',
+      'recs: 정확히 3개. 각 desc는 5~9문장(이유·기대·주의·작은 행동). 문장 2~3개마다 \\n.',
+      'rx: title, sub(2~4문장, 문장마다 \\n), items 정확히 3개. 각 item text는 3~6문장으로 실천을 구체적으로. 문장 2개마다 \\n.',
       '',
       '반드시 유효한 JSON 하나만 출력.',
       '{"tierName":"…","tierTag":"…","head":"…","desc":"…","summary":"…","recs":[{"tag":"…","title":"…","desc":"…"},…],"rx":{"title":"…","sub":"…","items":[{"icon":"sleep","text":"…"},…]}}',
@@ -111,10 +119,16 @@
     if (!ai) {
       return {
         title: copy.title,
-        desc: copy.desc,
+        desc: prose(copy.desc),
         tags: copy.tags || [],
-        summary: fallback.summary,
-        recommends: fallback.recommends,
+        summary: prose(fallback.summary),
+        recommends: fallback.recommends.map(function (r) {
+          return {
+            badge: r.badge,
+            title: r.title,
+            desc: prose(r.desc),
+          };
+        }),
         rx: null,
         applied: false,
       };
@@ -124,27 +138,27 @@
       recs.length >= 3
         ? recs.slice(0, 3).map(function (x) {
             return {
-              badge: String(x.tag || '추천').trim(),
-              title: String(x.title || '').trim(),
-              desc: String(x.desc || '').trim(),
+              badge: prose(x.tag || '추천', true),
+              title: prose(x.title, true),
+              desc: prose(x.desc),
             };
           })
         : fallback.recommends;
     var rx = null;
     if (ai.rx && Array.isArray(ai.rx.items) && ai.rx.items.length >= 3) {
       rx = {
-        title: String(ai.rx.title || '편안한 밤을 위한 팁').trim(),
-        sub: String(ai.rx.sub || '').trim(),
+        title: prose(ai.rx.title || '편안한 밤을 위한 팁', true),
+        sub: prose(ai.rx.sub),
         items: ai.rx.items.slice(0, 3).map(function (it) {
-          if (typeof it === 'string') return { text: it.trim() };
-          return { text: String(it.text || it.desc || '').trim() };
+          if (typeof it === 'string') return { text: prose(it) };
+          return { text: prose(it.text || it.desc) };
         }),
       };
     }
-    var descText = String(ai.desc || copy.desc).trim();
-    var summaryText = String(ai.summary || ai.desc || fallback.summary).trim();
+    var descText = prose(ai.desc || copy.desc);
+    var summaryText = prose(ai.summary || ai.desc || fallback.summary);
     return {
-      title: String(ai.head || copy.title).trim(),
+      title: prose(ai.head || copy.title, true),
       desc: descText,
       tags: String(ai.tierTag || '')
         .trim()
