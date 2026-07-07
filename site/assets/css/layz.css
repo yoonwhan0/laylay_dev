@@ -1807,10 +1807,6 @@ button {
   color: var(--lay-black);
   white-space: pre-line;
   text-align: justify;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  overflow: hidden;
 }
 
 .recommend-card .badge {
@@ -1877,10 +1873,6 @@ button {
   line-height: 1.7;
   color: var(--lay-black);
   white-space: pre-line;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
 }
 
 .guide-num {

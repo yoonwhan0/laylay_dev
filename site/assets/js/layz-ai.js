@@ -16,14 +16,6 @@
     return window.LayTextFormat ? window.LayTextFormat.formatResultDesc(text) : prose(text);
   }
 
-  function fmtRecDesc(text) {
-    return window.LayTextFormat ? window.LayTextFormat.formatRecommendDesc(text) : prose(text);
-  }
-
-  function fmtSleepText(text) {
-    return window.LayTextFormat ? window.LayTextFormat.formatSleepItemText(text) : prose(text);
-  }
-
   function fmtBadge(tag) {
     return window.LayTextFormat ? window.LayTextFormat.toKoreanBadge(tag) : String(tag || '추천');
   }
@@ -32,10 +24,10 @@
 
   function mapRxItem(it, index) {
     if (typeof it === 'string') {
-      return { title: RX_FALLBACK_TITLES[index] || '', text: fmtSleepText(it) };
+      return { title: RX_FALLBACK_TITLES[index] || '', text: prose(it) };
     }
     var title = prose(it.title || it.name || RX_FALLBACK_TITLES[index] || '', true);
-    var text = fmtSleepText(it.text || it.desc || '');
+    var text = prose(it.text || it.desc || '');
     return { title: title, text: text };
   }
 
@@ -87,13 +79,15 @@
       '말투: 친근한 반말/해요체 혼용 가능하나 가볍고 유머 있게. 진부한 운세체·번역투는 피합니다.',
       '의학·법률·투자·진단처럼 들리는 단정은 금지. Lay-Z 지수 숫자는 절대 바꾸지 마세요.',
       'head·desc·summary·recs·rx 전 구간이 같은 「오늘의 한 사람」 이야기여야 합니다.',
-      'head는 결과 카드 굵은 헤드라인: 최대 2문장·2줄. 한 줄이 이상적이고 두 줄이면 문장 사이 \\n 1회만.',
-      'desc는 결과 카드 본문: 최대 2~3문장·3줄 이내. 가운데 정렬용으로 짧게.',
-      'tierTag는 한글 키워드 정확히 3개만(쉼표/· 구분). 4개 이상 금지.',
-      'recs[].tag는 반드시 한글 1~4자(휴식, 호흡, 산책 등). 영어 금지.',
-      'recs[].desc는 최대 2~3문장·3줄 이내.',
+      '문항에서 고른 보기 텍스트를 summary·recs에 각각 2회 이상 자연스럽게 인용하세요.',
+      'head는 결과 카드 상단 굵은 헤드라인만 짧게: 최대 2문장·2줄.',
+      'desc는 결과 카드 상단 본문만 짧게: 최대 2~3문장·3줄.',
+      'summary는 「오늘 나의 상태 요약」 영역: 7~11문장으로 풍부하게. 공감·구체 묘사·문항 단서 2회 이상·가벼운 유머. 문장 2~3개마다 \\n.',
+      'tierTag는 한글 키워드 정확히 3개만(쉼표/· 구분).',
+      'recs[].tag는 반드시 한글 1~4자. 영어 금지.',
+      'recs[].desc는 5~9문장으로 풍부하게(이유·기대·주의·작은 행동). 문장 2~3개마다 \\n.',
       'rx(수면 가이드)는 recs와 역할 분리. rx.sub(부제 문단)는 출력하지 마세요.',
-      'rx.items는 정확히 3개. 각각 title(큰 제목 한 줄) + text(본문 1~2문장) 구조.',
+      'rx.items는 정확히 3개. 각각 title(큰 제목 한 줄) + text(본문 2~4문장).',
       'JSON 문자열 값은 문장마다 \\n 줄바꿈 가능. HTML·마크다운 태그는 금지.',
       '출력은 반드시 요청된 JSON 한 덩어리만.',
     ].join('\n');
@@ -106,12 +100,12 @@
       profile,
       '',
       '=== 분량·형식 (필수) ===',
-      'head: 최대 2문장·2줄. 오늘 포지션 헤드라인. 두 줄이면 \\n 1회.',
-      'desc: 최대 2~3문장·3줄. 짧은 공감·상태 묘사.',
-      'summary: 4~7문장. desc와 다른 각도로 정리. 문장 2개마다 \\n.',
+      'head: 최대 2문장·2줄. 결과 카드 상단 헤드라인.',
+      'desc: 최대 2~3문장·3줄. 결과 카드 상단 짧은 공감.',
+      'summary: 7~11문장. desc와 같은 사실 반복 금지. 「오늘 나의 상태 요약」용으로 넉넉히. 문장 2~3개마다 \\n.',
       'tierTag: 한글 키워드 정확히 3개.',
-      'recs: 정확히 3개. tag=한글, title=한 줄, desc=최대 3줄.',
-      'rx: title만(예: 편안한 밤을 위한 팁), sub는 생략. items 3개는 각각 title+text(1~2문장).',
+      'recs: 정확히 3개. tag=한글, title=한 줄, desc=5~9문장 풍부하게.',
+      'rx: title만(예: 편안한 밤을 위한 팁), sub 생략. items 3개는 title+text(2~4문장).',
       '',
       '반드시 유효한 JSON 하나만 출력.',
       '{"tierName":"…","tierTag":"키워드1,키워드2,키워드3","head":"…","desc":"…","summary":"…","recs":[{"tag":"휴식","title":"…","desc":"…"},…],"rx":{"title":"편안한 밤을 위한 팁","items":[{"title":"정해진 시간에 잠자기","text":"…"},…]}}',
@@ -161,7 +155,7 @@
           return {
             badge: fmtBadge(r.badge),
             title: prose(r.title, true),
-            desc: fmtRecDesc(r.desc),
+            desc: prose(r.desc),
           };
         }),
         rx: null,
@@ -175,7 +169,7 @@
             return {
               badge: fmtBadge(x.tag || '추천'),
               title: prose(x.title, true),
-              desc: fmtRecDesc(x.desc),
+              desc: prose(x.desc),
             };
           })
         : fallback.recommends;
