@@ -635,6 +635,7 @@ button {
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.75);
   margin-bottom: 40px;
+  white-space: pre-line;
 }
 
 .laymong-section-title {
@@ -918,6 +919,7 @@ button {
   font-size: 16px;
   line-height: 1.8;
   margin-bottom: 40px;
+  white-space: pre-line;
 }
 
 .laymong-history-title {
@@ -1012,6 +1014,7 @@ button {
   font-size: 15px;
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.65);
+  white-space: pre-line;
 }
 
 .mong-history-stars {
@@ -1668,6 +1671,7 @@ button {
   font-size: 16px;
   color: var(--gray6);
   font-weight: 500;
+  white-space: pre-line;
 }
 
 .result-tags {
@@ -1747,6 +1751,7 @@ button {
   line-height: 1.8;
   text-align: justify;
   margin-bottom: 50px;
+  white-space: pre-line;
 }
 
 .recommend-list {
@@ -1785,6 +1790,7 @@ button {
   font-size: 16px;
   line-height: 1.8;
   color: var(--lay-black);
+  white-space: pre-line;
 }
 
 .recommend-card .badge {
@@ -1849,6 +1855,7 @@ button {
   font-size: 16px;
   line-height: 1.7;
   color: var(--lay-black);
+  white-space: pre-line;
 }
 
 .guide-num {
@@ -2306,6 +2313,7 @@ button {
   line-height: 1.65;
   color: rgba(255, 255, 255, 0.75);
   padding: 0 4px 12px;
+  white-space: pre-line;
 }
 
 .share-card-character {

@@ -22,6 +22,18 @@ const {
   FORTUNES = [],
 } = window.LayData || {};
 
+function normalizeAiText(text) {
+  if (text == null || text === "") return "";
+  return String(text).replace(/\\n/g, "\n").replace(/\r\n/g, "\n");
+}
+
+function formatAiHtml(text) {
+  return normalizeAiText(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 const app = document.getElementById("app");
 const pageBody = document.querySelector(".page-body");
 const modal = document.getElementById("info-modal");
@@ -176,7 +188,7 @@ function renderSleepGuide(rx, fallbackItems) {
   return `
     <p class="sleep-guide-label">레이레이 수면 가이드</p>
     <h3>${rx.title || "편안한 밤을 위한 팁"}</h3>
-    ${rx.sub ? `<p class="result-summary" style="margin-bottom:1rem">${rx.sub}</p>` : ""}
+    ${rx.sub ? `<p class="result-summary" style="margin-bottom:1rem">${formatAiHtml(rx.sub)}</p>` : ""}
     <div class="guide-list">
       ${rx.items
         .map(
@@ -184,7 +196,7 @@ function renderSleepGuide(rx, fallbackItems) {
         <div class="guide-item">
           <span class="guide-num">${String(i + 1).padStart(2, "0")}</span>
           <div>
-            <p>${item.text || item}</p>
+            <p>${formatAiHtml(item.text || item)}</p>
           </div>
         </div>`
         )
@@ -237,7 +249,7 @@ function openShareModal(kind = "laymong") {
     if (titleEl) titleEl.textContent = "오늘 나의 게으름 지수는?";
     if (scoreEl) scoreEl.textContent = score ?? "";
     if (badgeEl) badgeEl.textContent = mode?.label || title;
-    if (summaryEl) summaryEl.textContent = desc;
+    if (summaryEl) summaryEl.textContent = normalizeAiText(desc);
     if (scoreWrap) scoreWrap.style.display = "";
     card?.classList.add("share-card--layz");
     card?.classList.remove("share-card--laymong");
@@ -247,7 +259,7 @@ function openShareModal(kind = "laymong") {
     if (titleEl) titleEl.textContent = "꿈으로 본 오늘 나의 운세는?";
     if (scoreEl) scoreEl.textContent = f.score;
     if (badgeEl) badgeEl.textContent = f.badge;
-    if (summaryEl) summaryEl.textContent = f.summary;
+    if (summaryEl) summaryEl.textContent = normalizeAiText(f.summary);
     if (scoreWrap) scoreWrap.style.display = "";
     card?.classList.add("share-card--laymong");
     card?.classList.remove("share-card--layz");
@@ -566,7 +578,7 @@ function renderLaymongResult() {
           </div>
           <img src="assets/chevron.svg" class="mong-chevron" alt="" />
         </div>
-        ${desc ? `<div class="mong-analysis-body${open ? " show" : ""}" id="mong-ab-${i}">${desc}</div>` : ""}
+        ${desc ? `<div class="mong-analysis-body${open ? " show" : ""}" id="mong-ab-${i}">${formatAiHtml(desc)}</div>` : ""}
       </div>`;
     })
     .join("");
@@ -585,7 +597,7 @@ function renderLaymongResult() {
           <div class="laymong-badge-wrap">
             <div class="laymong-badge">${f.badge}</div>
           </div>
-          <p class="laymong-result-summary">${f.summary}</p>
+          <p class="laymong-result-summary">${formatAiHtml(f.summary)}</p>
 
           <div class="laymong-character laymong-character--result">
             <img src="assets/result-character.svg" alt="레이몽 캐릭터" />
@@ -602,7 +614,7 @@ function renderLaymongResult() {
           </div>
 
           <h3 class="laymong-section-title">오늘의 총론</h3>
-          <p class="mong-overview">${f.overview || ""}</p>
+          <p class="mong-overview">${formatAiHtml(f.overview || "")}</p>
 
           <div class="btn-stack">
             <button class="btn-laymong" data-action="laymong-share">꿈 해몽 공유하기</button>
@@ -751,8 +763,8 @@ function renderResult() {
             </div>
 
             <div class="result-message">
-              <h3>${displayTitle}</h3>
-              <p>${displayDesc}</p>
+              <h3>${formatAiHtml(displayTitle)}</h3>
+              <p>${formatAiHtml(displayDesc)}</p>
             </div>
 
             <div class="result-tags">
@@ -773,7 +785,7 @@ function renderResult() {
           <div class="stats-grid">
             ${stats.map((s) => `<div class="stat-box"><dt>${s.label}</dt><dd>${s.value}</dd></div>`).join("")}
           </div>
-          <p class="result-summary">${summaryText}</p>
+          <p class="result-summary">${formatAiHtml(summaryText)}</p>
 
           <h3 class="section-title section-title--center">오늘 컨디션에 맞는 행동 추천</h3>
           <div class="recommend-list">
@@ -782,8 +794,8 @@ function renderResult() {
                 (r) => `
               <article class="recommend-card recommend-card--full">
                 <span class="badge">${r.badge}</span>
-                <h4>${r.title}</h4>
-                <p>${r.desc}</p>
+                <h4>${formatAiHtml(r.title)}</h4>
+                <p>${formatAiHtml(r.desc)}</p>
               </article>`
               )
               .join("")}
@@ -990,13 +1002,13 @@ function renderLaymongHistory() {
             <div class="mong-history-section">
               <p class="mong-history-label">꿈 내용</p>
               <h4 class="mong-history-heading">${r.dreamTitle || r.title}</h4>
-              <p class="mong-history-text">${r.dreamDetail || r.summary || ""}</p>
+              <p class="mong-history-text">${formatAiHtml(r.dreamDetail || r.summary || "")}</p>
             </div>
 
             <div class="mong-history-section">
               <p class="mong-history-label">운세 요약</p>
               <h4 class="mong-history-heading">${r.badge}</h4>
-              <p class="mong-history-text">${r.summary}</p>
+              <p class="mong-history-text">${formatAiHtml(r.summary)}</p>
               <div class="mong-history-stars">${renderAnalysisStarsInline(r.analysis || [])}</div>
             </div>
 
