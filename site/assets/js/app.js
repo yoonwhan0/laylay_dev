@@ -796,8 +796,8 @@ function renderResult() {
     <h3>편안한 밤을 위한 팁</h3>
     <div class="guide-list">
       <div class="guide-item"><span class="guide-num">01</span><div><strong>정해진 시간에 잠자기</strong><p>매일 같은 시간에 자고 일어나면 몸이 리듬을 찾을 수 있어요.</p></div></div>
-      <div class="guide-item"><span class="guide-num">02</span><div><strong>스마트폰 멀리하기</strong><p>잠들기 1시간 전에는 스마트폰을 멀리해 보세요. 더 깊은 잠을 도와드릴 거예요.</p></div></div>
-      <div class="guide-item"><span class="guide-num">03</span><div><strong>편안한 수면 환경 만들기</strong><p>어두운 방과 적절한 온도를 유지하면 더욱 편안한 수면을 누릴 수 있어요.</p></div></div>
+      <div class="guide-item"><span class="guide-num">02</span><div><strong>스마트폰 멀리하기</strong><p>잠들기 1시간 전에는 스마트폰을 멀리해 보세요.\n더 깊은 잠을 도와드릴 거예요.</p></div></div>
+      <div class="guide-item"><span class="guide-num">03</span><div><strong>편안한 수면 환경 만들기</strong><p>어두운 방과 적절한 온도를 유지하면\n더욱 편안한 수면을 누릴 수 있어요.</p></div></div>
     </div>`;
 
   return `

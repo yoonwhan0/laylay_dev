@@ -106,17 +106,17 @@ const RESULT_COPY = {
       {
         badge: "휴식",
         title: "소파에서 잠깐 휴식 취하기",
-        desc: "소파에 누워 잠깐의 휴식을 취해 보시는 건 어떨까요? 짧은 낮잠이 뇌의 피로를 풀어줄 수 있어요.\n몸이 느리게 움직일 때, 이런 작은 휴식이 큰 도움이 됩니다. 잠깐의 휴식으로 다시 에너지를 충전해 보세요.",
+        desc: "소파에 누워 잠깐 쉬어 보세요. 짧은 낮잠이 뇌의 피로를 풀어줄 수 있어요.\n몸이 느리게 움직일 때, 작은 휴식이 큰 도움이 됩니다.",
       },
       {
         badge: "활동",
         title: "가벼운 스트레칭하기",
-        desc: "하루가 느리게 지나간다고 해서 움직이지 말라는 법은 없어요. 짧은 시간이라도 가벼운 스트레칭으로 몸을 풀어 보세요.\n혈액순환이 좋아지면 피로감도 덜 느껴질 수 있으니, 잠깐의 운동이 큰 도움이 될 거예요.",
+        desc: "짧은 스트레칭으로 몸을 풀어 보세요. 혈액순환이 좋아지면 피로감도 덜 느껴질 수 있어요.\n잠깐의 운동이 오늘 컨디션을 살려줄 거예요.",
       },
       {
         badge: "마음 챙김",
         title: "짧은 명상 시간 가지기",
-        desc: "잠깐의 고요함이 필요할 때, 명상은 좋은 선택이에요. 5분만이라도 조용한 곳에 앉아 호흡에 집중해 보시면 마음이 한결 편해질 거예요.\n마음이 가벼워지면 피로감도 줄어들 수 있으니, 한번 시도해 보세요.",
+        desc: "5분만 조용히 앉아 호흡에 집중해 보세요. 마음이 한결 편해질 거예요.\n마음이 가벼워지면 피로감도 줄어들 수 있습니다.",
       },
     ],
   },
@@ -157,7 +157,7 @@ function getResultDetails(modeName) {
     recommends: (copy.recommends || DEFAULT_RECOMMENDS).map((r) => ({
       badge: window.LayTextFormat ? window.LayTextFormat.toKoreanBadge(r.badge) : r.badge,
       title: r.title,
-      desc: window.LayTextFormat ? window.LayTextFormat.formatProse(r.desc) : String(r.desc || "").trim(),
+      desc: window.LayTextFormat ? window.LayTextFormat.formatRecommendDesc(r.desc) : String(r.desc || "").trim(),
     })),
   };
 }

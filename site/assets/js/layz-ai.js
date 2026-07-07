@@ -16,6 +16,14 @@
     return window.LayTextFormat ? window.LayTextFormat.formatResultDesc(text) : prose(text);
   }
 
+  function fmtRecDesc(text) {
+    return window.LayTextFormat ? window.LayTextFormat.formatRecommendDesc(text) : prose(text);
+  }
+
+  function fmtSleepText(text) {
+    return window.LayTextFormat ? window.LayTextFormat.formatSleepItemText(text) : prose(text);
+  }
+
   function fmtBadge(tag) {
     return window.LayTextFormat ? window.LayTextFormat.toKoreanBadge(tag) : String(tag || '추천');
   }
@@ -24,10 +32,10 @@
 
   function mapRxItem(it, index) {
     if (typeof it === 'string') {
-      return { title: RX_FALLBACK_TITLES[index] || '', text: prose(it) };
+      return { title: RX_FALLBACK_TITLES[index] || '', text: fmtSleepText(it) };
     }
     var title = prose(it.title || it.name || RX_FALLBACK_TITLES[index] || '', true);
-    var text = prose(it.text || it.desc || '');
+    var text = fmtSleepText(it.text || it.desc || '');
     return { title: title, text: text };
   }
 
@@ -85,9 +93,9 @@
       'summary는 「오늘 나의 상태 요약」 영역: 7~11문장으로 풍부하게. 공감·구체 묘사·문항 단서 2회 이상·가벼운 유머. 문장 2~3개마다 \\n.',
       'tierTag는 한글 키워드 정확히 3개만(쉼표/· 구분).',
       'recs[].tag는 반드시 한글 1~4자. 영어 금지.',
-      'recs[].desc는 5~9문장으로 풍부하게(이유·기대·주의·작은 행동). 문장 2~3개마다 \\n.',
+      'recs[].desc는 「행동 추천」 본문: 최대 3줄(2~3문장). 문장마다 \\n.',
       'rx(수면 가이드)는 recs와 역할 분리. rx.sub(부제 문단)는 출력하지 마세요.',
-      'rx.items는 정확히 3개. 각각 title(큰 제목 한 줄) + text(본문 2~4문장).',
+      'rx.items는 정확히 3개. 각각 title(큰 제목 한 줄) + text(본문 최대 2줄·1~2문장).',
       'JSON 문자열 값은 문장마다 \\n 줄바꿈 가능. HTML·마크다운 태그는 금지.',
       '출력은 반드시 요청된 JSON 한 덩어리만.',
     ].join('\n');
@@ -105,8 +113,8 @@
       'desc: 최대 2~3문장·3줄. 결과 카드 상단 짧은 공감.',
       'summary: 7~11문장. desc와 같은 사실 반복 금지. 「오늘 나의 상태 요약」용으로 넉넉히. 문장 2~3개마다 \\n.',
       'tierTag: 한글 키워드 정확히 3개.',
-      'recs: 정확히 3개. tag=한글, title=한 줄, desc=5~9문장 풍부하게.',
-      'rx: title만(예: 편안한 밤을 위한 팁), sub 생략. items 3개는 title+text(2~4문장).',
+      'recs: 정확히 3개. tag=한글, title=한 줄, desc=최대 3줄(양끝 정렬용).',
+      'rx: title만(예: 편안한 밤을 위한 팁), sub 생략. items 3개는 title+text(최대 2줄).',
       '',
       '반드시 유효한 JSON 하나만 출력.',
       '{"tierName":"…","tierTag":"키워드1,키워드2,키워드3","head":"…","desc":"…","summary":"…","recs":[{"tag":"휴식","title":"…","desc":"…"},…],"rx":{"title":"편안한 밤을 위한 팁","items":[{"title":"정해진 시간에 잠자기","text":"…"},…]}}',
@@ -156,7 +164,7 @@
           return {
             badge: fmtBadge(r.badge),
             title: prose(r.title, true),
-            desc: prose(r.desc),
+            desc: fmtRecDesc(r.desc),
           };
         }),
         rx: null,
@@ -170,7 +178,7 @@
             return {
               badge: fmtBadge(x.tag || '추천'),
               title: prose(x.title, true),
-              desc: prose(x.desc),
+              desc: fmtRecDesc(x.desc),
             };
           })
         : fallback.recommends;
