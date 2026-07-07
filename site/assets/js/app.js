@@ -48,7 +48,18 @@ let state = {
   lastScore: null,
   lastMode: null,
   layzAi: null,
-  laymong: { gender: "남성", mood: "", dream: "", agreed: false, noticeOpen: false },
+  laymong: {
+    gender: "남성",
+    mood: "",
+    dream: "",
+    agreed: false,
+    noticeOpen: false,
+    cal: "양력",
+    year: "",
+    month: "",
+    day: "",
+    birthTime: "모름",
+  },
   layzNoticeOpen: false,
   lastFortune: null,
   lastMongMood: "",
@@ -88,6 +99,58 @@ function answerScores(answers) {
   return answers.map((a) => (typeof a === "number" ? a : a.score));
 }
 
+function syncLaymongFormFromDom() {
+  const cal = document.getElementById("mong-cal");
+  const by = document.getElementById("mong-by");
+  const bm = document.getElementById("mong-bm");
+  const bd = document.getElementById("mong-bd");
+  const bt = document.getElementById("mong-bt");
+  const dream = document.getElementById("dream-input");
+  const agreed = document.getElementById("privacy-check");
+  if (cal) state.laymong.cal = cal.value;
+  if (by) state.laymong.year = by.value;
+  if (bm) state.laymong.month = bm.value;
+  if (bd) state.laymong.day = bd.value;
+  if (bt) state.laymong.birthTime = bt.value;
+  if (dream) state.laymong.dream = dream.value;
+  if (agreed) state.laymong.agreed = agreed.checked;
+}
+
+function applyLaymongFormFromState() {
+  const f = state.laymong;
+  const cal = document.getElementById("mong-cal");
+  const by = document.getElementById("mong-by");
+  const bm = document.getElementById("mong-bm");
+  const bd = document.getElementById("mong-bd");
+  const bt = document.getElementById("mong-bt");
+  const dream = document.getElementById("dream-input");
+  const agreed = document.getElementById("privacy-check");
+  if (cal && f.cal) cal.value = f.cal;
+  if (by && f.year) by.value = f.year;
+  if (bm && f.month) bm.value = f.month;
+  if (bd && f.day) bd.value = f.day;
+  if (bt && f.birthTime) bt.value = f.birthTime;
+  if (dream) dream.value = f.dream || "";
+  if (agreed) agreed.checked = !!f.agreed;
+}
+
+function wireLaymongForm() {
+  const dream = document.getElementById("dream-input");
+  if (dream && dream.dataset.wired !== "1") {
+    dream.dataset.wired = "1";
+    dream.addEventListener("input", () => {
+      state.laymong.dream = dream.value;
+    });
+  }
+  ["mong-cal", "mong-by", "mong-bm", "mong-bd", "mong-bt", "privacy-check"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && el.dataset.wired !== "1") {
+      el.dataset.wired = "1";
+      el.addEventListener("change", syncLaymongFormFromDom);
+    }
+  });
+}
+
 function initLaymongFormSelects() {
   const cal = document.getElementById("mong-cal");
   const by = document.getElementById("mong-by");
@@ -120,12 +183,13 @@ function initLaymongFormSelects() {
 }
 
 function readLaymongForm() {
+  syncLaymongFormFromDom();
   return {
-    cal: document.getElementById("mong-cal")?.value || "양력",
-    year: document.getElementById("mong-by")?.value || "",
-    month: document.getElementById("mong-bm")?.value || "",
-    day: document.getElementById("mong-bd")?.value || "",
-    birthTime: document.getElementById("mong-bt")?.value || "모름",
+    cal: state.laymong.cal || "양력",
+    year: state.laymong.year || "",
+    month: state.laymong.month || "",
+    day: state.laymong.day || "",
+    birthTime: state.laymong.birthTime || "모름",
     gender: state.laymong.gender,
     mood: state.laymong.mood || "보통",
     dream: state.laymong.dream,
@@ -731,9 +795,9 @@ function renderResult() {
     <p class="sleep-guide-label">레이레이 수면 가이드</p>
     <h3>편안한 밤을 위한 팁</h3>
     <div class="guide-list">
-      <div class="guide-item"><span class="guide-num">01</span><div><strong>정해진 시간에 잠자기</strong><p>매일 같은 시간에 자고 일어나면 몸이 리듬을 찾을 수 있어.</p></div></div>
-      <div class="guide-item"><span class="guide-num">02</span><div><strong>스마트폰 멀리하기</strong><p>잠들기 1시간 전에는 스마트폰을 멀리해보자. 더 깊은 잠을 도와줄 거야.</p></div></div>
-      <div class="guide-item"><span class="guide-num">03</span><div><strong>편안한 수면 환경 만들기</strong><p>어두운 방과 적절한 온도를 유지하면 더욱 편안한 수면을 누릴 수 있어.</p></div></div>
+      <div class="guide-item"><span class="guide-num">01</span><div><strong>정해진 시간에 잠자기</strong><p>매일 같은 시간에 자고 일어나면 몸이 리듬을 찾을 수 있어요.</p></div></div>
+      <div class="guide-item"><span class="guide-num">02</span><div><strong>스마트폰 멀리하기</strong><p>잠들기 1시간 전에는 스마트폰을 멀리해 보세요. 더 깊은 잠을 도와드릴 거예요.</p></div></div>
+      <div class="guide-item"><span class="guide-num">03</span><div><strong>편안한 수면 환경 만들기</strong><p>어두운 방과 적절한 온도를 유지하면 더욱 편안한 수면을 누릴 수 있어요.</p></div></div>
     </div>`;
 
   return `
@@ -970,7 +1034,11 @@ function render() {
     navigate("#/");
   }
 
-  if (route === "/laymong") initLaymongFormSelects();
+  if (route === "/laymong") {
+    initLaymongFormSelects();
+    applyLaymongFormFromState();
+    wireLaymongForm();
+  }
   if (route === "/laymong/encyclopedia" && window.LayMongFeed) window.LayMongFeed.wireSearch();
 }
 
@@ -1048,8 +1116,9 @@ function handleClick(e) {
       navigate("#/laymong");
       break;
     case "laymong-submit": {
-      const dream = document.getElementById("dream-input")?.value?.trim() || "";
-      const agreed = document.getElementById("privacy-check")?.checked;
+      syncLaymongFormFromDom();
+      const dream = state.laymong.dream.trim();
+      const agreed = state.laymong.agreed;
       if (!dream) {
         alert("꿈 내용을 입력해주세요.");
         return;
@@ -1073,6 +1142,7 @@ function handleClick(e) {
       render();
       break;
     case "toggle-notice":
+      syncLaymongFormFromDom();
       state.laymong.noticeOpen = !state.laymong.noticeOpen;
       render();
       break;
@@ -1122,10 +1192,12 @@ function handleClick(e) {
       shareKakao();
       break;
     case "gender":
+      syncLaymongFormFromDom();
       state.laymong.gender = btn.dataset.gender;
       render();
       break;
     case "mood":
+      syncLaymongFormFromDom();
       state.laymong.mood = btn.dataset.mood;
       render();
       break;
