@@ -308,6 +308,42 @@ button {
   margin-bottom: 30px;
 }
 
+.laymong-field--pulse,
+.laymong-check.laymong-field--pulse {
+  position: relative;
+  padding: 12px;
+  margin-left: -12px;
+  margin-right: -12px;
+  border: 2px solid rgba(255, 82, 82, 0.9);
+  border-radius: 8px;
+  animation: laymong-field-pulse 1.4s ease-in-out infinite;
+}
+
+.laymong-field.laymong-field--pulse {
+  margin-bottom: 18px;
+}
+
+.laymong-check.laymong-field--pulse {
+  margin-bottom: 26px;
+}
+
+.laymong-field--pulse .laymong-label,
+.laymong-check.laymong-field--pulse {
+  color: #ff9a9a;
+}
+
+@keyframes laymong-field-pulse {
+  0%,
+  100% {
+    border-color: rgba(255, 82, 82, 0.95);
+    box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.45);
+  }
+  50% {
+    border-color: rgba(255, 130, 130, 0.7);
+    box-shadow: 0 0 14px 2px rgba(255, 82, 82, 0.35);
+  }
+}
+
 .laymong-gender-row {
   display: flex;
   gap: 8px;
@@ -2251,50 +2287,6 @@ button {
   background: linear-gradient(90deg, #4caf50, var(--main-color), var(--blue-mode), #9c27b0, #e91e63);
   border-radius: 3px;
   margin-bottom: 16px;
-}
-
-.modal--alert {
-  padding: 40px 36px 36px;
-  text-align: center;
-}
-
-.modal--alert h2 {
-  font-size: 24px;
-  margin-bottom: 12px;
-}
-
-.modal-alert-desc {
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--gray5);
-  margin-bottom: 20px;
-}
-
-.modal-alert-list {
-  list-style: none;
-  margin: 0 0 24px;
-  padding: 16px 20px;
-  background: var(--bg2);
-  text-align: left;
-}
-
-.modal-alert-list li {
-  font-size: 15px;
-  line-height: 1.8;
-  color: var(--lay-black);
-  padding-left: 1em;
-  position: relative;
-}
-
-.modal-alert-list li::before {
-  content: "·";
-  position: absolute;
-  left: 0;
-}
-
-.modal-alert-btn {
-  width: 100%;
-  max-width: 280px;
 }
 
 /* Lay Mong — 결과 공유 카드 모달 */

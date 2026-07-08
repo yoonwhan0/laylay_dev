@@ -40,7 +40,6 @@ const app = document.getElementById("app");
 const pageBody = document.querySelector(".page-body");
 const modal = document.getElementById("info-modal");
 const modalClose = document.getElementById("modal-close");
-const laymongRequiredModal = document.getElementById("laymong-required-modal");
 const shareModal = document.getElementById("share-modal");
 
 let state = {
@@ -60,6 +59,7 @@ let state = {
     month: "",
     day: "",
     birthTime: "모름",
+    fieldErrors: [],
   },
   layzNoticeOpen: false,
   lastFortune: null,
@@ -141,13 +141,20 @@ function wireLaymongForm() {
     dream.dataset.wired = "1";
     dream.addEventListener("input", () => {
       state.laymong.dream = dream.value;
+      if (dream.value.trim()) clearLaymongFieldError("dream");
     });
   }
   ["mong-cal", "mong-by", "mong-bm", "mong-bd", "mong-bt", "privacy-check"].forEach((id) => {
     const el = document.getElementById(id);
     if (el && el.dataset.wired !== "1") {
       el.dataset.wired = "1";
-      el.addEventListener("change", syncLaymongFormFromDom);
+      el.addEventListener("change", () => {
+        syncLaymongFormFromDom();
+        if (id === "privacy-check" && state.laymong.agreed) clearLaymongFieldError("agreed");
+        if ((id === "mong-by" || id === "mong-bm" || id === "mong-bd") && state.laymong.year && state.laymong.month && state.laymong.day) {
+          clearLaymongFieldError("birthdate");
+        }
+      });
     }
   });
 }
@@ -201,26 +208,28 @@ function getLaymongFormMissing() {
   syncLaymongFormFromDom();
   const f = state.laymong;
   const missing = [];
-  if (!f.gender) missing.push("성별");
-  if (!f.year || !f.month || !f.day) missing.push("생년월일");
-  if (!f.mood) missing.push("꿈에서 느낀 기분");
-  if (!String(f.dream || "").trim()) missing.push("꿈 내용");
-  if (!f.agreed) missing.push("개인정보 수집 · 이용 동의");
+  if (!f.gender) missing.push("gender");
+  if (!f.year || !f.month || !f.day) missing.push("birthdate");
+  if (!f.mood) missing.push("mood");
+  if (!String(f.dream || "").trim()) missing.push("dream");
+  if (!f.agreed) missing.push("agreed");
   return missing;
 }
 
-function openLaymongRequiredModal(missing) {
-  const listEl = document.getElementById("laymong-required-list");
-  if (listEl) {
-    listEl.innerHTML = missing.map((item) => `<li>${item}</li>`).join("");
-  }
-  laymongRequiredModal?.classList.add("open");
-  laymongRequiredModal?.setAttribute("aria-hidden", "false");
+function clearLaymongFieldError(field) {
+  if (!state.laymong.fieldErrors?.length) return;
+  state.laymong.fieldErrors = state.laymong.fieldErrors.filter((key) => key !== field);
+  document.querySelector(`[data-laymong-field="${field}"]`)?.classList.remove("laymong-field--pulse");
 }
 
-function closeLaymongRequiredModal() {
-  laymongRequiredModal?.classList.remove("open");
-  laymongRequiredModal?.setAttribute("aria-hidden", "true");
+function showLaymongFieldErrors(missing) {
+  state.laymong.fieldErrors = missing;
+  document.querySelectorAll(".laymong-field--pulse").forEach((el) => el.classList.remove("laymong-field--pulse"));
+  missing.forEach((field) => {
+    document.querySelector(`[data-laymong-field="${field}"]`)?.classList.add("laymong-field--pulse");
+  });
+  const first = document.querySelector(".laymong-field--pulse");
+  first?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 async function runLayZAiFlow() {
@@ -543,6 +552,7 @@ function renderLaymong() {
     const val = `${m.emoji} ${m.label}`;
     return `<button type="button" class="laymong-mood ${state.laymong.mood === val ? "selected" : ""}" data-action="mood" data-mood="${val}"><span>${m.emoji}</span> ${m.label}</button>`;
   }).join("");
+  const fieldPulse = (key) => (state.laymong.fieldErrors?.includes(key) ? " laymong-field--pulse" : "");
 
   return `
     <div class="center-panel-wrap">
@@ -562,7 +572,7 @@ function renderLaymong() {
         </div>
 
         <div class="laymong-form panel-inner">
-          <div class="laymong-field">
+          <div class="laymong-field${fieldPulse("gender")}" data-laymong-field="gender">
             <span class="laymong-label">성별</span>
             <div class="laymong-gender-row">
               <button type="button" class="laymong-chip ${state.laymong.gender === "남성" ? "selected" : ""}" data-action="gender" data-gender="남성">남성</button>
@@ -570,7 +580,7 @@ function renderLaymong() {
             </div>
           </div>
 
-          <div class="laymong-field">
+          <div class="laymong-field${fieldPulse("birthdate")}" data-laymong-field="birthdate">
             <div class="laymong-label-row">
               <span class="laymong-label">생년월일</span>
               <span class="laymong-info-icon">i</span>
@@ -588,18 +598,18 @@ function renderLaymong() {
             <select class="laymong-select" id="mong-bt"><option value="모름">모름</option></select>
           </div>
 
-          <div class="laymong-field">
+          <div class="laymong-field${fieldPulse("mood")}" data-laymong-field="mood">
             <span class="laymong-label">꿈에서 느낀 기분</span>
             <div class="laymong-mood-row">${moods}</div>
           </div>
 
-          <div class="laymong-field">
+          <div class="laymong-field${fieldPulse("dream")}" data-laymong-field="dream">
             <span class="laymong-label">꿈 내용(최대 300자)</span>
             <textarea class="laymong-textarea" id="dream-input" maxlength="300" placeholder="기억나는 장면, 사람, 장소, 감정을 자유롭게 적어주세요. 짧게 써도 괜찮아요.">${state.laymong.dream}</textarea>
             <p class="laymong-example">예) 낯선 바닷가에서 흰 고양이를 따라 걷고 있었어요. 마음이 편안했어요.</p>
           </div>
 
-          <label class="laymong-check">
+          <label class="laymong-check${fieldPulse("agreed")}" data-laymong-field="agreed">
             <input type="checkbox" id="privacy-check" ${state.laymong.agreed ? "checked" : ""} />
             [필수] 개인정보 수집 · 이용에 동의합니다.
           </label>
@@ -1145,9 +1155,10 @@ function handleClick(e) {
     case "laymong-submit": {
       const missing = getLaymongFormMissing();
       if (missing.length > 0) {
-        openLaymongRequiredModal(missing);
+        showLaymongFieldErrors(missing);
         return;
       }
+      state.laymong.fieldErrors = [];
       syncLaymongFormFromDom();
       state.laymong.dream = state.laymong.dream.trim();
       state.laymongLoadingStep = 0;
@@ -1155,9 +1166,6 @@ function handleClick(e) {
       runMongAiFlow();
       break;
     }
-    case "laymong-required-close":
-      closeLaymongRequiredModal();
-      break;
     case "laymong-encyclopedia":
       navigate("#/laymong/encyclopedia");
       break;
@@ -1218,11 +1226,13 @@ function handleClick(e) {
     case "gender":
       syncLaymongFormFromDom();
       state.laymong.gender = btn.dataset.gender;
+      clearLaymongFieldError("gender");
       render();
       break;
     case "mood":
       syncLaymongFormFromDom();
       state.laymong.mood = btn.dataset.mood;
+      clearLaymongFieldError("mood");
       render();
       break;
     case "start":
@@ -1307,11 +1317,6 @@ function boot() {
   modalClose?.addEventListener("click", () => modal.classList.remove("open"));
   modal?.addEventListener("click", (e) => {
     if (e.target === modal) modal.classList.remove("open");
-  });
-
-  document.getElementById("laymong-required-close")?.addEventListener("click", closeLaymongRequiredModal);
-  laymongRequiredModal?.addEventListener("click", (e) => {
-    if (e.target === laymongRequiredModal) closeLaymongRequiredModal();
   });
 
   shareModal?.addEventListener("click", (e) => {
