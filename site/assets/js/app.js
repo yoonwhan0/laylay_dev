@@ -40,6 +40,7 @@ const app = document.getElementById("app");
 const pageBody = document.querySelector(".page-body");
 const modal = document.getElementById("info-modal");
 const modalClose = document.getElementById("modal-close");
+const laymongRequiredModal = document.getElementById("laymong-required-modal");
 const shareModal = document.getElementById("share-modal");
 
 let state = {
@@ -49,7 +50,7 @@ let state = {
   lastMode: null,
   layzAi: null,
   laymong: {
-    gender: "남성",
+    gender: "",
     mood: "",
     dream: "",
     agreed: false,
@@ -191,9 +192,35 @@ function readLaymongForm() {
     day: state.laymong.day || "",
     birthTime: state.laymong.birthTime || "모름",
     gender: state.laymong.gender,
-    mood: state.laymong.mood || "보통",
+    mood: state.laymong.mood || "",
     dream: state.laymong.dream,
   };
+}
+
+function getLaymongFormMissing() {
+  syncLaymongFormFromDom();
+  const f = state.laymong;
+  const missing = [];
+  if (!f.gender) missing.push("성별");
+  if (!f.year || !f.month || !f.day) missing.push("생년월일");
+  if (!f.mood) missing.push("꿈에서 느낀 기분");
+  if (!String(f.dream || "").trim()) missing.push("꿈 내용");
+  if (!f.agreed) missing.push("개인정보 수집 · 이용 동의");
+  return missing;
+}
+
+function openLaymongRequiredModal(missing) {
+  const listEl = document.getElementById("laymong-required-list");
+  if (listEl) {
+    listEl.innerHTML = missing.map((item) => `<li>${item}</li>`).join("");
+  }
+  laymongRequiredModal?.classList.add("open");
+  laymongRequiredModal?.setAttribute("aria-hidden", "false");
+}
+
+function closeLaymongRequiredModal() {
+  laymongRequiredModal?.classList.remove("open");
+  laymongRequiredModal?.setAttribute("aria-hidden", "true");
 }
 
 async function runLayZAiFlow() {
@@ -1116,24 +1143,21 @@ function handleClick(e) {
       navigate("#/laymong");
       break;
     case "laymong-submit": {
+      const missing = getLaymongFormMissing();
+      if (missing.length > 0) {
+        openLaymongRequiredModal(missing);
+        return;
+      }
       syncLaymongFormFromDom();
-      const dream = state.laymong.dream.trim();
-      const agreed = state.laymong.agreed;
-      if (!dream) {
-        alert("꿈 내용을 입력해주세요.");
-        return;
-      }
-      if (!agreed) {
-        alert("개인정보 수집 · 이용에 동의해주세요.");
-        return;
-      }
-      state.laymong.dream = dream;
-      state.laymong.agreed = agreed;
+      state.laymong.dream = state.laymong.dream.trim();
       state.laymongLoadingStep = 0;
       navigate("#/laymong/loading");
       runMongAiFlow();
       break;
     }
+    case "laymong-required-close":
+      closeLaymongRequiredModal();
+      break;
     case "laymong-encyclopedia":
       navigate("#/laymong/encyclopedia");
       break;
@@ -1283,6 +1307,11 @@ function boot() {
   modalClose?.addEventListener("click", () => modal.classList.remove("open"));
   modal?.addEventListener("click", (e) => {
     if (e.target === modal) modal.classList.remove("open");
+  });
+
+  document.getElementById("laymong-required-close")?.addEventListener("click", closeLaymongRequiredModal);
+  laymongRequiredModal?.addEventListener("click", (e) => {
+    if (e.target === laymongRequiredModal) closeLaymongRequiredModal();
   });
 
   shareModal?.addEventListener("click", (e) => {

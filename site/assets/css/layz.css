@@ -2253,6 +2253,50 @@ button {
   margin-bottom: 16px;
 }
 
+.modal--alert {
+  padding: 40px 36px 36px;
+  text-align: center;
+}
+
+.modal--alert h2 {
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+
+.modal-alert-desc {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--gray5);
+  margin-bottom: 20px;
+}
+
+.modal-alert-list {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 16px 20px;
+  background: var(--bg2);
+  text-align: left;
+}
+
+.modal-alert-list li {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--lay-black);
+  padding-left: 1em;
+  position: relative;
+}
+
+.modal-alert-list li::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+}
+
+.modal-alert-btn {
+  width: 100%;
+  max-width: 280px;
+}
+
 /* Lay Mong — 결과 공유 카드 모달 */
 .share-modal-overlay {
   background: rgba(4, 4, 9, 0.92);
