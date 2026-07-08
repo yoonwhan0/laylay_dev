@@ -60,6 +60,7 @@ let state = {
     day: "",
     birthTime: "모름",
     fieldErrors: [],
+    dreamInvalid: false,
   },
   layzNoticeOpen: false,
   lastFortune: null,
@@ -142,6 +143,9 @@ function wireLaymongForm() {
     dream.addEventListener("input", () => {
       state.laymong.dream = dream.value;
       if (dream.value.trim()) clearLaymongFieldError("dream");
+      if (state.laymong.dreamInvalid && validateLaymongDreamContent(dream.value).ok) {
+        clearDreamContentError();
+      }
     });
   }
   ["mong-cal", "mong-by", "mong-bm", "mong-bd", "mong-bt", "privacy-check"].forEach((id) => {
@@ -214,6 +218,31 @@ function getLaymongFormMissing() {
   if (!String(f.dream || "").trim()) missing.push("dream");
   if (!f.agreed) missing.push("agreed");
   return missing;
+}
+
+function validateLaymongDreamContent(text) {
+  if (window.LayMongValidate) return window.LayMongValidate.validateDreamContent(text);
+  const trimmed = String(text || "").trim();
+  return trimmed ? { ok: true } : { ok: false, reason: "empty" };
+}
+
+function setDreamContentInvalid(invalid) {
+  state.laymong.dreamInvalid = invalid;
+  const textarea = document.getElementById("dream-input");
+  textarea?.classList.toggle("laymong-textarea--invalid", invalid);
+  const hint = document.getElementById("laymong-dream-error");
+  if (hint) hint.hidden = !invalid;
+  if (invalid) {
+    document.querySelector('[data-laymong-field="dream"]')?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}
+
+function clearDreamContentError() {
+  if (!state.laymong.dreamInvalid) return;
+  state.laymong.dreamInvalid = false;
+  document.getElementById("dream-input")?.classList.remove("laymong-textarea--invalid");
+  const hint = document.getElementById("laymong-dream-error");
+  if (hint) hint.hidden = true;
 }
 
 function clearLaymongFieldError(field) {
@@ -605,7 +634,8 @@ function renderLaymong() {
 
           <div class="laymong-field${fieldPulse("dream")}" data-laymong-field="dream">
             <span class="laymong-label">꿈 내용(최대 300자)</span>
-            <textarea class="laymong-textarea" id="dream-input" maxlength="300" placeholder="기억나는 장면, 사람, 장소, 감정을 자유롭게 적어주세요. 짧게 써도 괜찮아요.">${state.laymong.dream}</textarea>
+            <textarea class="laymong-textarea${state.laymong.dreamInvalid ? " laymong-textarea--invalid" : ""}" id="dream-input" maxlength="300" placeholder="기억나는 장면, 사람, 장소, 감정을 자유롭게 적어주세요. 짧게 써도 괜찮아요.">${state.laymong.dream}</textarea>
+            <p class="laymong-dream-error" id="laymong-dream-error" ${state.laymong.dreamInvalid ? "" : "hidden"}>꿈 내용을 다시 확인해 주세요. 기억나는 장면이나 감정을 문장으로 적어주세요.</p>
             <p class="laymong-example">예) 낯선 바닷가에서 흰 고양이를 따라 걷고 있었어요. 마음이 편안했어요.</p>
           </div>
 
@@ -1155,12 +1185,21 @@ function handleClick(e) {
     case "laymong-submit": {
       const missing = getLaymongFormMissing();
       if (missing.length > 0) {
+        clearDreamContentError();
         showLaymongFieldErrors(missing);
         return;
       }
-      state.laymong.fieldErrors = [];
       syncLaymongFormFromDom();
       state.laymong.dream = state.laymong.dream.trim();
+      const dreamCheck = validateLaymongDreamContent(state.laymong.dream);
+      if (!dreamCheck.ok) {
+        state.laymong.fieldErrors = [];
+        document.querySelectorAll(".laymong-field--pulse").forEach((el) => el.classList.remove("laymong-field--pulse"));
+        setDreamContentInvalid(true);
+        return;
+      }
+      state.laymong.fieldErrors = [];
+      state.laymong.dreamInvalid = false;
       state.laymongLoadingStep = 0;
       navigate("#/laymong/loading");
       runMongAiFlow();

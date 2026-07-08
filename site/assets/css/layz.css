@@ -314,7 +314,7 @@ button {
   padding: 12px;
   margin-left: -12px;
   margin-right: -12px;
-  border: 2px solid rgba(255, 82, 82, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.85);
   border-radius: 8px;
   animation: laymong-field-pulse 1.4s ease-in-out infinite;
 }
@@ -329,18 +329,18 @@ button {
 
 .laymong-field--pulse .laymong-label,
 .laymong-check.laymong-field--pulse {
-  color: #ff9a9a;
+  color: #fff;
 }
 
 @keyframes laymong-field-pulse {
   0%,
   100% {
-    border-color: rgba(255, 82, 82, 0.95);
-    box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.45);
+    border-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.35);
   }
   50% {
-    border-color: rgba(255, 130, 130, 0.7);
-    box-shadow: 0 0 14px 2px rgba(255, 82, 82, 0.35);
+    border-color: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 0 16px 3px rgba(255, 255, 255, 0.28);
   }
 }
 
@@ -433,6 +433,23 @@ button {
 
 .laymong-textarea::placeholder {
   color: rgba(255, 255, 255, 0.45);
+}
+
+.laymong-textarea.laymong-textarea--invalid {
+  color: #c4b5f4;
+  border-color: rgba(196, 181, 244, 0.5);
+  background-color: rgba(142, 111, 214, 0.1);
+}
+
+.laymong-textarea.laymong-textarea--invalid::placeholder {
+  color: rgba(196, 181, 244, 0.55);
+}
+
+.laymong-dream-error {
+  font-size: 14px;
+  color: #c4b5f4;
+  margin-top: 12px;
+  line-height: 1.5;
 }
 
 .laymong-example {
