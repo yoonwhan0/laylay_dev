@@ -20,12 +20,13 @@ LayLay Laytime MVP 인계용 정리입니다.
 
 ### 03 풍성 + 추천
 - 문의는 01과 동일
-- AI 답변 분량 확대 + 기존 줄바꿈(`\\n` / `pre-line`) 로직 유지
-- 결과 **SECTION 03**: 점수 구간별 유튜브 또는 영화 추천
+- AI 답변 분량 확대 + 줄바꿈 로직 유지 (`text-format.js`: `\\n` → `<br>`, 문장 자동 분리)
+- 결과 **SECTION 03**: 점수 구간별 유튜브 또는 영화 추천 + 스냅샷 카드
   - `0–39`: 유튜브(활력·스트레칭)
   - `40–69`: 영화(힐링)
   - `70–99`: 유튜브(수면·이완)
 - 유튜브는 Innertube 검색으로 **실제 `watch?v=` 링크 + 썸네일** 확보 (`media-recommend.js`)
+- 선택: `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` 있으면 영화/보조 스냅샷에 네이버 이미지 검색 사용
 
 ### 04 PROMIS® 공신력 버전
 - 문의·점수·결과 UI 전부 변경
@@ -35,6 +36,17 @@ LayLay Laytime MVP 인계용 정리입니다.
 - raw(4–20) → **T-score** (평균 50, SD 10, 높을수록 건강↑)
 - 논문 초점 척도 **GPH-2 / GMH-2**도 참고 점수로 표시
 - 결과 화면에 출처 고정 표기
+
+### 공통 — 문항 뱃지 / WHY 모달 (01~04)
+- 각 문항 상단: **카테고리 뱃지** + **왜 묻나요?** 버튼
+- 버튼 클릭 시 `WHY THIS QUESTION?` 모달
+  - 문항 제목
+  - 설명 본문
+  - 하단 `참고 근거/설계 원칙` 박스
+- 메타 필드: `badge`, `lead`, `why.body`, `why.reference`
+  - Lay-Z(01–03): `site/assets/js/data.js` → `QUESTIONS`
+  - PROMIS(04): `site/assets/js/promis-data.js` → `QUESTIONS`
+- 모달 마크업: `site/index.html` `#why-modal` / 로직: `app.js` `openWhyModal`
 
 **출처**
 - Hays RD, Schalet BD, Spritzer KL, Cella D.  
@@ -80,13 +92,13 @@ npm run dev
 | 파일 | 역할 |
 |------|------|
 | `site/assets/js/app.js` | 버전 메뉴, 라우팅, 퀴즈/결과 렌더, AI 호출 타이밍 |
-| `site/assets/js/data.js` | Lay-Z `QUESTIONS`, 모드, `RESULT_COPY` |
+| `site/assets/js/data.js` | Lay-Z `QUESTIONS`(badge/lead/why), 모드, `RESULT_COPY` |
 | `site/assets/js/layz-ai.js` | Lay-Z AI (`dialect` / `rich` 옵션) |
 | `site/assets/js/layz-media.js` | v03 미디어 API 클라이언트 |
-| `site/assets/js/promis-data.js` | PROMIS 문항·raw→T 변환 |
+| `site/assets/js/promis-data.js` | PROMIS 문항(badge/lead/why)·raw→T 변환 |
 | `site/assets/js/promis-ai.js` | PROMIS 해석 AI |
-| `site/assets/js/text-format.js` | 줄바꿈·이스케이프 |
-| `netlify/functions/media-recommend.js` | Innertube/API로 유튜브 watch 링크·썸네일, 영화 포스터 |
+| `site/assets/js/text-format.js` | 줄바꿈·이스케이프·`<br>` |
+| `netlify/functions/media-recommend.js` | Innertube/유튜브 썸네일, 영화 포스터, 네이버 이미지 보조 |
 
 ### AI 호출 타이밍
 - **01–03:** `runLayZAiFlow()` → `LayZAi.fetchCopy(..., { dialect?, rich? })`
@@ -111,7 +123,9 @@ npm run dev
 
 ## 디자인 / 몰 연동
 
-- 기존 Lay-Z 시안 톤을 유지하되, 버전 메뉴·PROMIS 결과·미디어 카드는 MVP용 추가 UI입니다.
+- 기존 Lay-Z 시안 톤을 유지하되, 버전 메뉴·PROMIS 결과·미디어 카드·문항 WHY 모달은 MVP용 추가 UI입니다.
+- 문항 헤더 시안: 주황 카테고리 pill + 아웃라인 `왜 묻나요?` + 문항 + 회색 lead.
+- WHY 모달 시안: 라운드 카드, 주황 `WHY THIS QUESTION?`, 원형 닫기, 연주황 참고 박스.
 - 상단 Shop/Brand 등 GNB, 헤더·푸터는 메인 몰 연동 예정입니다 (`#` 스텁).
 
 ---

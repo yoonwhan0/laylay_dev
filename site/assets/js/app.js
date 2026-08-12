@@ -30,10 +30,14 @@ function normalizeAiText(text, options) {
 
 function formatAiHtml(text, options) {
   if (window.LayTextFormat) return window.LayTextFormat.formatHtml(text, options);
-  return normalizeAiText(text, options)
+  const opts = options || {};
+  let s = normalizeAiText(text, opts)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+  if (!s) return "";
+  if (opts.singleLine) return s.replace(/\s*\n+\s*/g, " ").trim();
+  return s.replace(/\n/g, "<br>");
 }
 
 const app = document.getElementById("app");
@@ -41,6 +45,7 @@ const pageBody = document.querySelector(".page-body");
 const modal = document.getElementById("info-modal");
 const modalClose = document.getElementById("modal-close");
 const shareModal = document.getElementById("share-modal");
+const whyModal = document.getElementById("why-modal");
 
 let state = {
   productVersion: 1,
@@ -351,14 +356,14 @@ function renderLayzIntro() {
   const isPromisVersion = state.productVersion === 4;
   const startDisabled = isDialectVersion && !state.dialect;
   const subtitle = isDialectVersion
-    ? "동일한 8가지 문의로 측정하고, 고른 지역 말투로 결과를 들려드려요"
+    ? "동일한 8가지 문의로 측정하고,\n고른 지역 말투로 결과를 들려드려요"
     : isRichVersion
-      ? "기본과 같은 문의지만 답변이 더 풍성하고, 점수에 따라 유튜브·영화 추천까지 받아보세요"
+      ? "기본과 같은 문의지만 답변이 더 풍성하고,\n점수에 따라 유튜브·영화 추천까지 받아보세요"
       : isPromisVersion
-        ? "NIH PROMIS® Global Health 문항으로 신체·정신 건강 T-score를 확인합니다"
-        : "8가지 질문으로 오늘의 Lay-Z 지수를 확인해보세요";
+        ? "NIH PROMIS® Global Health 문항으로\n신체·정신 건강 T-score를 확인합니다"
+        : "8가지 질문으로\n오늘의 Lay-Z 지수를 확인해보세요";
   const title = isPromisVersion ? "PROMIS® Global Health" : "Lay-Z Check";
-  const bold = isPromisVersion ? "공신력 있는 자기보고 건강 척도" : "오늘 나의 게으름 지수는?";
+  const bold = isPromisVersion ? "공신력 있는\n자기보고 건강 척도" : "오늘 나의\n게으름 지수는?";
   const note = isPromisVersion ? "약 2분 · GPH-4 / GMH-4 8문항" : "약 1분이면 충분해요!";
   const infoLabel = isPromisVersion ? "출처·채점 기준 보기" : "Lay-Z Check란?";
 
@@ -367,8 +372,8 @@ function renderLayzIntro() {
       <section class="center-panel center-panel--tall ${isPromisVersion ? "center-panel--promis" : ""}">
         <p class="version-chip">${versionChipLabel()}</p>
         <h1 class="title-layz title-layz--intro">${title}</h1>
-        <p class="subtitle-bold">${bold}</p>
-        <p class="subtitle">${subtitle}</p>
+        <p class="subtitle-bold text-break">${formatAiHtml(bold)}</p>
+        <p class="subtitle text-break">${formatAiHtml(subtitle)}</p>
 
         <div class="hero-illust">
           <img src="assets/hero-character.svg" alt="매트리스 위에서 자는 캐릭터 일러스트" />
@@ -412,6 +417,54 @@ function renderPromisSourceCard() {
   `;
 }
 
+function questionWhyPayload(q) {
+  if (!q) return null;
+  const why = q.why || {};
+  return {
+    title: q.text || "",
+    body:
+      why.body ||
+      "이 문항은 오늘의 컨디션을 스스로 체크하기 위한 레이레이 문항입니다.",
+    reference: why.reference || (q.help ? `참고: ${q.help}` : "참고 개념: 레이레이 자체 설계"),
+  };
+}
+
+function openWhyModal(q) {
+  const payload = questionWhyPayload(q);
+  if (!payload || !whyModal) return;
+  const titleEl = document.getElementById("why-modal-title");
+  const bodyEl = document.getElementById("why-modal-body");
+  const refEl = document.getElementById("why-modal-ref");
+  if (titleEl) titleEl.innerHTML = formatAiHtml(payload.title);
+  if (bodyEl) bodyEl.innerHTML = formatAiHtml(payload.body);
+  if (refEl) refEl.innerHTML = formatAiHtml(payload.reference);
+  whyModal.classList.add("open");
+  whyModal.setAttribute("aria-hidden", "false");
+}
+
+function closeWhyModal() {
+  whyModal?.classList.remove("open");
+  whyModal?.setAttribute("aria-hidden", "true");
+}
+
+function renderQuizQuestionHead(q) {
+  const badge = String(q.badge || (state.productVersion === 4 ? "PROMIS" : "LAY-Z")).toUpperCase();
+  const lead = q.lead || "";
+  return `
+    <div class="quiz-qhead">
+      <div class="quiz-badges">
+        <span class="quiz-badge quiz-badge--tag">${badge}</span>
+        <button type="button" class="quiz-badge quiz-badge--why" data-action="why-question">
+          왜 묻나요?
+          <span class="quiz-badge-info" aria-hidden="true">i</span>
+        </button>
+      </div>
+      <h3 class="quiz-question text-break">${formatAiHtml(q.text)}</h3>
+      ${lead ? `<p class="quiz-lead text-break">${formatAiHtml(lead)}</p>` : ""}
+    </div>
+  `;
+}
+
 function renderQuiz() {
   const list = activeQuestions();
   const q = list[state.currentQ];
@@ -424,9 +477,6 @@ function renderQuiz() {
     state.productVersion === 2 && state.dialect
       ? `<p class="quiz-dialect-note">${dialectLabel(state.dialect)} 말투로 결과가 준비돼요</p>`
       : "";
-  const promisNote = isPromis
-    ? `<p class="quiz-dialect-note">${q.help || "PROMIS® Global Health"}</p>`
-    : "";
   const nav =
     state.currentQ === 0
       ? `<button data-action="layz-intro">메인으로 돌아가기</button>`
@@ -445,7 +495,6 @@ function renderQuiz() {
             isPromis ? "신체 · 정신 글로벌 건강 문항" : "오늘 나의 게으름 지수는?"
           }</p>
           ${dialectNote}
-          ${promisNote}
 
           <div class="quiz-progress">
             <div class="quiz-progress-num"><strong>${num}</strong> / ${totalLabel}</div>
@@ -454,7 +503,7 @@ function renderQuiz() {
             </div>
           </div>
 
-          <h3 class="quiz-question">${q.text.replace(/\n/g, "<br />")}</h3>
+          ${renderQuizQuestionHead(q)}
           <div class="quiz-options">
             ${q.options
               .map(
@@ -515,16 +564,33 @@ function renderMediaSection() {
         ${media.items
           .map((item, i) => {
             const kindText = item.kind === "movie" ? "영화" : "유튜브";
-            const thumb = String(item.thumb || "").trim();
-            const thumbHtml = thumb
-              ? `<img class="media-rec-thumb-img" src="${thumb}" alt="${kindText} 썸네일" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest('.media-rec-thumb').classList.add('is-fallback'); this.remove();" />`
+            const thumbs = Array.isArray(item.thumbs) && item.thumbs.length
+              ? item.thumbs.map((t) => String(t || "").trim()).filter(Boolean)
+              : [String(item.thumb || "").trim()].filter(Boolean);
+            const first = thumbs[0] || "";
+            const rest = thumbs
+              .slice(1)
+              .map((u) => u.replace(/"/g, "&quot;"))
+              .join("|");
+            const thumbHtml = first
+              ? `<img class="media-rec-thumb-img" src="${first.replace(/"/g, "&quot;")}" alt="${kindText} 스냅샷" loading="lazy" referrerpolicy="no-referrer" data-fallbacks="${rest}" onerror="window.__mediaThumbFallback&&window.__mediaThumbFallback(this)" />`
               : "";
+            const snapLabel =
+              item.snapshotSource === "naver"
+                ? "네이버 이미지"
+                : item.snapshotSource === "youtube"
+                  ? "유튜브 썸네일"
+                  : item.snapshotSource
+                    ? item.snapshotSource
+                    : "";
             return `
-          <a class="media-rec-card" href="${item.url}" target="_blank" rel="noopener noreferrer">
-            <div class="media-rec-thumb ${thumb ? "" : "is-fallback"}">
+          <a class="media-rec-card media-rec-card--snap" href="${item.url}" target="_blank" rel="noopener noreferrer">
+            <div class="media-rec-thumb ${first ? "" : "is-fallback"}">
               ${thumbHtml}
               <span class="media-rec-thumb-fallback">${kindText}</span>
+              ${item.kind === "youtube" ? `<span class="media-rec-play" aria-hidden="true">▶</span>` : ""}
               <span class="media-rec-num">${String(i + 1).padStart(2, "0")}</span>
+              ${snapLabel ? `<span class="media-rec-snap-badge">${snapLabel}</span>` : ""}
             </div>
             <div class="media-rec-body">
               <span class="media-rec-kind">${kindText}</span>
@@ -657,9 +723,15 @@ function renderResult() {
     <p class="sleep-guide-label">레이레이 수면 가이드</p>
     <h3>편안한 밤을 위한 팁</h3>
     <div class="guide-list">
-      <div class="guide-item"><span class="guide-num">01</span><div><strong>정해진 시간에 잠자기</strong><p>매일 같은 시간에 자고 일어나면 몸이 리듬을 찾을 수 있어요.</p></div></div>
-      <div class="guide-item"><span class="guide-num">02</span><div><strong>스마트폰 멀리하기</strong><p>잠들기 1시간 전에는 스마트폰을 멀리해 보세요.\n더 깊은 잠을 도와드릴 거예요.</p></div></div>
-      <div class="guide-item"><span class="guide-num">03</span><div><strong>편안한 수면 환경 만들기</strong><p>어두운 방과 적절한 온도를 유지하면\n더욱 편안한 수면을 누릴 수 있어요.</p></div></div>
+      <div class="guide-item"><span class="guide-num">01</span><div><strong>정해진 시간에 잠자기</strong><p>${formatAiHtml(
+        "매일 같은 시간에 자고 일어나면\n몸이 리듬을 찾을 수 있어요."
+      )}</p></div></div>
+      <div class="guide-item"><span class="guide-num">02</span><div><strong>스마트폰 멀리하기</strong><p>${formatAiHtml(
+        "잠들기 1시간 전에는 스마트폰을 멀리해 보세요.\n더 깊은 잠을 도와드릴 거예요."
+      )}</p></div></div>
+      <div class="guide-item"><span class="guide-num">03</span><div><strong>편안한 수면 환경 만들기</strong><p>${formatAiHtml(
+        "어두운 방과 적절한 온도를 유지하면\n더욱 편안한 수면을 누릴 수 있어요."
+      )}</p></div></div>
     </div>`;
 
   return `
@@ -944,6 +1016,14 @@ function handleClick(e) {
     case "info":
       modal.classList.add("open");
       break;
+    case "why-question": {
+      const q = activeQuestions()[state.currentQ];
+      openWhyModal(q);
+      break;
+    }
+    case "why-close":
+      closeWhyModal();
+      break;
     case "promis-info":
       alert(
         [
@@ -1033,9 +1113,26 @@ function handleClick(e) {
 function boot() {
   if (!window.LayData || !app || !pageBody) return;
 
+  window.__mediaThumbFallback = function (img) {
+    if (!img) return;
+    const raw = img.getAttribute("data-fallbacks") || "";
+    const list = raw.split("|").map((s) => s.trim()).filter(Boolean);
+    if (list.length) {
+      img.src = list.shift();
+      img.setAttribute("data-fallbacks", list.join("|"));
+      return;
+    }
+    img.closest(".media-rec-thumb")?.classList.add("is-fallback");
+    img.remove();
+  };
+
   modalClose?.addEventListener("click", () => modal.classList.remove("open"));
   modal?.addEventListener("click", (e) => {
     if (e.target === modal) modal.classList.remove("open");
+  });
+
+  whyModal?.addEventListener("click", (e) => {
+    if (e.target === whyModal) closeWhyModal();
   });
 
   shareModal?.addEventListener("click", (e) => {

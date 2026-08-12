@@ -128,64 +128,120 @@
       id: 'Global03',
       domain: 'physical',
       core2: true,
+      badge: 'PHYSICAL',
       text: '전반적으로 본인의 신체 건강 상태를\n어떻게 평가하시겠습니까?',
+      lead: '신체 건강에 대한 주관적 총평을 확인해요.',
       help: 'PROMIS Global03 · GPH-4 / GPH-2',
+      why: {
+        body:
+          '전반적 신체 건강 인식은 PROMIS Global Health의 핵심 문항(Global03)입니다. 특정 질환 진단이 아니라, 스스로 느끼는 신체 건강 수준을 T-score 산출에 반영합니다.',
+        reference: '참고 근거: PROMIS® Global Health v1.2 · Hays et al., 2017 (GPH-4/GPH-2)',
+      },
       options: EXCELLENT_POOR,
     },
     {
       id: 'Global06',
       domain: 'physical',
       core2: true,
+      badge: 'FUNCTION',
       text: '걷기, 계단 오르기, 장바구니 들기, 의자 옮기기 등\n일상적인 신체 활동을 어느 정도까지 할 수 있습니까?',
+      lead: '일상 신체 기능(활동 가능 범위)을 살펴봐요.',
       help: 'PROMIS Global06 · GPH-4 / GPH-2',
+      why: {
+        body:
+          '일상 활동 수행 능력은 신체 기능의 핵심 신호입니다. Global06은 GPH-4/GPH-2에 포함되며, 운동능력 검사가 아닌 자기보고 기능 평가입니다.',
+        reference: '참고 근거: PROMIS® Global06 · Hays et al., 2017',
+      },
       options: PHYSICAL_ACTIVITY,
     },
     {
       id: 'Global07',
       domain: 'physical',
       core2: false,
+      badge: 'PAIN',
       text: '지난 7일 동안 평균적으로\n어느 정도의 통증을 느끼셨습니까?',
+      lead: '최근 7일 평균 통증 강도를 체크해요.',
       help: 'PROMIS Global07 · 0–10 → 5단계 재코딩 후 역채점',
+      why: {
+        body:
+          '통증은 신체 건강 T-score에 크게 영향을 주는 신호입니다. 본 모듈에서는 0–10 응답을 5단계로 재코딩한 뒤 역채점하여 GPH-4에 반영합니다.',
+        reference: '참고 근거: PROMIS® Global07 · HealthMeasures 채점 관례(역채점)',
+      },
       options: PAIN,
     },
     {
       id: 'Global08',
       domain: 'physical',
       core2: false,
+      badge: 'FATIGUE',
       text: '지난 7일 동안 평균적으로\n피로도를 어떻게 평가하시겠습니까?',
+      lead: '최근 피로감의 평균 수준을 확인해요.',
       help: 'PROMIS Global08 · GPH-4',
+      why: {
+        body:
+          '피로는 신체 활력과 회복을 설명하는 핵심 지표입니다. Global08은 GPH-4 구성 문항으로, 임상 진단이 아닌 자기보고 스크리닝에 사용됩니다.',
+        reference: '참고 근거: PROMIS® Global08 · GPH-4',
+      },
       options: FATIGUE,
     },
     {
       id: 'Global02',
       domain: 'mental',
       core2: false,
+      badge: 'QOL',
       text: '전반적으로 당신의 삶의 질은\n어느 정도라고 생각하십니까?',
+      lead: '삶의 질에 대한 주관적 평가를 봐요.',
       help: 'PROMIS Global02 · GMH-4',
+      why: {
+        body:
+          '삶의 질 총평은 정신·사회적 웰빙을 아우르는 신호입니다. Global02는 GMH-4에 포함되며, 의료적 삶의 질 검사가 아닌 자기보고 문항입니다.',
+        reference: '참고 근거: PROMIS® Global02 · GMH-4 · Hays et al., 2017',
+      },
       options: EXCELLENT_POOR,
     },
     {
       id: 'Global04',
       domain: 'mental',
       core2: true,
+      badge: 'MENTAL',
       text: '전반적으로 기분과 사고 능력을 포함한\n정신 건강 상태를 어떻게 평가하시겠습니까?',
+      lead: '기분·사고를 포함한 정신 건강 총평이에요.',
       help: 'PROMIS Global04 · GMH-4 / GMH-2',
+      why: {
+        body:
+          '정신 건강 총평(Global04)은 GMH-4와 논문 초점 척도 GMH-2의 핵심입니다. 정신과 진단을 대체하지 않으며, 주관적 정신 건강 수준을 T-score로 요약합니다.',
+        reference: '참고 근거: PROMIS® Global04 · Hays et al., 2017 (GMH-4/GMH-2)',
+      },
       options: EXCELLENT_POOR,
     },
     {
       id: 'Global05',
       domain: 'mental',
       core2: true,
+      badge: 'SOCIAL',
       text: '전반적으로 사회 활동 및 인간관계에 대한\n만족도를 어떻게 평가하시겠습니까?',
+      lead: '관계·사회활동 만족도를 확인해요.',
       help: 'PROMIS Global05 · GMH-4 / GMH-2',
+      why: {
+        body:
+          '사회적 만족도는 정신 건강 영역의 중요한 축입니다. Global05는 GMH-4/GMH-2에 포함되며, 대인관계 진단이 아닌 자기보고 만족도 평가입니다.',
+        reference: '참고 근거: PROMIS® Global05 · Hays et al., 2017',
+      },
       options: EXCELLENT_POOR,
     },
     {
       id: 'Global10',
       domain: 'mental',
       core2: false,
+      badge: 'EMOTION',
       text: '감정적인 문제로\n얼마나 자주 괴로워하셨나요?',
+      lead: '정서적 불편의 빈도를 가볍게 체크해요.',
       help: 'PROMIS Global10 · GMH-4 (빈도↑ = 점수↓)',
+      why: {
+        body:
+          '감정적 괴로움의 빈도는 정신 건강 T-score에 반영됩니다. 빈도가 높을수록 점수가 낮아지도록 설계된 GMH-4 문항이며, 임상 면담을 대체하지 않습니다.',
+        reference: '참고 근거: PROMIS® Global10 · GMH-4 (빈도↑ = 점수↓)',
+      },
       options: EMOTIONAL,
     },
   ];

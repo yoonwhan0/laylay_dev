@@ -57,6 +57,88 @@ function youtubeThumb(videoId) {
   return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 }
 
+/** 고화질 → 일반 순 스냅샷 후보 */
+function youtubeThumbVariants(videoId) {
+  if (!videoId) return [];
+  return [
+    `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`,
+    `https://i.ytimg.com/vi/${videoId}/sddefault.jpg`,
+    `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
+  ];
+}
+
+async function naverImageSearch(query, clientId, clientSecret) {
+  if (!query || !clientId || !clientSecret) return null;
+  try {
+    const url =
+      "https://openapi.naver.com/v1/search/image?" +
+      new URLSearchParams({
+        query: String(query).slice(0, 100),
+        display: "3",
+        sort: "sim",
+        filter: "large",
+      }).toString();
+    const res = await fetch(url, {
+      headers: {
+        "X-Naver-Client-Id": clientId,
+        "X-Naver-Client-Secret": clientSecret,
+      },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const items = Array.isArray(data.items) ? data.items : [];
+    const hit = items.find((it) => it && (it.link || it.thumbnail));
+    if (!hit) return null;
+    return {
+      thumb: hit.link || hit.thumbnail || "",
+      thumbSmall: hit.thumbnail || hit.link || "",
+      title: hit.title ? String(hit.title).replace(/<[^>]+>/g, "") : "",
+      source: "naver",
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function attachSnapshot(item, { naverId, naverSecret }) {
+  const next = { ...item, thumbs: Array.isArray(item.thumbs) ? item.thumbs : [] };
+  if (next.videoId) {
+    next.thumbs = youtubeThumbVariants(next.videoId);
+    next.thumb = next.thumb || next.thumbs[0] || youtubeThumb(next.videoId);
+    next.snapshotSource = next.snapshotSource || "youtube";
+  }
+
+  if (!next.thumb) {
+    const q =
+      next.kind === "movie"
+        ? `${next.title || next.query} 영화 포스터`
+        : `${next.title || next.query} 유튜브`;
+    const naver = await naverImageSearch(q, naverId, naverSecret);
+    if (naver && naver.thumb) {
+      next.thumb = naver.thumb;
+      next.thumbs = [naver.thumb, naver.thumbSmall].filter(Boolean);
+      next.snapshotSource = "naver";
+    }
+  } else if (next.thumbs.length === 0) {
+    next.thumbs = [next.thumb];
+  }
+
+  // 네이버로 보조 스냅샷도 한 장 더 (유튜브 썸네일 실패 대비)
+  if (next.kind === "youtube" && naverId && naverSecret) {
+    const naver = await naverImageSearch(
+      `${next.title || next.query} 유튜브`,
+      naverId,
+      naverSecret
+    );
+    if (naver && naver.thumb && !next.thumbs.includes(naver.thumb)) {
+      next.thumbs = next.thumbs.concat([naver.thumb, naver.thumbSmall].filter(Boolean));
+    }
+  }
+
+  return next;
+}
+
 function extractVideoId(text) {
   if (!text) return "";
   const s = String(text).trim();
@@ -163,6 +245,8 @@ async function youtubeApiSearchOne(query, apiKey) {
       videoId: id,
       url: youtubeWatchUrl(id),
       thumb,
+      thumbs: youtubeThumbVariants(id),
+      snapshotSource: "youtube",
     };
   } catch (_) {
     return null;
@@ -202,16 +286,13 @@ async function youtubeInnertubeSearch(query, limit = 5) {
       title: titleNearVideoId(text, id) || query,
       videoId: id,
       url: youtubeWatchUrl(id),
-      thumb: youtubeThumb(id),
+      thumb: youtubeThumbVariants(id)[0],
+      thumbs: youtubeThumbVariants(id),
+      snapshotSource: "youtube",
     }));
   } catch (_) {
     return [];
   }
-}
-
-async function youtubeInnertubeSearchOne(query) {
-  const list = await youtubeInnertubeSearch(query, 3);
-  return list[0] || null;
 }
 
 async function verifyYoutubeId(videoId) {
@@ -231,12 +312,15 @@ async function oembedYoutube(videoId) {
     );
     if (!res.ok) return null;
     const data = await res.json();
+    const thumbs = youtubeThumbVariants(videoId);
     return {
       title: data.title || "",
       channel: data.author_name || "",
       videoId,
       url: youtubeWatchUrl(videoId),
-      thumb: data.thumbnail_url || youtubeThumb(videoId),
+      thumb: thumbs[0] || data.thumbnail_url || youtubeThumb(videoId),
+      thumbs: thumbs.concat(data.thumbnail_url ? [data.thumbnail_url] : []),
+      snapshotSource: "youtube",
     };
   } catch (_) {
     return null;
@@ -340,21 +424,33 @@ async function itunesMoviePoster(title) {
   }
 }
 
-async function resolveMovieItem(title, query, omdbKey) {
+async function resolveMovieItem(title, query, omdbKey, naverId, naverSecret) {
   const name = (title || query || "").replace(/\s*영화\s*$/, "").trim();
   const omdb = await omdbPoster(name, omdbKey);
   if (omdb) {
-    return { title: name, thumb: omdb, url: "" };
+    return { title: name, thumb: omdb, thumbs: [omdb], url: "", snapshotSource: "omdb" };
   }
   const itunes = await itunesMoviePoster(name);
   if (itunes && itunes.thumb) {
     return {
       title: itunes.title || name,
       thumb: itunes.thumb,
+      thumbs: [itunes.thumb],
       url: itunes.url || "",
+      snapshotSource: "itunes",
     };
   }
-  return { title: name, thumb: "", url: "" };
+  const naver = await naverImageSearch(`${name} 영화 포스터`, naverId, naverSecret);
+  if (naver && naver.thumb) {
+    return {
+      title: name,
+      thumb: naver.thumb,
+      thumbs: [naver.thumb, naver.thumbSmall].filter(Boolean),
+      url: "",
+      snapshotSource: "naver",
+    };
+  }
+  return { title: name, thumb: "", thumbs: [], url: "", snapshotSource: "" };
 }
 
 async function openAiCurate({ key, model, score, mode, plan, webHints }) {
@@ -499,6 +595,13 @@ exports.handler = async (event) => {
       typeof process.env.YOUTUBE_API_KEY === "string" ? process.env.YOUTUBE_API_KEY.trim() : "";
     const omdbKey =
       typeof process.env.OMDB_API_KEY === "string" ? process.env.OMDB_API_KEY.trim() : "";
+    const naverId =
+      typeof process.env.NAVER_CLIENT_ID === "string" ? process.env.NAVER_CLIENT_ID.trim() : "";
+    const naverSecret =
+      typeof process.env.NAVER_CLIENT_SECRET === "string"
+        ? process.env.NAVER_CLIENT_SECRET.trim()
+        : "";
+    const snapshotOpts = { naverId, naverSecret };
 
     const webHints = await duckDuckGoHints(`${plan.querySeed} ${modeLabel}`.trim());
     let curated = null;
@@ -520,7 +623,7 @@ exports.handler = async (event) => {
     const usedIds = new Set();
 
     // 유튜브는 순차 처리해 중복 videoId를 피하고, 실패 시 querySeed로 보충
-    const items = [];
+    let items = [];
     if (plan.kind === "youtube") {
       for (let idx = 0; idx < rawItems.length; idx++) {
         const it = rawItems[idx];
@@ -538,7 +641,9 @@ exports.handler = async (event) => {
           query,
           url: (resolved && resolved.url) || youtubeSearchUrl(query),
           thumb: (resolved && resolved.thumb) || "",
+          thumbs: (resolved && resolved.thumbs) || [],
           videoId: (resolved && resolved.videoId) || "",
+          snapshotSource: (resolved && resolved.snapshotSource) || "",
         });
       }
 
@@ -557,7 +662,9 @@ exports.handler = async (event) => {
           item.title = meta.title || item.title;
           item.url = meta.url;
           item.thumb = meta.thumb;
+          item.thumbs = meta.thumbs || youtubeThumbVariants(hit.videoId);
           item.videoId = meta.videoId;
+          item.snapshotSource = "youtube";
         }
       }
     } else {
@@ -566,7 +673,7 @@ exports.handler = async (event) => {
         const title = String(it.title || "").trim() || `추천 ${idx + 1}`;
         const reason = String(it.reason || "").trim();
         const query = String(it.query || title).trim();
-        const movie = await resolveMovieItem(title, query, omdbKey);
+        const movie = await resolveMovieItem(title, query, omdbKey, naverId, naverSecret);
         items.push({
           kind: "movie",
           title: (movie && movie.title) || title,
@@ -574,10 +681,14 @@ exports.handler = async (event) => {
           query,
           url: (movie && movie.url) || movieSearchUrl(query || title),
           thumb: (movie && movie.thumb) || "",
+          thumbs: (movie && movie.thumbs) || [],
           videoId: "",
+          snapshotSource: (movie && movie.snapshotSource) || "",
         });
       }
     }
+
+    items = await Promise.all(items.map((item) => attachSnapshot(item, snapshotOpts)));
 
     return {
       statusCode: 200,
@@ -589,6 +700,10 @@ exports.handler = async (event) => {
         scoreBand: score <= 39 ? "0-39" : score <= 69 ? "40-69" : "70-99",
         intent: plan.intent,
         webHints,
+        snapshot: {
+          youtube: true,
+          naver: !!(naverId && naverSecret),
+        },
         items,
       }),
     };

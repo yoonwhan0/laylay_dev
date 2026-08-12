@@ -40,7 +40,11 @@
   }
 
   function formatHtml(text, options) {
-    return escapeHtml(formatProse(text, options));
+    var opts = options || {};
+    var s = escapeHtml(formatProse(text, opts));
+    if (!s) return '';
+    if (opts.singleLine) return s;
+    return s.replace(/\n/g, '<br>');
   }
 
   function limitLines(text, maxLines) {
