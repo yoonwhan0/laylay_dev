@@ -6,3 +6,8 @@
   from = "/api/openai-dev"
   to = "/.netlify/functions/openai-dev-chat"
   status = 200
+
+[[redirects]]
+  from = "/api/media-recommend"
+  to = "/.netlify/functions/media-recommend"
+  status = 200

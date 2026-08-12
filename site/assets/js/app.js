@@ -50,9 +50,16 @@ let state = {
   lastScore: null,
   lastMode: null,
   layzAi: null,
+  mediaRec: null,
   layzNoticeOpen: false,
   shareKind: "layz",
 };
+
+function versionChipLabel() {
+  if (state.productVersion === 2) return "사투리 버전";
+  if (state.productVersion === 3) return "풍성 답변 + 콘텐츠 추천";
+  return "기본 제품";
+}
 
 const LAYZ_NOTICE_ITEMS = [
   "본 테스트는 재미와 브랜드 경험을 목적으로 제공되며, 의료 · 건강 · 심리 상태를 진단하기 위한 서비스가 아닙니다.",
@@ -82,6 +89,7 @@ function resetQuizState() {
   state.lastScore = null;
   state.lastMode = null;
   state.layzAi = null;
+  state.mediaRec = null;
 }
 
 async function runLayZAiFlow() {
@@ -90,21 +98,39 @@ async function runLayZAiFlow() {
   state.lastScore = score;
   state.lastMode = mode;
   state.layzAi = null;
-  const options =
-    state.productVersion === 2 && state.dialect
-      ? { dialect: state.dialect }
-      : undefined;
+  state.mediaRec = null;
+  const options = {};
+  if (state.productVersion === 2 && state.dialect) options.dialect = state.dialect;
+  if (state.productVersion === 3) options.rich = true;
+  const hasOptions = Object.keys(options).length > 0;
   let ai = null;
   if (window.LayZAi) {
     try {
-      ai = await window.LayZAi.fetchCopy(score, mode, state.answers, QUESTIONS, options);
+      ai = await window.LayZAi.fetchCopy(
+        score,
+        mode,
+        state.answers,
+        QUESTIONS,
+        hasOptions ? options : undefined
+      );
     } catch (e) {
       ai = null;
     }
   }
   state.layzAi = window.LayZAi
-    ? window.LayZAi.mapToUi(ai, mode, RESULT_COPY, getResultDetails)
+    ? window.LayZAi.mapToUi(ai, mode, RESULT_COPY, getResultDetails, {
+        rich: state.productVersion === 3,
+      })
     : getResultDetails(mode.name);
+
+  if (state.productVersion === 3 && window.LayZMedia) {
+    try {
+      state.mediaRec = await window.LayZMedia.fetchRecommendations(score, mode);
+    } catch (e) {
+      state.mediaRec = null;
+    }
+  }
+
   saveResult(score, mode, state.layzAi);
   navigate("#/result");
 }
@@ -284,21 +310,21 @@ function renderDialectPicker() {
 
 function renderLayzIntro() {
   const isDialectVersion = state.productVersion === 2;
+  const isRichVersion = state.productVersion === 3;
   const startDisabled = isDialectVersion && !state.dialect;
+  const subtitle = isDialectVersion
+    ? "동일한 8가지 문의로 측정하고, 고른 지역 말투로 결과를 들려드려요"
+    : isRichVersion
+      ? "기본과 같은 문의지만 답변이 더 풍성하고, 점수에 따라 유튜브·영화 추천까지 받아보세요"
+      : "8가지 질문으로 오늘의 Lay-Z 지수를 확인해보세요";
 
   return `
     <div class="center-panel-wrap">
       <section class="center-panel center-panel--tall">
-        <p class="version-chip">${isDialectVersion ? "사투리 버전" : "기본 제품"}</p>
+        <p class="version-chip">${versionChipLabel()}</p>
         <h1 class="title-layz title-layz--intro">Lay-Z Check</h1>
         <p class="subtitle-bold">오늘 나의 게으름 지수는?</p>
-        <p class="subtitle">
-          ${
-            isDialectVersion
-              ? "동일한 8가지 문의로 측정하고, 고른 지역 말투로 결과를 들려드려요"
-              : "8가지 질문으로 오늘의 Lay-Z 지수를 확인해보세요"
-          }
-        </p>
+        <p class="subtitle">${subtitle}</p>
 
         <div class="hero-illust">
           <img src="assets/hero-character.svg" alt="매트리스 위에서 자는 캐릭터 일러스트" />
@@ -375,17 +401,60 @@ function renderQuiz() {
 }
 
 function renderLoading() {
+  const loadingText =
+    state.productVersion === 3
+      ? "풍성한 리포트와 콘텐츠 추천을 찾는 중 · · ·"
+      : "8개의 답변을 차근차근 살펴보는 중 · · ·";
   return `
     <div class="center-panel-wrap">
       <section class="center-panel center-panel--loading">
         <div class="loading-panel">
-          <p class="loading-text">8개의 답변을 차근차근 살펴보는 중 · · ·</p>
+          <p class="loading-text">${loadingText}</p>
           <div class="loading-illust">
             <img src="assets/loading-character.svg" alt="분석 중 일러스트" />
           </div>
         </div>
       </section>
     </div>
+  `;
+}
+
+function renderMediaSection() {
+  const media = state.mediaRec;
+  if (!media || !Array.isArray(media.items) || !media.items.length) return "";
+  const kindLabel = media.label || (media.kind === "movie" ? "영화 추천" : "유튜브 추천");
+  const bandNote =
+    media.scoreBand === "0-39"
+      ? "0~39점 · 가벼운 활력 콘텐츠"
+      : media.scoreBand === "40-69"
+        ? "40~69점 · 위로·힐링 영화"
+        : "70~99점 · 수면·이완 콘텐츠";
+
+  return `
+    <section class="media-rec">
+      <p class="media-rec-kicker">SECTION 03 · ${kindLabel}</p>
+      <h3 class="section-title section-title--center">${formatAiHtml(
+        media.sectionTitle || `오늘 점수에 맞는 ${kindLabel}`,
+        { singleLine: true }
+      )}</h3>
+      <p class="media-rec-sub">${bandNote}</p>
+      <div class="media-rec-list">
+        ${media.items
+          .map(
+            (item, i) => `
+          <a class="media-rec-card" href="${item.url}" target="_blank" rel="noopener noreferrer">
+            <span class="media-rec-num">${String(i + 1).padStart(2, "0")}</span>
+            <div class="media-rec-body">
+              <span class="media-rec-kind">${item.kind === "movie" ? "영화" : "유튜브"}</span>
+              <h4>${formatAiHtml(item.title, { singleLine: true })}</h4>
+              <p>${formatAiHtml(item.reason)}</p>
+              <span class="media-rec-link">검색해서 보기 →</span>
+            </div>
+          </a>`
+          )
+          .join("")}
+      </div>
+    </section>
   `;
 }
 
@@ -489,6 +558,8 @@ function renderResult() {
           <div class="sleep-guide">
             ${renderSleepGuide(ai && ai.rx ? ai.rx : null, fallbackSleep)}
           </div>
+
+          ${state.productVersion === 3 ? renderMediaSection() : ""}
 
           <div class="btn-stack result-bottom-btns">
             <button class="btn btn-primary" data-action="share">나의 상태 공유하기</button>
@@ -721,6 +792,7 @@ function handleClick(e) {
       state.answers = [];
       state.currentQ = 0;
       state.layzAi = null;
+      state.mediaRec = null;
       if (state.productVersion === 2) {
         navigate("#/layz");
       } else {
