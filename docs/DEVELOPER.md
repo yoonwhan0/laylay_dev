@@ -3,7 +3,7 @@
 LayLay Laytime MVP 인계용 정리입니다.  
 **Vanilla JS + 정적 HTML + Netlify Functions** 구조이며, PHP 이식 시 `site/` 화면과 `/api/*` 서버 부분만 맞춰 주시면 됩니다.
 
-좌측 ERP형 버전 메뉴로 **01~05**를 전환하며 비교할 수 있습니다.
+좌측 ERP형 버전 메뉴로 **01~06**를 전환하며 비교할 수 있습니다.
 
 ---
 
@@ -37,17 +37,29 @@ LayLay Laytime MVP 인계용 정리입니다.
 - 논문 초점 척도 **GPH-2 / GMH-2**도 참고 점수로 표시
 - 결과 화면에 출처 고정 표기
 
-### 05 LAB OVERDRIVE (ADHD 머릿속 보드)
+### 06 Lay-Z Runner (점수 = 게임 속도)
+- 문의는 01과 동일 8문항
+- 퀴즈 후 AI 없이 바로 결과 + 미니 러너 게임 (`dino-game.js`)
+- 속도 매핑: Lay-Z **낮음(안 게으름) → 빠름**, **높음(게으름) → 느림**
+  - Active(0–19): MAX SPEED
+  - Easy(20–39): FAST
+  - Slow(40–59): NORMAL
+  - Lazy(60–79): SLOW
+  - LayLay(80–99): ULTRA SLOW
+- 조작: 스페이스바 / 화면 탭 점프
+- 화면 이탈 시 `LayDinoGame.destroy()`로 타이머 정리
+
+### 05 LAB OVERDRIVE (고토큰 · 정돈된 데이터 보드)
 - 문의는 01과 동일(8문항 + WHY 뱃지)
-- 결과 UI를 **일부러 산만하게** 펼침: 탭·Sticky·푸시알림·토끼굴·의식의 흐름 + 그래프
-- AI **5회 병렬 호출** (`lab-ai.js`, 호출당 max_tokens 12k~15k)
+- 결과 UI는 **섹션 번호 순서의 정돈된 대시보드** (총론→그래프→축해석→심층설계→시나리오→에세이)
+- AI **5회 병렬 호출** (`lab-ai.js`, 호출당 max_tokens 12k~14k) — 분량은 길게, 톤은 읽기 쉽게
   1. 코어 리포트
-  2. 차트 과해석
-  3. 카오스(평행우주·보스)
-  4. ADHD 탭/스티커/침투사고
-  5. 의식의 흐름 스트림
+  2. 차트 해설
+  3. 시나리오
+  4. 심층 생활 설계
+  5. 에세이
 - 파일: `lab-engine.js`, `lab-ai.js`
-- 의료 진단 아님. **토큰 비용 매우 큼**.
+- 의료 진단 아님. **토큰 비용 큼**.
 
 ### 공통 — 문항 뱃지 / WHY 모달 (01~05)
 - 각 문항 상단: **카테고리 뱃지** + **왜 묻나요?** 버튼
@@ -90,12 +102,12 @@ npm run dev
 | 주소 | 화면 |
 |------|------|
 | `#/` / `#/layz` | 버전별 시작(인트로) |
-| `#/quiz` | 문항 (01–03·05: Lay-Z 8문항 / 04: PROMIS 8문항) |
+| `#/quiz` | 문항 (01–03·05–06: Lay-Z 8문항 / 04: PROMIS 8문항) |
 | `#/loading` | 분석 중 |
 | `#/result` | 결과 (버전별 UI) |
 | `#/history` | Lay-Z 기록 (01–03) |
 
-버전 상태는 `app.js`의 `state.productVersion` (1~5) 입니다.
+버전 상태는 `app.js`의 `state.productVersion` (1~6) 입니다.
 
 ---
 
@@ -110,7 +122,8 @@ npm run dev
 | `site/assets/js/promis-data.js` | PROMIS 문항(badge/lead/why)·raw→T 변환 |
 | `site/assets/js/promis-ai.js` | PROMIS 해석 AI |
 | `site/assets/js/lab-engine.js` | v05 계측·SVG 그래프 |
-| `site/assets/js/lab-ai.js` | v05 AI 3병렬 고토큰 |
+| `site/assets/js/lab-ai.js` | v05 AI 5병렬 고토큰 |
+| `site/assets/js/dino-game.js` | v06 점수 연동 러너 |
 | `site/assets/js/text-format.js` | 줄바꿈·이스케이프·`<br>` |
 | `netlify/functions/media-recommend.js` | Innertube/유튜브 썸네일, 영화 포스터, 네이버 이미지 보조 |
 
@@ -118,7 +131,8 @@ npm run dev
 - **01–03:** `runLayZAiFlow()` → `LayZAi.fetchCopy(..., { dialect?, rich? })`
 - **03 추가:** `LayZMedia.fetchRecommendations(score, mode)`
 - **04:** `runPromisAiFlow()` → `PromisData.scoreAnswers()` + `PromisAi.fetchCopy()`
-- **05:** `runLabAiFlow()` → `LabEngine.buildMetrics()` + `LabAi.runLabBundle()` (3병렬)
+- **05:** `runLabAiFlow()` → `LabEngine.buildMetrics()` + `LabAi.runLabBundle()` (5병렬)
+- **06:** `runDinoFlow()` → 점수 산출 후 결과에서 `LayDinoGame.mount()`
 
 ### localStorage
 - `layz_history` — Lay-Z 기록 (01–03)

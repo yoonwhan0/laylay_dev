@@ -15,7 +15,8 @@ LayLay 쇼핑몰 Laytime 영역용 **멀티 버전 MVP**입니다.
 | **02** | 사투리 버전 | 동일 문의 + 첫 화면에서 충청/경상/전라 선택 → 지역 화법으로 결과 |
 | **03** | 풍성 + 추천 | 기본 플로우 + 더 풍성한 답변 + 점수별 유튜브/영화 추천(스냅샷·실제 링크) |
 | **04** | PROMIS 공신력 | NIH PROMIS® Global Health 문항·T-score (GPH-4 / GMH-4), 출처 표기 |
-| **05** | LAB OVERDRIVE | ADHD 머릿속 보드 · 그래프+탭/스티커 산만 UI · AI 5병렬 고토큰 |
+| **05** | LAB OVERDRIVE | 정돈된 데이터 보드 · 그래프 다수 · AI 5병렬 고토큰 |
+| **06** | Lay-Z Runner | 8문항 점수 → 다이노 러너 속도 (안 게으름=빠름 / 게으름=느림) |
 
 공통: 모든 모듈 문항 상단에 **카테고리 뱃지 + 왜 묻나요?** → WHY 모달(설명·참고 근거).
 
@@ -39,7 +40,8 @@ layaly_dev/
 │           ├── promis-data.js   PROMIS 문항·T-score
 │           ├── promis-ai.js     PROMIS 해석 AI
 │           ├── lab-engine.js    v05 계측·SVG 그래프
-│           ├── lab-ai.js        v05 고토큰 3병렬 AI
+│           ├── lab-ai.js        v05 고토큰 5병렬 AI
+│           ├── dino-game.js     v06 점수 연동 러너
 │           ├── text-format.js   줄바꿈·HTML 포맷
 │           └── html-to-image.js 공유 이미지
 ├── netlify/functions/
