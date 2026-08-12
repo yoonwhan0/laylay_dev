@@ -68,7 +68,8 @@ button {
   background-image: none;
 }
 
-.page-body > #app {
+.page-body > #app,
+.page-body .erp-content {
   min-height: var(--viewport-main);
   display: flex;
   flex-direction: column;
@@ -86,7 +87,230 @@ button {
   background-size: 200px 200px;
 }
 
-/* Laytime Hub — Lay-Z Check + Lay Mong 한 화면 */
+/* ERP shell — left version menu + content */
+.erp-shell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  min-height: var(--viewport-main);
+  width: 100%;
+  max-width: 1920px;
+  margin: 0 auto;
+  background: var(--bg1);
+}
+
+.erp-sidebar {
+  border-right: 1px solid #e5e2de;
+  background: linear-gradient(180deg, #1f1c1a 0%, #2a2623 100%);
+  color: #f7f3ee;
+  padding: 28px 18px 32px;
+  position: sticky;
+  top: var(--header-h);
+  align-self: start;
+  min-height: var(--viewport-main);
+}
+
+.erp-sidebar-brand {
+  padding: 0 8px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 20px;
+}
+
+.erp-sidebar-kicker {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(247, 243, 238, 0.55);
+  margin-bottom: 6px;
+}
+
+.erp-sidebar-title {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.erp-nav-label {
+  padding: 0 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgba(247, 243, 238, 0.45);
+}
+
+.erp-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.erp-nav-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 12px;
+  border-radius: 10px;
+  color: rgba(247, 243, 238, 0.78);
+  transition: background 0.15s, color 0.15s;
+}
+
+.erp-nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.erp-nav-item.is-active {
+  background: rgba(255, 94, 4, 0.18);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 94, 4, 0.45);
+}
+
+.erp-nav-index {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lay-orange);
+  line-height: 1.4;
+  min-width: 22px;
+}
+
+.erp-nav-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.erp-nav-name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.erp-nav-desc {
+  font-size: 12px;
+  color: rgba(247, 243, 238, 0.5);
+  line-height: 1.4;
+}
+
+.erp-nav-item.is-active .erp-nav-desc {
+  color: rgba(247, 243, 238, 0.7);
+}
+
+.erp-content {
+  min-width: 0;
+  background: var(--gray2);
+}
+
+.version-chip {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 auto 12px;
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--gray5);
+  background: #fff;
+}
+
+.dialect-picker {
+  width: 100%;
+  max-width: 420px;
+  margin: 8px auto 20px;
+  text-align: left;
+}
+
+.dialect-picker-label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.dialect-picker-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.dialect-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background: #fff;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+
+.dialect-btn:hover {
+  border-color: var(--lay-black);
+  transform: translateY(-1px);
+}
+
+.dialect-btn.is-selected {
+  border-color: var(--lay-orange);
+  background: #fff8f3;
+  box-shadow: inset 0 0 0 1px var(--lay-orange);
+}
+
+.dialect-btn-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.dialect-btn-hint {
+  font-size: 13px;
+  color: var(--gray5);
+}
+
+.dialect-picker-selected {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lay-orange);
+}
+
+.dialect-picker-selected--muted {
+  color: var(--gray4);
+}
+
+.btn.is-disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.quiz-dialect-note {
+  margin: -4px 0 16px;
+  font-size: 13px;
+  color: var(--gray5);
+  text-align: center;
+}
+
+.result-dialect-badge {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+  color: var(--lay-orange);
+  background: #fff1e8;
+}
+
+/* Laytime Hub — legacy hub layout (unused shell kept for assets) */
 .hub-main {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2591,6 +2815,41 @@ button {
   }
 
   .header-nav {
+    display: none;
+  }
+
+  .erp-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .erp-sidebar {
+    position: static;
+    min-height: auto;
+    padding: 18px 16px;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .erp-sidebar-brand {
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+  }
+
+  .erp-nav {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .erp-nav-label {
+    display: none;
+  }
+
+  .erp-nav-item {
+    flex: 1;
+    padding: 12px 10px;
+  }
+
+  .erp-nav-desc {
     display: none;
   }
 

@@ -16,7 +16,7 @@
         <nav>
           <ul class="header-nav">
             <li><a href="#">Shop</a></li>
-            <li><a href="#">Brand</a></li> 
+            <li><a href="#">Brand</a></li>
             <li><a href="#/" class="active">Laytime</a></li>
             <li><a href="#">Event</a></li>
             <li><a href="#">Magazine</a></li>
@@ -37,32 +37,32 @@
       </div>
     </header>
 
-    <main class="page-body page-body--hub"> 
-      <div id="app">
-        <section class="hub-main">
-          <div class="hub-col hub-col--left">
-            <h1 class="hub-title">Lay-Z Check</h1>
-            <div class="hub-desc">
-              <p>오늘 유난히 눕고 싶은 데는 이유가 있을지도 몰라요.</p>
-              <p>8가지 질문으로 나의 게으름 지수를 확인해보세요.</p>
-            </div>
-            <button type="button" class="hub-btn" data-action="layz-intro">오늘의 Lay-Z 지수 확인하기</button>
-            <div class="hub-illust hub-illust--layz">
-              <img src="assets/hub-layz-illust.svg" alt="Lay-Z Check 일러스트" />
-            </div>
+    <main class="page-body">
+      <div class="erp-shell">
+        <aside class="erp-sidebar" aria-label="제품 버전 메뉴">
+          <div class="erp-sidebar-brand">
+            <span class="erp-sidebar-kicker">Laytime</span>
+            <strong class="erp-sidebar-title">Lay-Z Check</strong>
           </div>
-          <div class="hub-col">
-            <h1 class="hub-title">Lay Mong</h1>
-            <div class="hub-desc">
-              <p>기억에 남는 꿈이 있나요?</p>
-              <p>꿈에 담긴 의미를 해석하고 오늘의 운세까지 읽어드릴게요</p>
-            </div>
-            <button type="button" class="hub-btn" data-action="laymong">꿈으로 오늘의 운세 보기</button>
-            <div class="hub-illust hub-illust--mong">
-              <img src="assets/hub-laymong-illust.svg" alt="Lay Mong 일러스트" />
-            </div>
-          </div>
-        </section>
+          <nav class="erp-nav">
+            <p class="erp-nav-label">버전</p>
+            <button type="button" class="erp-nav-item is-active" data-action="set-version" data-version="1">
+              <span class="erp-nav-index">01</span>
+              <span class="erp-nav-text">
+                <span class="erp-nav-name">기본 제품</span>
+                <span class="erp-nav-desc">현재 Lay-Z 문의</span>
+              </span>
+            </button>
+            <button type="button" class="erp-nav-item" data-action="set-version" data-version="2">
+              <span class="erp-nav-index">02</span>
+              <span class="erp-nav-text">
+                <span class="erp-nav-name">사투리 버전</span>
+                <span class="erp-nav-desc">충청 · 경상 · 전라</span>
+              </span>
+            </button>
+          </nav>
+        </aside>
+        <div id="app" class="erp-content"></div>
       </div>
     </main>
 
@@ -144,15 +144,15 @@
     <div class="share-modal" role="dialog" aria-labelledby="share-modal-title">
       <button type="button" class="share-modal-close" data-action="share-close" aria-label="닫기">×</button>
 
-      <div class="share-card" id="share-card-capture">
+      <div class="share-card share-card--layz" id="share-card-capture">
         <img src="assets/logo.svg" class="share-card-logo" alt="LayLay" />
-        <p class="share-card-label">Lay Mong Report</p>
-        <h2 class="share-card-title" id="share-modal-title">꿈으로 본 오늘 나의 운세는?</h2>
+        <p class="share-card-label">Lay-Z Report</p>
+        <h2 class="share-card-title" id="share-modal-title">오늘 나의 게으름 지수는?</h2>
         <div class="share-card-score">
           <span id="share-score">60</span><span class="share-card-score-unit">점</span>
         </div>
-        <div class="share-card-badge" id="share-badge">불안 뒤에 행운이 숨어 있는 날</div>
-        <p class="share-card-summary" id="share-summary">꿈 속의 불안함이 여전히 마음에 남아있지만 작은 기적을 기대해보세요.</p>
+        <div class="share-card-badge" id="share-badge">Easy Mode</div>
+        <p class="share-card-summary" id="share-summary">오늘도 무리하지 말고 천천히 가세요.</p>
         <div class="share-card-character">
           <img src="assets/result-character.svg" alt="" />
         </div>
@@ -168,9 +168,6 @@
   <script src="assets/js/text-format.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/layz-ai.js"></script>
-  <script src="assets/js/laymong-ai.js"></script>
-  <script src="assets/js/laymong-validate.js"></script>
-  <script src="assets/js/laymong-feed.js"></script>
   <script src="assets/js/app.js"></script>
 </body>
 </html>
