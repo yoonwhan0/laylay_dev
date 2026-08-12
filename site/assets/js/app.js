@@ -17,21 +17,9 @@ const {
 } = window.LayData || {};
 
 const DIALECTS = [
-  {
-    id: "chungcheong",
-    label: "충청도",
-    hint: "우회형 · 말보다 뜻이 길다",
-  },
-  {
-    id: "gyeongsang",
-    label: "경상도",
-    hint: "압축형 · 뜻보다 말이 짧다",
-  },
-  {
-    id: "jeolla",
-    label: "전라도",
-    hint: "표현형 · 말에 감정이 실린다",
-  },
+  { id: "chungcheong", label: "충청도" },
+  { id: "gyeongsang", label: "경상도" },
+  { id: "jeolla", label: "전라도" },
 ];
 
 function normalizeAiText(text, options) {
@@ -282,7 +270,6 @@ function renderDialectPicker() {
             data-dialect="${d.id}"
           >
             <span class="dialect-btn-name">${d.label}</span>
-            <span class="dialect-btn-hint">${d.hint}</span>
           </button>`
         ).join("")}
       </div>
