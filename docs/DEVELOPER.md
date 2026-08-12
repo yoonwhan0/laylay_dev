@@ -1,20 +1,49 @@
 # Laytime 개발 인계 메모
 
-LayLay Laytime 1차 인계용 정리입니다.  
-Figma 시안 기준으로 화면 맞춰 두었고, 지금은 **Vanilla JS + 정적 HTML** 로 돌아가게 만들어 둔 상태예요.  
-귀사 쪽에서는 PHP로 옮기시면 됩니다.
+LayLay Laytime MVP 인계용 정리입니다.  
+**Vanilla JS + 정적 HTML + Netlify Functions** 구조이며, PHP 이식 시 `site/` 화면과 `/api/*` 서버 부분만 맞춰 주시면 됩니다.
+
+좌측 ERP형 버전 메뉴로 **01~04**를 전환하며 비교할 수 있습니다.
 
 ---
 
-## 뭐가 들어있나
+## 버전 개요
 
-**Lay-Z Check**  
-8문항 퀴즈 → 0~99점 게으름 지수 → AI가 결과 문구·추천·수면 가이드 써줌
+### 01 기본 제품
+- 기존 Lay-Z Check 플로우
+- 8문항 → 0~99점 → AI 결과(head/desc/summary/recs/rx)
 
-**Lay Mong**  
-꿈 내용 + 생년월일·성별·시간·기분 입력 → AI가 해몽·운세 → 도감에도 쌓임
+### 02 사투리 버전
+- 문의(퀴즈)는 01과 동일
+- 첫 화면에서 **충청도 / 경상도 / 전라도**만 선택 (특징 문구는 UI에 노출하지 않음 — 지역감정 이슈 방지)
+- AI 말투만 지역 화법 HARD/NUCLEAR 톤으로 분기 (`layz-ai.js` dialect 옵션)
 
-소스는 전부 `site/` 아래 있습니다.
+### 03 풍성 + 추천
+- 문의는 01과 동일
+- AI 답변 분량 확대 + 기존 줄바꿈(`\\n` / `pre-line`) 로직 유지
+- 결과 **SECTION 03**: 점수 구간별 유튜브 또는 영화 추천
+  - `0–39`: 유튜브(활력·스트레칭)
+  - `40–69`: 영화(힐링)
+  - `70–99`: 유튜브(수면·이완)
+- 유튜브는 Innertube 검색으로 **실제 `watch?v=` 링크 + 썸네일** 확보 (`media-recommend.js`)
+
+### 04 PROMIS® 공신력 버전
+- 문의·점수·결과 UI 전부 변경
+- NIH **PROMIS® Global Health v1.2** 기반 8문항
+  - **GPH-4**: Global03, Global06, Global07(통증 재코딩·역채점), Global08
+  - **GMH-4**: Global02, Global04, Global05, Global10
+- raw(4–20) → **T-score** (평균 50, SD 10, 높을수록 건강↑)
+- 논문 초점 척도 **GPH-2 / GMH-2**도 참고 점수로 표시
+- 결과 화면에 출처 고정 표기
+
+**출처**
+- Hays RD, Schalet BD, Spritzer KL, Cella D.  
+  *Two-item PROMIS® global physical and mental health scales.*  
+  J Patient Rep Outcomes. 2017;1:2.  
+  DOI: [10.1186/s41687-017-0003-8](https://doi.org/10.1186/s41687-017-0003-8)  
+  PMCID: [PMC5934936](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5934936/)
+- Instrument: PROMIS® Scale v1.2 — Global Health  
+- 본 모듈은 자기보고 스크리닝 MVP이며 **의료 진단용이 아닙니다.** 정식 임상 채점은 HealthMeasures Scoring Service를 권장합니다.
 
 ---
 
@@ -26,8 +55,9 @@ cp .env.example .env
 npm run dev
 ```
 
-`.env`에 `OPENAI_API_KEY` 넣어야 AI 응답 나옵니다.  
-API 경로는 `POST /api/openai-dev` — 지금은 `netlify/functions/openai-dev-chat.js`가 받아서 OpenAI로 넘깁니다. PHP 이식할 때 이 부분만 서버 API로 바꿔주시면 돼요. **키는 서버에만** 두시면 됩니다.
+- AI: `POST /api/openai-dev` → `netlify/functions/openai-dev-chat.js`
+- 미디어 추천: `POST /api/media-recommend` → `netlify/functions/media-recommend.js`
+- 키는 **서버(환경변수)에만** 둡니다.
 
 ---
 
@@ -35,97 +65,72 @@ API 경로는 `POST /api/openai-dev` — 지금은 `netlify/functions/openai-dev
 
 | 주소 | 화면 |
 |------|------|
-| `#/` | Laytime 메인 (Lay-Z / Lay Mong 선택) |
-| `#/layz` | Lay-Z 시작 |
-| `#/quiz` | 8문항 |
-| `#/loading` | Lay-Z 분석 중 |
-| `#/result` | Lay-Z 결과 |
-| `#/history` | Lay-Z 7일 기록 |
-| `#/laymong` | Lay Mong 입력 |
-| `#/laymong/encyclopedia` | 레이몽 도감 |
-| `#/laymong/loading` | Lay Mong 분석 중 |
-| `#/laymong/result` | Lay Mong 결과 |
-| `#/laymong/history` | Lay Mong 기록 |
+| `#/` / `#/layz` | 버전별 시작(인트로) |
+| `#/quiz` | 문항 (01–03: Lay-Z 8문항 / 04: PROMIS 8문항) |
+| `#/loading` | 분석 중 |
+| `#/result` | 결과 (버전별 UI) |
+| `#/history` | Lay-Z 기록 (01–03) |
 
-`app.js`에서 라우팅·화면 그리기 다 합니다.
+버전 상태는 `app.js`의 `state.productVersion` (1~4) 입니다.
 
 ---
 
-## AI 프롬프트 — 여기가 제일 중요합니다
+## 주요 파일
 
-프롬프트 문구 전체는 아래 두 파일에 있습니다. **이식할 때 이 파일들 기준으로** 가져가 주세요.
+| 파일 | 역할 |
+|------|------|
+| `site/assets/js/app.js` | 버전 메뉴, 라우팅, 퀴즈/결과 렌더, AI 호출 타이밍 |
+| `site/assets/js/data.js` | Lay-Z `QUESTIONS`, 모드, `RESULT_COPY` |
+| `site/assets/js/layz-ai.js` | Lay-Z AI (`dialect` / `rich` 옵션) |
+| `site/assets/js/layz-media.js` | v03 미디어 API 클라이언트 |
+| `site/assets/js/promis-data.js` | PROMIS 문항·raw→T 변환 |
+| `site/assets/js/promis-ai.js` | PROMIS 해석 AI |
+| `site/assets/js/text-format.js` | 줄바꿈·이스케이프 |
+| `netlify/functions/media-recommend.js` | Innertube/API로 유튜브 watch 링크·썸네일, 영화 포스터 |
 
-### Lay-Z → `site/assets/js/layz-ai.js`
+### AI 호출 타이밍
+- **01–03:** `runLayZAiFlow()` → `LayZAi.fetchCopy(..., { dialect?, rich? })`
+- **03 추가:** `LayZMedia.fetchRecommendations(score, mode)`
+- **04:** `runPromisAiFlow()` → `PromisData.scoreAnswers()` + `PromisAi.fetchCopy()`
 
-- **언제 호출:** 8문항 끝나고 로딩 지나갈 때 (`app.js` → `runLayZAiFlow()`)
-- **뭐 하는 파일:** `layz-ai.js`
-- **주요 함수**
-  - `buildAnswerProfile()` — 사용자가 고른 답을 프롬프트용 텍스트로 묶음
-  - `fetchCopy()` — `layzSystem`(시스템 프롬프트) + user 메시지 만들어서 API 호출
-  - `mapToUi()` — AI가 준 JSON을 화면에 맞게 변환. 실패하면 `data.js` 고정 문구로 대체
-- **API:** `POST /api/openai-dev`, 모델 기본 `gpt-4o-mini`, `max_tokens: 4800`, `temperature: 0.78`
-- **AI가 뱉어야 하는 JSON 키:** `tierName`, `tierTag`, `head`, `desc`, `summary`, `recs`(3개), `rx.items`(3개)
-- **점수는 AI가 안 바꿉니다.** 8문항 합산 점수는 `data.js` / `app.js`에서 이미 계산된 값을 그대로 넘깁니다.
-
-### Lay Mong → `site/assets/js/laymong-ai.js`
-
-- **언제 호출:** 꿈 입력 폼 제출 후 로딩 (`app.js` → `runMongAiFlow()`)
-- **뭐 하는 파일:** `laymong-ai.js`
-- **주요 함수**
-  - `buildBirthProfile()` — 생년월일·성별·시간 정리. **시간 모름이면 12지 언급 금지** 규칙 있음
-  - `fetchDream()` — `laymongSystem` + 꿈 내용 프롬프트 조립 후 API 호출
-  - `parsedToFortune()` — JSON → 화면용 구조로 변환
-  - 파일 맨 위 `MOCK` — API 실패·파싱 실패 시 쓰는 폴백 문장
-- **API:** 같은 `/api/openai-dev`, `max_tokens: 4800`, `temperature: 0.72`
-- **AI가 뱉어야 하는 JSON 키:** `재물운`~`건강운`(1~5), `재물운설명` 등 설명 4개, `총론설명`, `한줄평`, `행운의색`, `행운의숫자`, `행운의물건`, `행동해시태그`
-- **점수:** 네 운 합 × 5
-
-프롬프트 원문은 파일 열어보시면 `layzSystem`, `laymongSystem` 변수랑 그 아래 user 메시지 조립 부분에 다 들어 있습니다.
+### localStorage
+- `layz_history` — Lay-Z 기록 (01–03)
 
 ---
 
-## 나머지 JS 역할
+## 유튜브 링크 확보 (v03)
 
-| 파일 | 하는 일 |
-|------|---------|
-| `app.js` | 화면, 버튼, AI 호출 타이밍, 공유 모달 |
-| `data.js` | 8문항 `QUESTIONS`, 모드 구간, Lay-Z AI 실패 시 `RESULT_COPY` |
-| `laymong-feed.js` | 도감 목록·검색 (localStorage) |
+1. (선택) `YOUTUBE_API_KEY` Data API 검색  
+2. **YouTube Innertube WEB 검색**으로 videoId 확보 (기본 경로)  
+3. oEmbed로 제목·썸네일 검증  
+4. 실패 시에만 검색 결과 URL로 폴백  
 
-### localStorage 키
-
-- `layz_history` — Lay-Z 기록
-- `laymong_history` — Lay Mong 기록
-- `laymong_feed` — 도감 (키 이름 `laymong_feed_v2`로 feed 쪽에서 씀)
+로컬/`netlify dev`에서 functions가 떠 있어야 `/api/media-recommend`가 동작합니다.
 
 ---
 
-## 디자인
+## 디자인 / 몰 연동
 
-Figma가 기준입니다. 시안에 없는 UI(뱃지 블록, 해시태그 섹션 같은 거)는 넣지 않았어요. 이식할 때도 시안 밖으로 안 나가게 부탁드립니다.
-
-Figma 파일: `KReLGgYJ1fL8fByRIw5pnG`  
-- 허브: `3744:43471`  
-- Lay-Z: `3744:43470`  
-- Lay Mong: `3833:1623`
+- 기존 Lay-Z 시안 톤을 유지하되, 버전 메뉴·PROMIS 결과·미디어 카드는 MVP용 추가 UI입니다.
+- 상단 Shop/Brand 등 GNB, 헤더·푸터는 메인 몰 연동 예정입니다 (`#` 스텁).
 
 ---
 
-## 아직 안 된 것 (알고 계시면 됩니다)
+## PHP 이식 체크리스트
 
-- 상단 Shop, Brand 등 링크 → `#` 비어 있음 (몰 연동은 나중에)
-- 기록 삭제 → 지금은 `confirm()` (Figma엔 모달 있음)
-- 카카오 공유 → 버튼만 있고 SDK 연동 전
-- 헤더·푸터 → LayLay 메인 몰 거 붙이셔야 함
-
----
-
-## PHP 옮기실 때 체크
-
-- [ ] `site/` 화면·플로우 Figma랑 맞는지
-- [ ] `/api/openai-dev` → PHP API로 교체, OpenAI 키 서버만
-- [ ] `layz-ai.js`, `laymong-ai.js` 프롬프트·JSON 스키마 유지
+- [ ] `site/` 정적 화면·해시 라우팅 이식
+- [ ] `/api/openai-dev` → PHP OpenAI 프록시 (키 서버 전용)
+- [ ] `/api/media-recommend` → PHP에서 Innertube/유튜브 검색 동등 구현
+- [ ] `layz-ai.js` / `promis-ai.js` 프롬프트·JSON 스키마 유지
+- [ ] PROMIS 출처·비진단 고지 문구 유지
 - [ ] 메인 몰 헤더/푸터/GNB 연동
-- [ ] 기록 저장 localStorage → 회원 연동 여부는 나중에 논의
 
-궁금한 거 있으면 편하게 연락 주세요.
+---
+
+## 아직 안 된 것
+
+- 카카오 공유 SDK 연동 (버튼만 존재)
+- 기록 삭제 UX (`confirm` 사용)
+- Lay Mong 제품 재연결 (의도적으로 허브에서 제외)
+
+문의 있으시면 편하게 연락 주세요.

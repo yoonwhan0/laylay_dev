@@ -530,7 +530,13 @@ function renderMediaSection() {
               <span class="media-rec-kind">${kindText}</span>
               <h4>${formatAiHtml(item.title, { singleLine: true })}</h4>
               <p>${formatAiHtml(item.reason)}</p>
-              <span class="media-rec-link">${item.kind === "movie" ? "포스터 보고 찾아보기 →" : "영상 보러가기 →"}</span>
+              <span class="media-rec-link">${
+                item.kind === "movie"
+                  ? "영화 정보 보기 →"
+                  : item.videoId
+                    ? "유튜브에서 재생 →"
+                    : "유튜브 검색 →"
+              }</span>
             </div>
           </a>`;
           })

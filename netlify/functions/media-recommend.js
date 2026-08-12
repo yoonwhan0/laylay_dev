@@ -1,5 +1,5 @@
 /**
- * Lay-Z v3: 점수 구간에 따라 YouTube/영화 추천 + 썸네일 URL 생성
+ * Lay-Z v3: 점수 구간에 따라 YouTube/영화 추천 + 실제 watch 링크·썸네일
  */
 
 const corsHeaders = {
@@ -9,6 +9,9 @@ const corsHeaders = {
   "Content-Type": "application/json",
 };
 
+/** YouTube WEB 클라이언트의 공개 Innertube 키 (프론트엔드에 포함되는 값) */
+const YT_INNERTUBE_KEY = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8";
+
 function mediaPlan(score) {
   const lz = Number(score) || 0;
   if (lz <= 39) {
@@ -16,7 +19,7 @@ function mediaPlan(score) {
       kind: "youtube",
       label: "유튜브 추천",
       intent: "가벼운 활력·스트레칭·짧은 동기부여 영상",
-      querySeed: "스트레칭 루틴 짧은 영상 추천",
+      querySeed: "아침 스트레칭 10분 한국어",
     };
   }
   if (lz <= 69) {
@@ -24,15 +27,19 @@ function mediaPlan(score) {
       kind: "movie",
       label: "영화 추천",
       intent: "위로·힐링·가볍게 보기 좋은 영화",
-      querySeed: "힐링 영화 추천 넷플릭스",
+      querySeed: "힐링 영화 추천",
     };
   }
   return {
     kind: "youtube",
     label: "유튜브 추천",
     intent: "수면·명상·이불 속 힐링 ASMR/수면 영상",
-    querySeed: "수면 명상 ASMR 추천",
+    querySeed: "수면 명상 ASMR 한국어",
   };
+}
+
+function youtubeWatchUrl(videoId) {
+  return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
 function youtubeSearchUrl(q) {
@@ -52,15 +59,50 @@ function youtubeThumb(videoId) {
 
 function extractVideoId(text) {
   if (!text) return "";
-  const s = String(text);
+  const s = String(text).trim();
   const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
     /"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/,
     /^([a-zA-Z0-9_-]{11})$/,
   ];
   for (const re of patterns) {
     const m = s.match(re);
     if (m && m[1]) return m[1];
+  }
+  return "";
+}
+
+function collectVideoIds(text, limit = 12) {
+  const ids = [];
+  const seen = new Set();
+  const re = /"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/g;
+  let m;
+  while ((m = re.exec(text)) && ids.length < limit) {
+    if (seen.has(m[1])) continue;
+    seen.add(m[1]);
+    ids.push(m[1]);
+  }
+  return ids;
+}
+
+function titleNearVideoId(text, videoId) {
+  if (!text || !videoId) return "";
+  const idx = text.indexOf(`"videoId":"${videoId}"`);
+  if (idx < 0) return "";
+  const window = text.slice(Math.max(0, idx - 500), idx + 900);
+  const patterns = [
+    /"title"\s*:\s*\{\s*"runs"\s*:\s*\[\s*\{\s*"text"\s*:\s*"([^"]+)"/,
+    /"title"\s*:\s*\{\s*"simpleText"\s*:\s*"([^"]+)"/,
+    /"accessibility"\s*:\s*\{\s*"accessibilityData"\s*:\s*\{\s*"label"\s*:\s*"([^"]+)"/,
+  ];
+  for (const re of patterns) {
+    const m = window.match(re);
+    if (m && m[1]) {
+      return m[1]
+        .replace(/\\u0026/g, "&")
+        .replace(/\\"/g, '"')
+        .trim();
+    }
   }
   return "";
 }
@@ -119,7 +161,7 @@ async function youtubeApiSearchOne(query, apiKey) {
       title: sn.title || query,
       channel: sn.channelTitle || "",
       videoId: id,
-      url: `https://www.youtube.com/watch?v=${id}`,
+      url: youtubeWatchUrl(id),
       thumb,
     };
   } catch (_) {
@@ -127,57 +169,124 @@ async function youtubeApiSearchOne(query, apiKey) {
   }
 }
 
-async function youtubeScrapeSearchOne(query) {
-  if (!query) return null;
+async function youtubeInnertubeSearch(query, limit = 5) {
+  if (!query) return [];
   try {
-    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&hl=ko&gl=KR`;
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
-      },
-    });
-    if (!res.ok) return null;
-    const html = await res.text();
-    const idMatch = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
-    if (!idMatch) return null;
-    const id = idMatch[1];
-    let title = query;
-    const titleRe = new RegExp(
-      `"videoId":"${id}".{0,400}?"title":\\{"runs":\\[\\{"text":"([^"]+)"\\}\\]`,
-      "s"
+    const res = await fetch(
+      `https://www.youtube.com/youtubei/v1/search?prettyPrint=false&key=${YT_INNERTUBE_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        },
+        body: JSON.stringify({
+          context: {
+            client: {
+              clientName: "WEB",
+              clientVersion: "2.20240101.00.00",
+              hl: "ko",
+              gl: "KR",
+            },
+          },
+          query: String(query),
+        }),
+      }
     );
-    const titleMatch = html.match(titleRe);
-    if (titleMatch && titleMatch[1]) title = titleMatch[1];
-    return {
-      title,
-      channel: "",
+    if (!res.ok) return [];
+    const data = await res.json();
+    const text = JSON.stringify(data);
+    const ids = collectVideoIds(text, limit * 3);
+    return ids.slice(0, limit).map((id) => ({
+      title: titleNearVideoId(text, id) || query,
       videoId: id,
-      url: `https://www.youtube.com/watch?v=${id}`,
+      url: youtubeWatchUrl(id),
       thumb: youtubeThumb(id),
+    }));
+  } catch (_) {
+    return [];
+  }
+}
+
+async function youtubeInnertubeSearchOne(query) {
+  const list = await youtubeInnertubeSearch(query, 3);
+  return list[0] || null;
+}
+
+async function verifyYoutubeId(videoId) {
+  if (!videoId || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) return false;
+  try {
+    const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(youtubeWatchUrl(videoId))}&format=json`);
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function oembedYoutube(videoId) {
+  try {
+    const res = await fetch(
+      `https://www.youtube.com/oembed?url=${encodeURIComponent(youtubeWatchUrl(videoId))}&format=json`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      title: data.title || "",
+      channel: data.author_name || "",
+      videoId,
+      url: youtubeWatchUrl(videoId),
+      thumb: data.thumbnail_url || youtubeThumb(videoId),
     };
   } catch (_) {
     return null;
   }
 }
 
-async function resolveYoutubeItem(query, title, youtubeKey, preferredId) {
-  const knownId = extractVideoId(preferredId) || extractVideoId(query);
-  if (knownId) {
-    return {
-      title: title || query,
-      videoId: knownId,
-      url: `https://www.youtube.com/watch?v=${knownId}`,
-      thumb: youtubeThumb(knownId),
-    };
+async function resolveYoutubeItem(query, title, youtubeKey, preferredId, usedIds) {
+  const used = usedIds || new Set();
+  const knownId = extractVideoId(preferredId) || extractVideoId(query) || extractVideoId(title);
+
+  if (knownId && !used.has(knownId)) {
+    const ok = await verifyYoutubeId(knownId);
+    if (ok) {
+      const meta = (await oembedYoutube(knownId)) || {
+        title: title || query,
+        videoId: knownId,
+        url: youtubeWatchUrl(knownId),
+        thumb: youtubeThumb(knownId),
+      };
+      used.add(knownId);
+      return meta;
+    }
   }
 
-  const fromApi = await youtubeApiSearchOne(query || title, youtubeKey);
-  if (fromApi) return fromApi;
+  if (youtubeKey) {
+    const fromApi = await youtubeApiSearchOne(query || title, youtubeKey);
+    if (fromApi && fromApi.videoId && !used.has(fromApi.videoId)) {
+      used.add(fromApi.videoId);
+      return fromApi;
+    }
+  }
 
-  const fromScrape = await youtubeScrapeSearchOne(query || title);
-  if (fromScrape) return fromScrape;
+  const candidates = await youtubeInnertubeSearch(query || title, 6);
+  for (const hit of candidates) {
+    if (!hit.videoId || used.has(hit.videoId)) continue;
+    used.add(hit.videoId);
+    const meta = (await oembedYoutube(hit.videoId)) || hit;
+    return meta;
+  }
+
+  // 제목으로 한 번 더
+  if (title && title !== query) {
+    const more = await youtubeInnertubeSearch(title, 4);
+    for (const hit of more) {
+      if (!hit.videoId || used.has(hit.videoId)) continue;
+      used.add(hit.videoId);
+      const meta = (await oembedYoutube(hit.videoId)) || hit;
+      return meta;
+    }
+  }
 
   return null;
 }
@@ -245,7 +354,6 @@ async function resolveMovieItem(title, query, omdbKey) {
       url: itunes.url || "",
     };
   }
-  // 마지막 폴백: 검색 결과용 오픈그래프가 없어도 UI에서 플레이스홀더 처리
   return { title: name, thumb: "", url: "" };
 }
 
@@ -257,7 +365,7 @@ async function openAiCurate({ key, model, score, mode, plan, webHints }) {
     "의학 진단처럼 말하지 마세요.",
     '반드시 JSON만 출력: {"sectionTitle":"…","items":[{"title":"…","reason":"…","query":"…","videoId":"…"}]}',
     "items는 정확히 3개. reason은 1~2문장. query는 검색용 짧은 키워드.",
-    "유튜브면 videoId(11자)를 알면 넣고, 모르면 빈 문자열.",
+    "유튜브면 query를 실제 검색에 잘 걸리는 한국어 키워드로 쓰고, 확실한 videoId가 있을 때만 넣고 없으면 빈 문자열.",
     "영화면 videoId는 빈 문자열, title은 정확한 영화 제목.",
   ].join("\n");
 
@@ -270,7 +378,7 @@ async function openAiCurate({ key, model, score, mode, plan, webHints }) {
     webHints.length ? `웹검색 힌트:\n- ${webHints.join("\n- ")}` : "웹검색 힌트 없음",
     "",
     plan.kind === "youtube"
-      ? "유튜브 영상 3개를 추천하세요. query는 유튜브 검색 키워드. 가능하면 videoId도."
+      ? "유튜브 영상 3개를 추천하세요. query는 유튜브 검색 키워드. videoId는 확실할 때만."
       : "영화 3편을 추천하세요. title은 포스터 검색 가능한 정확한 제목.",
   ].join("\n");
 
@@ -282,7 +390,7 @@ async function openAiCurate({ key, model, score, mode, plan, webHints }) {
     },
     body: JSON.stringify({
       model: model || "gpt-4o-mini",
-      temperature: 0.85,
+      temperature: 0.7,
       max_tokens: 1400,
       messages: [
         { role: "system", content: system },
@@ -307,30 +415,22 @@ function fallbackItems(plan) {
     return {
       sectionTitle: "오늘 점수에 맞는 영화 추천",
       items: [
-        {
-          title: "패딩턴",
-          reason: "부담 없이 마음이 풀리는 따뜻한 코미디예요.",
-          query: "패딩턴",
-        },
+        { title: "패딩턴", reason: "부담 없이 마음이 풀리는 따뜻한 코미디예요.", query: "패딩턴" },
         {
           title: "리틀 포레스트",
           reason: "조용히 리듬을 되돌리고 싶을 때 좋은 힐링작이에요.",
           query: "리틀 포레스트",
         },
-        {
-          title: "코코",
-          reason: "감정은 건드리지만 결국 따뜻하게 남는 이야기예요.",
-          query: "코코",
-        },
+        { title: "코코", reason: "감정은 건드리지만 결국 따뜻하게 남는 이야기예요.", query: "코코" },
       ],
     };
   }
-  if (plan.querySeed.includes("수면")) {
+  if (plan.querySeed.includes("수면") || plan.querySeed.includes("ASMR")) {
     return {
       sectionTitle: "오늘 점수에 맞는 유튜브 추천",
       items: [
         {
-          title: "수면 명상 가이드",
+          title: "수면 명상",
           reason: "호흡을 천천히 내려놓고 싶을 때 맞춰보세요.",
           query: "수면 명상 가이드 한국어",
         },
@@ -340,9 +440,9 @@ function fallbackItems(plan) {
           query: "빗소리 수면 ASMR",
         },
         {
-          title: "이완 스트레칭 10분",
+          title: "수면 전 스트레칭",
           reason: "누운 채로도 몸을 살짝 풀어주는 짧은 루틴이에요.",
-          query: "침대 스트레칭 수면 전",
+          query: "수면 전 스트레칭 10분",
         },
       ],
     };
@@ -361,9 +461,9 @@ function fallbackItems(plan) {
         query: "사무실 스트레칭 짧은",
       },
       {
-        title: "모닝 동기부여 숏폼",
-        reason: "길게 볼 필요 없이 기분만 살짝 올려보세요.",
-        query: "동기부여 짧은 영상 한국어",
+        title: "전신 스트레칭",
+        reason: "몸을 조금 깨우고 싶을 때 따라 하기 좋은 영상이에요.",
+        query: "전신 스트레칭 10분 초보",
       },
     ],
   };
@@ -417,27 +517,57 @@ exports.handler = async (event) => {
     }
 
     const rawItems = curated.items.slice(0, 3);
-    const items = await Promise.all(
-      rawItems.map(async (it, idx) => {
+    const usedIds = new Set();
+
+    // 유튜브는 순차 처리해 중복 videoId를 피하고, 실패 시 querySeed로 보충
+    const items = [];
+    if (plan.kind === "youtube") {
+      for (let idx = 0; idx < rawItems.length; idx++) {
+        const it = rawItems[idx];
+        const title = String(it.title || "").trim() || `추천 ${idx + 1}`;
+        const reason = String(it.reason || "").trim();
+        const query = String(it.query || title || plan.querySeed).trim();
+        let resolved = await resolveYoutubeItem(query, title, youtubeKey, it.videoId || "", usedIds);
+        if (!resolved) {
+          resolved = await resolveYoutubeItem(plan.querySeed, title, youtubeKey, "", usedIds);
+        }
+        items.push({
+          kind: "youtube",
+          title: (resolved && resolved.title) || title,
+          reason,
+          query,
+          url: (resolved && resolved.url) || youtubeSearchUrl(query),
+          thumb: (resolved && resolved.thumb) || "",
+          videoId: (resolved && resolved.videoId) || "",
+        });
+      }
+
+      // 그래도 비어 있으면 seed 검색 결과로 강제 채움
+      const needFill = items.filter((x) => !x.videoId);
+      if (needFill.length) {
+        const seedHits = await youtubeInnertubeSearch(plan.querySeed, 8);
+        let si = 0;
+        for (const item of items) {
+          if (item.videoId) continue;
+          while (si < seedHits.length && usedIds.has(seedHits[si].videoId)) si++;
+          if (si >= seedHits.length) break;
+          const hit = seedHits[si++];
+          usedIds.add(hit.videoId);
+          const meta = (await oembedYoutube(hit.videoId)) || hit;
+          item.title = meta.title || item.title;
+          item.url = meta.url;
+          item.thumb = meta.thumb;
+          item.videoId = meta.videoId;
+        }
+      }
+    } else {
+      for (let idx = 0; idx < rawItems.length; idx++) {
+        const it = rawItems[idx];
         const title = String(it.title || "").trim() || `추천 ${idx + 1}`;
         const reason = String(it.reason || "").trim();
         const query = String(it.query || title).trim();
-
-        if (plan.kind === "youtube") {
-          const resolved = await resolveYoutubeItem(query, title, youtubeKey, it.videoId || "");
-          return {
-            kind: "youtube",
-            title: (resolved && resolved.title) || title,
-            reason,
-            query,
-            url: (resolved && resolved.url) || youtubeSearchUrl(query),
-            thumb: (resolved && resolved.thumb) || "",
-            videoId: (resolved && resolved.videoId) || "",
-          };
-        }
-
         const movie = await resolveMovieItem(title, query, omdbKey);
-        return {
+        items.push({
           kind: "movie",
           title: (movie && movie.title) || title,
           reason,
@@ -445,9 +575,9 @@ exports.handler = async (event) => {
           url: (movie && movie.url) || movieSearchUrl(query || title),
           thumb: (movie && movie.thumb) || "",
           videoId: "",
-        };
-      })
-    );
+        });
+      }
+    }
 
     return {
       statusCode: 200,
