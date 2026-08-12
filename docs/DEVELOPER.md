@@ -3,7 +3,7 @@
 LayLay Laytime MVP 인계용 정리입니다.  
 **Vanilla JS + 정적 HTML + Netlify Functions** 구조이며, PHP 이식 시 `site/` 화면과 `/api/*` 서버 부분만 맞춰 주시면 됩니다.
 
-좌측 ERP형 버전 메뉴로 **01~04**를 전환하며 비교할 수 있습니다.
+좌측 ERP형 버전 메뉴로 **01~05**를 전환하며 비교할 수 있습니다.
 
 ---
 
@@ -37,7 +37,18 @@ LayLay Laytime MVP 인계용 정리입니다.
 - 논문 초점 척도 **GPH-2 / GMH-2**도 참고 점수로 표시
 - 결과 화면에 출처 고정 표기
 
-### 공통 — 문항 뱃지 / WHY 모달 (01~04)
+### 05 LAB OVERDRIVE (추가 개발비 0원 특전)
+- 문의는 01과 동일(8문항 + WHY 뱃지)
+- 로컬 계측 그래프를 **과하게** 출력: 레이더 / 막대 / 24h 곡선 / 게이지 3종 / 가짜 뇌 히트맵
+- AI **3회 병렬 호출** (`lab-ai.js`)
+  1. 코어 리포트 (`max_tokens≈7000`)
+  2. 차트 해설·공식·이상신호 (`max_tokens≈4500`)
+  3. 평행우주·보스전·엔딩 (`max_tokens≈5000`)
+- 콘셉트: 추가 개발비 없음 → **토큰·드립·그래프로 승부**
+- 파일: `lab-engine.js`(계측·SVG), `lab-ai.js`(고토큰 번들)
+- 의료 진단 아님. 토큰 비용이 클 수 있음.
+
+### 공통 — 문항 뱃지 / WHY 모달 (01~05)
 - 각 문항 상단: **카테고리 뱃지** + **왜 묻나요?** 버튼
 - 버튼 클릭 시 `WHY THIS QUESTION?` 모달
   - 문항 제목
@@ -78,12 +89,12 @@ npm run dev
 | 주소 | 화면 |
 |------|------|
 | `#/` / `#/layz` | 버전별 시작(인트로) |
-| `#/quiz` | 문항 (01–03: Lay-Z 8문항 / 04: PROMIS 8문항) |
+| `#/quiz` | 문항 (01–03·05: Lay-Z 8문항 / 04: PROMIS 8문항) |
 | `#/loading` | 분석 중 |
 | `#/result` | 결과 (버전별 UI) |
 | `#/history` | Lay-Z 기록 (01–03) |
 
-버전 상태는 `app.js`의 `state.productVersion` (1~4) 입니다.
+버전 상태는 `app.js`의 `state.productVersion` (1~5) 입니다.
 
 ---
 
@@ -97,6 +108,8 @@ npm run dev
 | `site/assets/js/layz-media.js` | v03 미디어 API 클라이언트 |
 | `site/assets/js/promis-data.js` | PROMIS 문항(badge/lead/why)·raw→T 변환 |
 | `site/assets/js/promis-ai.js` | PROMIS 해석 AI |
+| `site/assets/js/lab-engine.js` | v05 계측·SVG 그래프 |
+| `site/assets/js/lab-ai.js` | v05 AI 3병렬 고토큰 |
 | `site/assets/js/text-format.js` | 줄바꿈·이스케이프·`<br>` |
 | `netlify/functions/media-recommend.js` | Innertube/유튜브 썸네일, 영화 포스터, 네이버 이미지 보조 |
 
@@ -104,6 +117,7 @@ npm run dev
 - **01–03:** `runLayZAiFlow()` → `LayZAi.fetchCopy(..., { dialect?, rich? })`
 - **03 추가:** `LayZMedia.fetchRecommendations(score, mode)`
 - **04:** `runPromisAiFlow()` → `PromisData.scoreAnswers()` + `PromisAi.fetchCopy()`
+- **05:** `runLabAiFlow()` → `LabEngine.buildMetrics()` + `LabAi.runLabBundle()` (3병렬)
 
 ### localStorage
 - `layz_history` — Lay-Z 기록 (01–03)

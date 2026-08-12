@@ -58,6 +58,7 @@ let state = {
   mediaRec: null,
   promisResult: null,
   promisAi: null,
+  labReport: null,
   layzNoticeOpen: false,
   shareKind: "layz",
 };
@@ -66,6 +67,7 @@ function versionChipLabel() {
   if (state.productVersion === 2) return "사투리 버전";
   if (state.productVersion === 3) return "풍성 답변 + 콘텐츠 추천";
   if (state.productVersion === 4) return "PROMIS® 공신력 버전";
+  if (state.productVersion === 5) return "LAB OVERDRIVE";
   return "기본 제품";
 }
 
@@ -105,6 +107,40 @@ function resetQuizState() {
   state.mediaRec = null;
   state.promisResult = null;
   state.promisAi = null;
+  state.labReport = null;
+}
+
+async function runLabAiFlow() {
+  const score = calcScore(state.answers);
+  const mode = getMode(score);
+  state.lastScore = score;
+  state.lastMode = mode;
+  state.labReport = null;
+
+  const metrics =
+    window.LabEngine && window.LabEngine.buildMetrics
+      ? window.LabEngine.buildMetrics(state.answers, score)
+      : { axes: [], radar: [], hourly: [], heatmap: [], kpis: { lz: score } };
+
+  let bundle = null;
+  if (window.LabAi && window.LabAi.runLabBundle) {
+    try {
+      bundle = await window.LabAi.runLabBundle(metrics, state.answers, QUESTIONS, mode);
+    } catch (e) {
+      bundle = null;
+    }
+  }
+
+  state.labReport = window.LabAi
+    ? window.LabAi.mapToUi(bundle, metrics, mode)
+    : { metrics, headline: "LAB OVERDRIVE", thesis: "로컬 계측만 표시됩니다." };
+
+  saveResult(score, mode, {
+    title: state.labReport.codename || "LAB OVERDRIVE",
+    desc: state.labReport.headline || "",
+    tags: ["LAB", "OVERDRIVE", "TOKEN"],
+  });
+  navigate("#/result");
 }
 
 async function runPromisAiFlow() {
@@ -308,6 +344,20 @@ function formatDate(iso) {
   return `${y}년 ${m}월 ${day}일 (${days[d.getDay()]})`;
 }
 
+let lastRenderRoute = null;
+
+function stageScrollTop() {
+  const shell = document.querySelector(".erp-shell");
+  if (!shell) return 0;
+  const headerOffset = 8;
+  return Math.max(0, shell.getBoundingClientRect().top + window.scrollY - headerOffset);
+}
+
+function pinStage(behavior) {
+  const top = stageScrollTop();
+  window.scrollTo({ top, left: 0, behavior: behavior || "auto" });
+}
+
 function navigate(hash) {
   const target = hash.startsWith("#") ? hash : "#" + hash;
   if (target !== location.hash) {
@@ -354,6 +404,7 @@ function renderLayzIntro() {
   const isDialectVersion = state.productVersion === 2;
   const isRichVersion = state.productVersion === 3;
   const isPromisVersion = state.productVersion === 4;
+  const isLabVersion = state.productVersion === 5;
   const startDisabled = isDialectVersion && !state.dialect;
   const subtitle = isDialectVersion
     ? "동일한 8가지 문의로 측정하고,\n고른 지역 말투로 결과를 들려드려요"
@@ -362,14 +413,16 @@ function renderLayzIntro() {
       : isPromisVersion
         ? "NIH PROMIS® Global Health 문항으로\n신체·정신 건강 T-score를 확인합니다"
         : "8가지 질문으로\n오늘의 Lay-Z 지수를 확인해보세요";
-  const title = isPromisVersion ? "PROMIS® Global Health" : "Lay-Z Check";
+  const title = isPromisVersion ? "PROMIS® Global Health" : isLabVersion ? "LAB OVERDRIVE" : "Lay-Z Check";
   const bold = isPromisVersion ? "공신력 있는\n자기보고 건강 척도" : "오늘 나의\n게으름 지수는?";
   const note = isPromisVersion ? "약 2분 · GPH-4 / GMH-4 8문항" : "약 1분이면 충분해요!";
   const infoLabel = isPromisVersion ? "출처·채점 기준 보기" : "Lay-Z Check란?";
 
   return `
     <div class="center-panel-wrap">
-      <section class="center-panel center-panel--tall ${isPromisVersion ? "center-panel--promis" : ""}">
+      <section class="center-panel center-panel--tall ${
+        isPromisVersion ? "center-panel--promis" : isLabVersion ? "center-panel--lab" : ""
+      }">
         <p class="version-chip">${versionChipLabel()}</p>
         <h1 class="title-layz title-layz--intro">${title}</h1>
         <p class="subtitle-bold text-break">${formatAiHtml(bold)}</p>
@@ -522,11 +575,13 @@ function renderQuiz() {
 
 function renderLoading() {
   const loadingText =
-    state.productVersion === 4
-      ? "PROMIS T-score와 해석 리포트를 준비하는 중 · · ·"
-      : state.productVersion === 3
-        ? "풍성한 리포트와 콘텐츠 추천을 찾는 중 · · ·"
-        : "8개의 답변을 차근차근 살펴보는 중 · · ·";
+    state.productVersion === 5
+      ? "데이터 리포트를 그리는 중 · · ·"
+      : state.productVersion === 4
+        ? "PROMIS T-score와 해석 리포트를 준비하는 중 · · ·"
+        : state.productVersion === 3
+          ? "풍성한 리포트와 콘텐츠 추천을 찾는 중 · · ·"
+          : "8개의 답변을 차근차근 살펴보는 중 · · ·";
   return `
     <div class="center-panel-wrap">
       <section class="center-panel center-panel--loading">
@@ -697,8 +752,205 @@ function renderPromisResult() {
   `;
 }
 
+function renderLabResult() {
+  const report = state.labReport;
+  const score = state.lastScore;
+  const mode = state.lastMode;
+  if (!report || !report.metrics) {
+    return `<div class="center-panel-wrap"><section class="center-panel"><p>LAB 데이터가 없습니다.</p><button class="btn btn-primary" data-action="layz-intro">돌아가기</button></section></div>`;
+  }
+  const E = window.LabEngine || {};
+  const m = report.metrics;
+  const k = m.kpis || {};
+  const meta = report.meta || {};
+
+  return `
+    <div class="center-panel-wrap">
+      <section class="center-panel center-panel--result center-panel--lab">
+        <div class="panel-inner lab-dash">
+          <div class="lab-hero">
+            <p class="lab-kicker">MODULE 05 · LAB OVERDRIVE</p>
+            <h2 class="lab-codename">${formatAiHtml(report.codename || "LZ-LAB", { singleLine: true })}</h2>
+            <p class="lab-headline text-break">${formatAiHtml(report.headline || "")}</p>
+            <div class="lab-kpi-strip">
+              <div class="lab-kpi"><span>Lay-Z</span><strong>${score ?? k.lz ?? "-"}</strong></div>
+              <div class="lab-kpi"><span>모드</span><strong>${mode?.label || "-"}</strong></div>
+              <div class="lab-kpi"><span>카오스</span><strong>${k.chaosIndex ?? "-"}</strong></div>
+              <div class="lab-kpi"><span>추정토큰</span><strong>~${k.tokenDrama ?? meta.estimatedTokens ?? "-"}</strong></div>
+              <div class="lab-kpi"><span>AI호출</span><strong>${meta.calls ?? 3}회</strong></div>
+            </div>
+          </div>
+
+          <section class="lab-section">
+            <h3 class="lab-section-title">연구 총론</h3>
+            <p class="lab-prose text-break">${formatAiHtml(report.thesis || "")}</p>
+            <p class="lab-prose lab-prose--muted text-break">${formatAiHtml(report.methodNote || "")}</p>
+          </section>
+
+          <section class="lab-section">
+            <h3 class="lab-section-title">계측 그래프 보드</h3>
+            <div class="lab-grid-2">
+              <article class="lab-card">
+                <h4>레이더 · 축별 부하</h4>
+                ${E.svgRadar ? E.svgRadar(m.radar || [], 300) : ""}
+                <p class="lab-caption text-break">${formatAiHtml(report.captions?.radar || "")}</p>
+              </article>
+              <article class="lab-card">
+                <h4>막대 · 문항 부하</h4>
+                ${E.svgBars ? E.svgBars(m.axes || []) : ""}
+                <p class="lab-caption text-break">${formatAiHtml(report.captions?.bar || "")}</p>
+              </article>
+              <article class="lab-card lab-card--wide">
+                <h4>24시간 에너지 곡선</h4>
+                ${E.svgHourly ? E.svgHourly(m.hourly || []) : ""}
+                <p class="lab-caption text-break">${formatAiHtml(report.captions?.hourly || "")}</p>
+                <p class="lab-prose text-break">${formatAiHtml(report.hourlyNarrative || "")}</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="lab-section">
+            <h3 class="lab-section-title">게이지 · 히트맵 · 이상신호</h3>
+            <div class="lab-gauge-row">
+              ${E.svgGauge ? E.svgGauge(k.cohort, "코호트 분위") : ""}
+              ${E.svgGauge ? E.svgGauge(k.napOdds, "낮잠 확률") : ""}
+              ${E.svgGauge ? E.svgGauge(k.doomscroll, "둠스크롤 위험") : ""}
+            </div>
+            <p class="lab-caption text-break">${formatAiHtml(report.captions?.gauge || "")}</p>
+            <div class="lab-grid-2" style="margin-top:16px">
+              <article class="lab-card">
+                <h4>가짜 뇌영역 히트맵</h4>
+                ${E.svgHeatmap ? E.svgHeatmap(m.heatmap || []) : ""}
+                <p class="lab-caption text-break">${formatAiHtml(report.captions?.heat || "")}</p>
+              </article>
+              <article class="lab-card">
+                <h4>이상 플래그</h4>
+                ${(report.anomalyFlags || [])
+                  .map(
+                    (f) => `
+                  <div class="lab-flag">
+                    <strong>${formatAiHtml(f.title, { singleLine: true })}</strong>
+                    <p class="text-break">${formatAiHtml(f.story)}</p>
+                  </div>`
+                  )
+                  .join("")}
+              </article>
+            </div>
+          </section>
+
+          <section class="lab-section">
+            <h3 class="lab-section-title">축별 스토리</h3>
+            <div class="lab-story-list">
+              ${(report.axisStories || [])
+                .map(
+                  (s) => `
+                <article class="lab-story">
+                  <h4>${formatAiHtml(s.title, { singleLine: true })}</h4>
+                  <p class="text-break">${formatAiHtml(s.story)}</p>
+                </article>`
+                )
+                .join("")}
+            </div>
+          </section>
+
+          <section class="lab-section">
+            <h3 class="lab-section-title">코호트 로스팅 & 가짜 논문</h3>
+            <p class="lab-prose text-break">${formatAiHtml(report.cohortRoast || "")}</p>
+            <article class="lab-paper">
+              <p class="lab-paper-kicker">PREPRINT (FAKE)</p>
+              <h4>${formatAiHtml(report.fakePaper?.title || "", { singleLine: true })}</h4>
+              <p class="text-break">${formatAiHtml(report.fakePaper?.abstract || "")}</p>
+              <p class="lab-paper-doi">${formatAiHtml(report.fakePaper?.doiJoke || "", { singleLine: true })}</p>
+            </article>
+          </section>
+
+          <section class="lab-section">
+            <h3 class="lab-section-title">공식 · 행동 매트릭스</h3>
+            <div class="lab-eq-list">
+              ${(report.eqList || [])
+                .map(
+                  (e) => `
+                <div class="lab-eq">
+                  <strong>${formatAiHtml(e.name, { singleLine: true })}</strong>
+                  <code>${formatAiHtml(e.formula, { singleLine: true })}</code>
+                  <p class="text-break">${formatAiHtml(e.meaning)}</p>
+                </div>`
+                )
+                .join("")}
+            </div>
+            <div class="lab-action-grid">
+              ${(report.actionMatrix || [])
+                .map(
+                  (a) => `
+                <article class="lab-action">
+                  <span>${formatAiHtml(a.slot, { singleLine: true })}</span>
+                  <h4>${formatAiHtml(a.move, { singleLine: true })}</h4>
+                  <p class="text-break">${formatAiHtml(a.why)}</p>
+                </article>`
+                )
+                .join("")}
+            </div>
+          </section>
+
+          <section class="lab-section">
+            <h3 class="lab-section-title">평행우주 · 보스전 · 엔딩</h3>
+            <div class="lab-timeline-list">
+              ${(report.timelines || [])
+                .map(
+                  (t) => `
+                <article class="lab-timeline">
+                  <div class="lab-timeline-head">
+                    <strong>${formatAiHtml(t.title, { singleLine: true })}</strong>
+                    <span>${t.odds || 0}%</span>
+                  </div>
+                  <p class="text-break">${formatAiHtml(t.story)}</p>
+                </article>`
+                )
+                .join("")}
+            </div>
+            <article class="lab-boss">
+              <p class="lab-paper-kicker">BOSS</p>
+              <h4>${formatAiHtml(report.bossBattle?.enemy || "", { singleLine: true })} · HP ${
+                report.bossBattle?.hp ?? 100
+              }</h4>
+              <p class="text-break">${formatAiHtml(report.bossBattle?.strategy || "")}</p>
+            </article>
+            <article class="lab-playlist">
+              <h4>${formatAiHtml(report.playlistMood?.title || "", { singleLine: true })}</h4>
+              <p class="lab-tracks">${(report.playlistMood?.tracks || [])
+                .map((t) => `<span>${formatAiHtml(t, { singleLine: true })}</span>`)
+                .join("")}</p>
+              <p class="text-break">${formatAiHtml(report.playlistMood?.why || "")}</p>
+            </article>
+            <p class="lab-closing text-break">${formatAiHtml(report.closingMicDrop || "")}</p>
+          </section>
+
+          <aside class="lab-warn">
+            ${(report.warnings || [])
+              .map((w) => `<span>${formatAiHtml(w, { singleLine: true })}</span>`)
+              .join("")}
+            <p>경과 ${meta.elapsedMs ? Math.round(meta.elapsedMs / 1000) + "s" : "-"} · ${
+              report.applied ? "AI 적용" : "로컬 폴백"
+            }</p>
+          </aside>
+
+          <div class="btn-stack result-bottom-btns">
+            <button class="btn btn-primary" data-action="share">실험 결과 공유</button>
+            <div class="btn-row-2">
+              <button class="btn btn-outline btn-outline--sm" data-action="retry">다시 실험</button>
+              <button class="btn btn-outline btn-outline--sm" data-action="history">기록 보기</button>
+            </div>
+            <a href="#/layz" class="back-link" data-action="layz-intro">메인으로 돌아가기</a>
+          </div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function renderResult() {
   if (state.productVersion === 4) return renderPromisResult();
+  if (state.productVersion === 5) return renderLabResult();
 
   const score = state.lastScore;
   const mode = state.lastMode;
@@ -937,6 +1189,10 @@ function syncPageBodyTheme() {
 function render() {
   if (!window.LayData || !app || !pageBody) return;
   const route = normalizeRoute(location.hash);
+  const prevRoute = lastRenderRoute;
+  const softSwap = prevRoute != null && prevRoute === route;
+  const keepScrollY = softSwap ? window.scrollY : null;
+
   syncPageBodyTheme();
   syncVersionNav();
 
@@ -952,7 +1208,17 @@ function render() {
     app.innerHTML = renderHistory();
   } else {
     navigate("#/layz");
+    return;
   }
+
+  // 같은 화면(문항 선택·버전 칩 등)은 스크롤 유지, 화면 전환만 스테이지 상단으로 고정
+  if (softSwap && keepScrollY != null) {
+    window.scrollTo(0, keepScrollY);
+  } else if (prevRoute != null) {
+    pinStage("auto");
+  }
+
+  lastRenderRoute = route;
 }
 
 function handleClick(e) {
@@ -1038,6 +1304,22 @@ function handleClick(e) {
         ].join("\n")
       );
       break;
+    case "lab-info":
+      alert(
+        [
+          "MODULE 05 · LAB OVERDRIVE",
+          "조건: 추가 개발비 없음 → 토큰·그래프·드립으로 승부",
+          "",
+          "· 동일 Lay-Z 8문항 계측",
+          "· 로컬 그래프: 레이더 / 막대 / 24h / 게이지 / 히트맵",
+          "· AI 병렬 3호출: 코어 리포트 + 차트 해설 + 카오스 시뮬",
+          "· 호출당 max_tokens 크게, temperature 높게",
+          "",
+          "재미·브랜드 실험용이며 의료 진단이 아닙니다.",
+          "토큰 비용이 많이 발생할 수 있습니다.",
+        ].join("\n")
+      );
+      break;
     case "home":
       navigate("#/layz");
       break;
@@ -1070,6 +1352,7 @@ function handleClick(e) {
       } else {
         navigate("#/loading");
         if (state.productVersion === 4) runPromisAiFlow();
+        else if (state.productVersion === 5) runLabAiFlow();
         else runLayZAiFlow();
       }
       break;
@@ -1081,7 +1364,8 @@ function handleClick(e) {
       state.mediaRec = null;
       state.promisResult = null;
       state.promisAi = null;
-      if (state.productVersion === 2 || state.productVersion === 4) {
+      state.labReport = null;
+      if (state.productVersion === 2 || state.productVersion === 4 || state.productVersion === 5) {
         navigate("#/layz");
       } else {
         navigate("#/quiz");
