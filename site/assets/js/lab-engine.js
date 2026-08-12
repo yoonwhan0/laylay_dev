@@ -102,7 +102,7 @@
         chaosIndex: chaosIndex,
         napOdds: napOdds,
         doomscroll: doomscroll,
-        tokenDrama: clamp(Math.round(1200 + (lz || 0) * 38 + avgLoad * 22), 900, 9999),
+        tokenDrama: clamp(Math.round(38000 + (lz || 0) * 120 + avgLoad * 80), 36000, 72000),
       },
     };
   }

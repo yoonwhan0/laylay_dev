@@ -576,7 +576,7 @@ function renderQuiz() {
 function renderLoading() {
   const loadingText =
     state.productVersion === 5
-      ? "데이터 리포트를 그리는 중 · · ·"
+      ? "머릿속 탭을 전부 펼치는 중 · · ·"
       : state.productVersion === 4
         ? "PROMIS T-score와 해석 리포트를 준비하는 중 · · ·"
         : state.productVersion === 3
@@ -763,181 +763,289 @@ function renderLabResult() {
   const m = report.metrics;
   const k = m.kpis || {};
   const meta = report.meta || {};
+  const rot = (i, span) => (((i * 37) % (span * 2 + 1)) - span).toFixed(1);
+
+  const thoughtRain = (report.intrusiveThoughts || [])
+    .map(
+      (t, i) =>
+        `<span class="adhd-thought" style="--d:${(i % 7) - 3}s;--x:${(i * 13) % 86}%;--r:${rot(i, 8)}deg">${formatAiHtml(
+          t
+        )}</span>`
+    )
+    .join("");
+
+  const tabStrip = (report.openTabs || [])
+    .map(
+      (t, i) =>
+        `<button type="button" class="adhd-tab u${Math.min(5, t.urgency || 1)}" style="--r:${rot(i + 3, 4)}deg"><i>${
+          i + 1
+        }</i>${formatAiHtml(t.title, { singleLine: true })}</button>`
+    )
+    .join("");
+
+  const stickyWall = (report.stickyNotes || [])
+    .map((s, i) => {
+      const tilt = typeof s.tilt === "number" ? s.tilt : Number(rot(i, 9));
+      return `<article class="adhd-sticky adhd-sticky--${s.color || "yellow"}" style="--r:${tilt}deg;--delay:${
+        (i % 6) * 0.08
+      }s"><p class="text-break">${formatAiHtml(s.text)}</p></article>`;
+    })
+    .join("");
+
+  const notifStack = (report.notifications || [])
+    .map(
+      (n) =>
+        `<div class="adhd-notif ${n.read ? "is-read" : ""}"><strong>${formatAiHtml(n.app, {
+          singleLine: true,
+        })}</strong><span>${formatAiHtml(n.push, { singleLine: true })}</span></div>`
+    )
+    .join("");
 
   return `
     <div class="center-panel-wrap">
-      <section class="center-panel center-panel--result center-panel--lab">
-        <div class="panel-inner lab-dash">
-          <div class="lab-hero">
-            <p class="lab-kicker">MODULE 05 · LAB OVERDRIVE</p>
-            <h2 class="lab-codename">${formatAiHtml(report.codename || "LZ-LAB", { singleLine: true })}</h2>
+      <section class="center-panel center-panel--result center-panel--lab center-panel--adhd">
+        <div class="panel-inner lab-dash lab-dash--adhd">
+          <div class="adhd-thought-rain" aria-hidden="true">${thoughtRain}</div>
+
+          <div class="lab-hero adhd-hero">
+            <p class="lab-kicker">MODULE 05 · BRAIN TABS OPEN</p>
+            <h2 class="lab-codename">${formatAiHtml(report.codename || "ADHD-LAB", { singleLine: true })}</h2>
             <p class="lab-headline text-break">${formatAiHtml(report.headline || "")}</p>
-            <div class="lab-kpi-strip">
+            <div class="lab-kpi-strip lab-kpi-strip--chaos">
               <div class="lab-kpi"><span>Lay-Z</span><strong>${score ?? k.lz ?? "-"}</strong></div>
               <div class="lab-kpi"><span>모드</span><strong>${mode?.label || "-"}</strong></div>
               <div class="lab-kpi"><span>카오스</span><strong>${k.chaosIndex ?? "-"}</strong></div>
-              <div class="lab-kpi"><span>추정토큰</span><strong>~${k.tokenDrama ?? meta.estimatedTokens ?? "-"}</strong></div>
-              <div class="lab-kpi"><span>AI호출</span><strong>${meta.calls ?? 3}회</strong></div>
+              <div class="lab-kpi"><span>탭</span><strong>${(report.openTabs || []).length}</strong></div>
+              <div class="lab-kpi"><span>AI</span><strong>${meta.calls ?? 5} entangle</strong></div>
             </div>
+            <p class="adhd-glitch text-break">${formatAiHtml(report.glitchAside || report.workingMemoryLeak || "")}</p>
           </div>
 
-          <section class="lab-section">
-            <h3 class="lab-section-title">연구 총론</h3>
-            <p class="lab-prose text-break">${formatAiHtml(report.thesis || "")}</p>
-            <p class="lab-prose lab-prose--muted text-break">${formatAiHtml(report.methodNote || "")}</p>
-          </section>
+          <div class="adhd-tabstrip">${tabStrip}</div>
 
-          <section class="lab-section">
-            <h3 class="lab-section-title">계측 그래프 보드</h3>
-            <div class="lab-grid-2">
-              <article class="lab-card">
-                <h4>레이더 · 축별 부하</h4>
-                ${E.svgRadar ? E.svgRadar(m.radar || [], 300) : ""}
-                <p class="lab-caption text-break">${formatAiHtml(report.captions?.radar || "")}</p>
-              </article>
-              <article class="lab-card">
-                <h4>막대 · 문항 부하</h4>
-                ${E.svgBars ? E.svgBars(m.axes || []) : ""}
-                <p class="lab-caption text-break">${formatAiHtml(report.captions?.bar || "")}</p>
-              </article>
-              <article class="lab-card lab-card--wide">
-                <h4>24시간 에너지 곡선</h4>
-                ${E.svgHourly ? E.svgHourly(m.hourly || []) : ""}
-                <p class="lab-caption text-break">${formatAiHtml(report.captions?.hourly || "")}</p>
-                <p class="lab-prose text-break">${formatAiHtml(report.hourlyNarrative || "")}</p>
-              </article>
-            </div>
-          </section>
+          <section class="adhd-scatter">
+            ${(report.openTabs || [])
+              .map(
+                (t, i) => `
+              <article class="adhd-card adhd-card--tab" style="--r:${rot(i, 3)}deg">
+                <header><span>TAB ${String(i + 1).padStart(2, "0")}</span><em>u${t.urgency || 1}</em></header>
+                <h4>${formatAiHtml(t.title, { singleLine: true })}</h4>
+                <p class="text-break">${formatAiHtml(t.body)}</p>
+              </article>`
+              )
+              .join("")}
 
-          <section class="lab-section">
-            <h3 class="lab-section-title">게이지 · 히트맵 · 이상신호</h3>
-            <div class="lab-gauge-row">
-              ${E.svgGauge ? E.svgGauge(k.cohort, "코호트 분위") : ""}
-              ${E.svgGauge ? E.svgGauge(k.napOdds, "낮잠 확률") : ""}
-              ${E.svgGauge ? E.svgGauge(k.doomscroll, "둠스크롤 위험") : ""}
-            </div>
-            <p class="lab-caption text-break">${formatAiHtml(report.captions?.gauge || "")}</p>
-            <div class="lab-grid-2" style="margin-top:16px">
-              <article class="lab-card">
-                <h4>가짜 뇌영역 히트맵</h4>
-                ${E.svgHeatmap ? E.svgHeatmap(m.heatmap || []) : ""}
-                <p class="lab-caption text-break">${formatAiHtml(report.captions?.heat || "")}</p>
-              </article>
-              <article class="lab-card">
-                <h4>이상 플래그</h4>
-                ${(report.anomalyFlags || [])
-                  .map(
-                    (f) => `
-                  <div class="lab-flag">
-                    <strong>${formatAiHtml(f.title, { singleLine: true })}</strong>
-                    <p class="text-break">${formatAiHtml(f.story)}</p>
-                  </div>`
-                  )
-                  .join("")}
-              </article>
-            </div>
-          </section>
-
-          <section class="lab-section">
-            <h3 class="lab-section-title">축별 스토리</h3>
-            <div class="lab-story-list">
-              ${(report.axisStories || [])
-                .map(
-                  (s) => `
-                <article class="lab-story">
-                  <h4>${formatAiHtml(s.title, { singleLine: true })}</h4>
-                  <p class="text-break">${formatAiHtml(s.story)}</p>
-                </article>`
-                )
-                .join("")}
-            </div>
-          </section>
-
-          <section class="lab-section">
-            <h3 class="lab-section-title">코호트 로스팅 & 가짜 논문</h3>
-            <p class="lab-prose text-break">${formatAiHtml(report.cohortRoast || "")}</p>
-            <article class="lab-paper">
-              <p class="lab-paper-kicker">PREPRINT (FAKE)</p>
-              <h4>${formatAiHtml(report.fakePaper?.title || "", { singleLine: true })}</h4>
-              <p class="text-break">${formatAiHtml(report.fakePaper?.abstract || "")}</p>
-              <p class="lab-paper-doi">${formatAiHtml(report.fakePaper?.doiJoke || "", { singleLine: true })}</p>
+            <article class="adhd-card adhd-card--wide" style="--r:-1deg">
+              <h3>wait what— 총론?</h3>
+              <p class="lab-prose text-break">${formatAiHtml(report.thesis || "")}</p>
+              <p class="adhd-interrupt text-break">${formatAiHtml(
+                (report.waitWhat && report.waitWhat[0]) || "지금 뭐 말하려했지"
+              )}</p>
+              <p class="lab-prose lab-prose--muted text-break">${formatAiHtml(report.methodNote || "")}</p>
             </article>
-          </section>
 
-          <section class="lab-section">
-            <h3 class="lab-section-title">공식 · 행동 매트릭스</h3>
-            <div class="lab-eq-list">
-              ${(report.eqList || [])
-                .map(
-                  (e) => `
-                <div class="lab-eq">
-                  <strong>${formatAiHtml(e.name, { singleLine: true })}</strong>
-                  <code>${formatAiHtml(e.formula, { singleLine: true })}</code>
-                  <p class="text-break">${formatAiHtml(e.meaning)}</p>
-                </div>`
-                )
-                .join("")}
-            </div>
-            <div class="lab-action-grid">
-              ${(report.actionMatrix || [])
-                .map(
-                  (a) => `
-                <article class="lab-action">
-                  <span>${formatAiHtml(a.slot, { singleLine: true })}</span>
-                  <h4>${formatAiHtml(a.move, { singleLine: true })}</h4>
-                  <p class="text-break">${formatAiHtml(a.why)}</p>
-                </article>`
-                )
-                .join("")}
-            </div>
-          </section>
+            <div class="adhd-sticky-wall">${stickyWall}</div>
 
-          <section class="lab-section">
-            <h3 class="lab-section-title">평행우주 · 보스전 · 엔딩</h3>
-            <div class="lab-timeline-list">
-              ${(report.timelines || [])
-                .map(
-                  (t) => `
-                <article class="lab-timeline">
-                  <div class="lab-timeline-head">
-                    <strong>${formatAiHtml(t.title, { singleLine: true })}</strong>
-                    <span>${t.odds || 0}%</span>
-                  </div>
-                  <p class="text-break">${formatAiHtml(t.story)}</p>
-                </article>`
-                )
-                .join("")}
-            </div>
-            <article class="lab-boss">
-              <p class="lab-paper-kicker">BOSS</p>
+            <article class="adhd-card" style="--r:2deg">
+              <h4>레이더…잠깐 이것부터</h4>
+              ${E.svgRadar ? E.svgRadar(m.radar || [], 280) : ""}
+              <p class="lab-caption text-break">${formatAiHtml(report.captions?.radar || "")}</p>
+            </article>
+            <article class="adhd-card" style="--r:-2.5deg">
+              <h4>막대차트 (집중…안됨)</h4>
+              ${E.svgBars ? E.svgBars(m.axes || []) : ""}
+              <p class="lab-caption text-break">${formatAiHtml(report.captions?.bar || "")}</p>
+            </article>
+            <article class="adhd-card adhd-card--wide" style="--r:1deg">
+              <h4>24h · 근데 지금 몇 시더라</h4>
+              ${E.svgHourly ? E.svgHourly(m.hourly || []) : ""}
+              <p class="lab-caption text-break">${formatAiHtml(report.captions?.hourly || "")}</p>
+              <p class="lab-prose text-break">${formatAiHtml(report.hourlyNarrative || "")}</p>
+            </article>
+
+            <div class="adhd-notif-stack">${notifStack}</div>
+
+            <article class="adhd-card" style="--r:3deg">
+              <h4>게이지 세 개 동시에</h4>
+              <div class="lab-gauge-row">
+                ${E.svgGauge ? E.svgGauge(k.cohort, "코호트") : ""}
+                ${E.svgGauge ? E.svgGauge(k.napOdds, "낮잠") : ""}
+                ${E.svgGauge ? E.svgGauge(k.doomscroll, "스크롤") : ""}
+              </div>
+              <p class="lab-caption text-break">${formatAiHtml(report.captions?.gauge || "")}</p>
+            </article>
+            <article class="adhd-card" style="--r:-1.5deg">
+              <h4>뇌? 히트맵? 아무튼</h4>
+              ${E.svgHeatmap ? E.svgHeatmap(m.heatmap || []) : ""}
+              <p class="lab-caption text-break">${formatAiHtml(report.captions?.heat || "")}</p>
+            </article>
+
+            ${(report.parallelVoices || [])
+              .map(
+                (v, i) => `
+              <article class="adhd-voice" style="--r:${rot(i + 2, 5)}deg">
+                <strong>${formatAiHtml(v.name, { singleLine: true })}</strong>
+                <p class="text-break">${formatAiHtml(v.line)}</p>
+              </article>`
+              )
+              .join("")}
+
+            ${(report.unfinishedDrafts || [])
+              .map(
+                (d) => `
+              <article class="adhd-draft">
+                <p class="adhd-draft-start">${formatAiHtml(d.start, { singleLine: true })}…</p>
+                <p class="text-break">${formatAiHtml(d.derail)}</p>
+                <span>abandoned @ ${formatAiHtml(d.abandonedAt, { singleLine: true })}</span>
+              </article>`
+              )
+              .join("")}
+
+            ${(report.rabbitHoles || [])
+              .map(
+                (r, i) => `
+              <article class="adhd-card adhd-hole" style="--r:${rot(i, 2)}deg">
+                <h4>토끼굴: ${formatAiHtml(r.hook, { singleLine: true })}</h4>
+                <p class="text-break">${formatAiHtml(r.depth)}</p>
+                <em>${formatAiHtml(r.exitFail)}</em>
+              </article>`
+              )
+              .join("")}
+
+            <article class="adhd-card adhd-card--wide">
+              <h3>하이퍼포커스: ${formatAiHtml(report.hyperfocus?.topic || "", { singleLine: true })}</h3>
+              <p class="lab-prose text-break">${formatAiHtml(report.hyperfocus?.spiral || "")}</p>
+            </article>
+
+            <article class="adhd-card adhd-card--wide adhd-dump">
+              <h3>brain dump (정리 안 함)</h3>
+              <p class="lab-prose text-break">${formatAiHtml(report.brainDump || "")}</p>
+              <div class="adhd-waitlist">
+                ${(report.waitWhat || [])
+                  .map((w) => `<p class="adhd-interrupt text-break">${formatAiHtml(w)}</p>`)
+                  .join("")}
+              </div>
+            </article>
+
+            ${(report.axisStories || [])
+              .map(
+                (s, i) => `
+              <article class="adhd-card" style="--r:${rot(i + 1, 2.5)}deg">
+                <h4>${formatAiHtml(s.title, { singleLine: true })}</h4>
+                <p class="text-break">${formatAiHtml(s.story)}</p>
+              </article>`
+              )
+              .join("")}
+
+            ${(report.anomalyFlags || [])
+              .map(
+                (f) => `
+              <div class="adhd-flag">
+                <strong>${formatAiHtml(f.title, { singleLine: true })}</strong>
+                <p class="text-break">${formatAiHtml(f.story)}</p>
+              </div>`
+              )
+              .join("")}
+
+            ${(report.eqList || [])
+              .map(
+                (e) => `
+              <div class="lab-eq adhd-eq" style="--r:${rot(e.name.length, 2)}deg">
+                <strong>${formatAiHtml(e.name, { singleLine: true })}</strong>
+                <code>${formatAiHtml(e.formula, { singleLine: true })}</code>
+                <p class="text-break">${formatAiHtml(e.meaning)}</p>
+              </div>`
+              )
+              .join("")}
+
+            <article class="adhd-card adhd-card--wide">
+              <h3>코호트…아 논문…아 둘 다</h3>
+              <p class="lab-prose text-break">${formatAiHtml(report.cohortRoast || "")}</p>
+              <div class="lab-paper">
+                <p class="lab-paper-kicker">PREPRINT???</p>
+                <h4>${formatAiHtml(report.fakePaper?.title || "", { singleLine: true })}</h4>
+                <p class="text-break">${formatAiHtml(report.fakePaper?.abstract || "")}</p>
+                <p class="lab-tracks">${(report.fakePaper?.keywords || [])
+                  .map((x) => `<span>${formatAiHtml(x, { singleLine: true })}</span>`)
+                  .join("")}</p>
+                <p class="lab-paper-doi">${formatAiHtml(report.fakePaper?.doiJoke || "", { singleLine: true })}</p>
+              </div>
+              <p class="lab-caption text-break">${formatAiHtml(report.footnoteSpiral || "")}</p>
+            </article>
+
+            ${(report.timelines || [])
+              .map(
+                (t, i) => `
+              <article class="lab-timeline adhd-card" style="--r:${rot(i, 2)}deg">
+                <div class="lab-timeline-head">
+                  <strong>${formatAiHtml(t.title, { singleLine: true })}</strong>
+                  <span>${t.odds || 0}%</span>
+                </div>
+                <p class="text-break">${formatAiHtml(t.story)}</p>
+              </article>`
+              )
+              .join("")}
+
+            <article class="lab-boss adhd-card--wide">
+              <p class="lab-paper-kicker">BOSS TAB</p>
               <h4>${formatAiHtml(report.bossBattle?.enemy || "", { singleLine: true })} · HP ${
-                report.bossBattle?.hp ?? 100
+                report.bossBattle?.hp ?? 999
               }</h4>
               <p class="text-break">${formatAiHtml(report.bossBattle?.strategy || "")}</p>
+              <p class="lab-tracks">${(report.bossBattle?.loot || [])
+                .map((x) => `<span>${formatAiHtml(x, { singleLine: true })}</span>`)
+                .join("")}</p>
             </article>
-            <article class="lab-playlist">
+
+            <article class="adhd-card">
               <h4>${formatAiHtml(report.playlistMood?.title || "", { singleLine: true })}</h4>
               <p class="lab-tracks">${(report.playlistMood?.tracks || [])
                 .map((t) => `<span>${formatAiHtml(t, { singleLine: true })}</span>`)
                 .join("")}</p>
               <p class="text-break">${formatAiHtml(report.playlistMood?.why || "")}</p>
             </article>
-            <p class="lab-closing text-break">${formatAiHtml(report.closingMicDrop || "")}</p>
+
+            <div class="adhd-todo-never">
+              ${(report.todoThatWillNeverHappen || [])
+                .map(
+                  (t) => `
+                <div>
+                  <strong>□ ${formatAiHtml(t.item, { singleLine: true })}</strong>
+                  <p class="text-break">${formatAiHtml(t.excuse)}</p>
+                </div>`
+                )
+                .join("")}
+            </div>
+
+            ${(report.actionMatrix || [])
+              .map(
+                (a) => `
+              <article class="lab-action adhd-card" style="--r:${rot(a.slot.length, 2)}deg">
+                <span>${formatAiHtml(a.slot, { singleLine: true })}</span>
+                <h4>${formatAiHtml(a.move, { singleLine: true })}</h4>
+                <p class="text-break">${formatAiHtml(a.why)}</p>
+              </article>`
+              )
+              .join("")}
+
+            <p class="lab-closing adhd-closing text-break">${formatAiHtml(report.closingMicDrop || "")}</p>
+            <p class="adhd-final text-break">${formatAiHtml(report.finalScatter || "")}</p>
+            <p class="adhd-leak text-break">${formatAiHtml(report.workingMemoryLeak || "")}</p>
           </section>
 
           <aside class="lab-warn">
             ${(report.warnings || [])
               .map((w) => `<span>${formatAiHtml(w, { singleLine: true })}</span>`)
               .join("")}
-            <p>경과 ${meta.elapsedMs ? Math.round(meta.elapsedMs / 1000) + "s" : "-"} · ${
-              report.applied ? "AI 적용" : "로컬 폴백"
-            }</p>
+            <p>경과 ${meta.elapsedMs ? Math.round(meta.elapsedMs / 1000) + "s" : "-"} · 호출 ${
+              meta.calls ?? 5
+            } · ${report.applied ? "AI 산만모드" : "로컬 폴백"}</p>
           </aside>
 
           <div class="btn-stack result-bottom-btns">
-            <button class="btn btn-primary" data-action="share">실험 결과 공유</button>
+            <button class="btn btn-primary" data-action="share">이 혼란 공유하기</button>
             <div class="btn-row-2">
-              <button class="btn btn-outline btn-outline--sm" data-action="retry">다시 실험</button>
+              <button class="btn btn-outline btn-outline--sm" data-action="retry">다시 펼치기</button>
               <button class="btn btn-outline btn-outline--sm" data-action="history">기록 보기</button>
             </div>
             <a href="#/layz" class="back-link" data-action="layz-intro">메인으로 돌아가기</a>

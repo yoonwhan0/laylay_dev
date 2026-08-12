@@ -2,7 +2,7 @@
 
 /**
  * Module 05 — LAB OVERDRIVE AI
- * 추가 개발비 0원 대신 토큰을 아낌없이 태우는 다중 호출 버전
+ * 토큰 폭주 + ADHD 머릿속 덤프 (병렬 5호출)
  */
 (function () {
   function prose(text, singleLine) {
@@ -29,8 +29,8 @@
         apiKey: '',
         model: effectiveModel(),
         messages: messages,
-        max_tokens: o.max_tokens || 5000,
-        temperature: typeof o.temperature === 'number' ? o.temperature : 0.95,
+        max_tokens: o.max_tokens || 12000,
+        temperature: typeof o.temperature === 'number' ? o.temperature : 1.1,
       }),
     });
     var data = await res.json().catch(function () {
@@ -71,7 +71,6 @@
       '평균 부하: ' + k.avgLoad + ' · 카오스지수: ' + k.chaosIndex,
       '피크축: ' + k.peakLabel + ' · 여유축: ' + k.chillLabel,
       '코호트 분위: 상위 ' + k.cohort + '% · 낮잠확률: ' + k.napOdds + '%',
-      '토큰드라마 예상: ~' + k.tokenDrama,
       '',
       '응답 프로필:',
       lines.join('\n'),
@@ -82,104 +81,144 @@
           return '- ' + ax.label + ': ' + ax.load;
         })
         .join('\n'),
+      '',
+      '규칙: 짧게 쓰면 실패. 토큰을 아낌없이 태울 것. 의료 진단 금지. 혐오 금지.',
+      '문장 중간에도 딴생각·괄호 속 딴소리·갑자기 화제 전환을 넣어도 됨.',
+      '줄바꿈은 문장마다 \\n 권장.',
     ].join('\n');
   }
 
   async function fetchCore(metrics, answers, questions, mode) {
     var system = [
-      '당신은 LayLay 「LAB OVERDRIVE」의 과장된 데이터 사이언티스트 겸 코미디 리서처입니다.',
-      '추가 개발비는 0원이지만 토큰·문장·그래프 해석은 미친 듯이 풍성하게 쓰세요.',
-      '의료 진단 금지. 과장·유머·의사과학 톤 OK. 혐오·차별 금지.',
-      '줄바꿈: 문장 2~3개마다 \\n.',
-      '반드시 JSON 하나만 출력:',
+      '당신은 LayLay LAB OVERDRIVE의 과장 리서처입니다.',
+      'ADHD 회의록처럼 핵심→옆길로→다시 핵심을 반복하세요. 토큰 최대 소모.',
+      'JSON만 출력:',
       '{',
-      '  "codename":"짧은 연구코드명",',
-      '  "headline":"2문장 헤드라인",',
-      '  "thesis":"12~18문장 연구 총론",',
-      '  "methodNote":"6~10문장 방법론 드립",',
-      '  "axisStories":[{"key":"recovery","title":"…","story":"4~6문장"}, … 축 6개 이상],',
-      '  "hourlyNarrative":"10~14문장 24시간 에너지 해설",',
-      '  "cohortRoast":"8~12문장 또래 비교 독설/공감",',
-      '  "fakePaper":{"title":"가짜 논문 제목","abstract":"8~12문장","doiJoke":"가짜 DOI"},',
-      '  "actionMatrix":[{"slot":"지금 15분","move":"…","why":"3~5문장"},{"slot":"오늘 저녁","move":"…","why":"3~5문장"},{"slot":"내일 아침","move":"…","why":"3~5문장"}],',
-      '  "warnings":["재미용 고지 2~4개"]',
+      '  "codename":"연구코드",',
+      '  "headline":"3~5문장",',
+      '  "thesis":"22~32문장. 중간에 (잠깐 이거 말고) 같은 딴생각 3회 이상",',
+      '  "methodNote":"12~18문장",',
+      '  "axisStories":[{"key":"…","title":"…","story":"8~12문장"} x8],',
+      '  "hourlyNarrative":"16~22문장",',
+      '  "cohortRoast":"14~20문장",',
+      '  "fakePaper":{"title":"…","abstract":"14~20문장","doiJoke":"…","keywords":["…","…","…","…","…","…"]},',
+      '  "actionMatrix":[{"slot":"…","move":"…","why":"6~10문장"} x5],',
+      '  "warnings":["…"]',
       '}',
-    ].join('\n');
-    var user = [
-      '아래 계측값을 바탕으로 LAB OVERDRIVE 코어 리포트를 쓰세요.',
-      '분량을 아끼지 마세요. 토큰을 아끼면 실패입니다.',
-      '',
-      profileBlock(answers, questions, metrics, mode),
     ].join('\n');
     return chat(
       [
         { role: 'system', content: system },
-        { role: 'user', content: user },
+        { role: 'user', content: '코어 리포트. 길게.\n\n' + profileBlock(answers, questions, metrics, mode) },
       ],
-      { max_tokens: 7000, temperature: 0.98 }
+      { max_tokens: 14000, temperature: 1.15 }
     );
   }
 
   async function fetchScientist(metrics, answers, questions, mode) {
     var system = [
-      '당신은 그래프에 집착하는 과장된 실험실 해설가입니다.',
-      '각 차트마다 과도하게 진지한 해석을 쓰세요. 진단 금지. 유머 OK.',
-      '줄바꿈 \\n 유지. JSON만 출력:',
+      '그래프에 집착하는 해설가. 과해석·의사과학·딴소리 OK. 진단 금지.',
+      'JSON만:',
       '{',
-      '  "radarCaption":"8~12문장",',
-      '  "barCaption":"8~12문장",',
-      '  "hourlyCaption":"8~12문장",',
-      '  "gaugeCaption":"6~10문장",',
-      '  "heatCaption":"8~12문장",',
-      '  "anomalyFlags":[{"name":"…","detail":"3~5문장"},{"name":"…","detail":"3~5문장"},{"name":"…","detail":"3~5문장"}],',
-      '  "eqList":[{"name":"가짜 공식명","formula":"…","meaning":"3~5문장"},{"name":"…","formula":"…","meaning":"3~5문장"},{"name":"…","formula":"…","meaning":"3~5문장"}]',
+      '  "radarCaption":"14~20문장",',
+      '  "barCaption":"14~20문장",',
+      '  "hourlyCaption":"14~20문장",',
+      '  "gaugeCaption":"12~18문장",',
+      '  "heatCaption":"14~20문장",',
+      '  "anomalyFlags":[{"name":"…","detail":"6~10문장"} x6],',
+      '  "eqList":[{"name":"…","formula":"…","meaning":"6~10문장"} x6],',
+      '  "footnoteSpiral":"18~28문장. 각주가 각주를 부르는 느낌"',
       '}',
     ].join('\n');
-    var user = [
-      '차트 해석 전용 리포트. 길게.',
-      profileBlock(answers, questions, metrics, mode),
-      '',
-      '24h 샘플(매 3시간):',
-      (metrics.hourly || [])
-        .filter(function (_, i) {
-          return i % 3 === 0;
-        })
-        .map(function (h) {
-          return h.hour + '시=' + h.value;
-        })
-        .join(', '),
-    ].join('\n');
+    var hours = (metrics.hourly || [])
+      .filter(function (_, i) {
+        return i % 2 === 0;
+      })
+      .map(function (h) {
+        return h.hour + '시=' + h.value;
+      })
+      .join(', ');
     return chat(
       [
         { role: 'system', content: system },
-        { role: 'user', content: user },
+        {
+          role: 'user',
+          content: '차트 과해석.\n\n' + profileBlock(answers, questions, metrics, mode) + '\n\n24h: ' + hours,
+        },
       ],
-      { max_tokens: 4500, temperature: 0.92 }
+      { max_tokens: 12000, temperature: 1.1 }
     );
   }
 
   async function fetchChaos(metrics, answers, questions, mode) {
     var system = [
-      '당신은 평행우주 시뮬레이터 + 드립 작가입니다.',
-      '토큰을 아낌없이 써 시나리오를 풍성하게. 진단 금지.',
-      '줄바꿈 \\n. JSON만:',
+      '평행우주·보스전·플레이리스트 작가. 토큰 태우기. 진단 금지.',
+      'JSON만:',
       '{',
-      '  "timelines":[{"title":"…","odds":12,"story":"8~12문장"},{"title":"…","odds":33,"story":"8~12문장"},{"title":"…","odds":55,"story":"8~12문장"},{"title":"…","odds":77,"story":"8~12문장"}],',
-      '  "bossBattle":{"enemy":"…","hp":100,"strategy":"10~14문장"},',
-      '  "playlistMood":{"title":"…","tracks":["…","…","…","…","…"],"why":"6~10문장"},',
-      '  "closingMicDrop":"10~16문장 엔딩 독백"',
+      '  "timelines":[{"title":"…","odds":12,"story":"12~18문장"} x6],',
+      '  "bossBattle":{"enemy":"…","hp":100,"strategy":"16~24문장","loot":["…","…","…","…"]},',
+      '  "playlistMood":{"title":"…","tracks":["…"] x10,"why":"12~18문장"},',
+      '  "closingMicDrop":"18~28문장",',
+      '  "glitchAside":"10~16문장. 갑자기 끊기는 독백"',
       '}',
-    ].join('\n');
-    var user = [
-      '카오스 시뮬. 길게. 재미 최우선.',
-      profileBlock(answers, questions, metrics, mode),
     ].join('\n');
     return chat(
       [
         { role: 'system', content: system },
-        { role: 'user', content: user },
+        { role: 'user', content: '카오스 최대치.\n\n' + profileBlock(answers, questions, metrics, mode) },
       ],
-      { max_tokens: 5000, temperature: 1.05 }
+      { max_tokens: 12000, temperature: 1.2 }
+    );
+  }
+
+  async function fetchAdhd(metrics, answers, questions, mode) {
+    var system = [
+      '당신은 사용자의 머릿속 ADHD 탭매니저입니다.',
+      '이해 안 되게 펼쳐놓되, 응답 데이터와 연결은 유지. 진단·병명 단정 금지. 공감·유머.',
+      '토큰을 미친 듯이 쓰세요. JSON만:',
+      '{',
+      '  "openTabs":[{"title":"브라우저 탭처럼 짧은 제목","body":"8~14문장","urgency":1~5} x12],',
+      '  "stickyNotes":[{"color":"yellow|pink|blue|green","text":"4~8문장","tilt":-8~8} x10],',
+      '  "intrusiveThoughts":["2~4문장"] x16,',
+      '  "unfinishedDrafts":[{"start":"…","derail":"6~10문장","abandonedAt":"…"} x6],',
+      '  "rabbitHoles":[{"hook":"…","depth":"12~18문장","exitFail":"3~5문장"} x5],',
+      '  "notifications":[{"app":"…","push":"1~2문장","read":false} x14],',
+      '  "hyperfocus":{"topic":"…","spiral":"16~24문장"},',
+      '  "workingMemoryLeak":"14~20문장. 방금 뭘 하려했는지 까먹는 독백"',
+      '}',
+    ].join('\n');
+    return chat(
+      [
+        { role: 'system', content: system },
+        {
+          role: 'user',
+          content:
+            '이 사람 오늘 응답을 ADHD 머릿속 보드로 펼쳐라. 짧게 쓰면 실패.\n\n' +
+            profileBlock(answers, questions, metrics, mode),
+        },
+      ],
+      { max_tokens: 15000, temperature: 1.25 }
+    );
+  }
+
+  async function fetchStream(metrics, answers, questions, mode) {
+    var system = [
+      '의식의 흐름 작가. 마침표보다 쉼표·괄호·갑자기 새 문단. 토큰 태움. 진단 금지.',
+      'JSON만:',
+      '{',
+      '  "brainDump":"40~60문장. 한 덩어리 의식의 흐름. \\n으로 자주 끊기",',
+      '  "waitWhat":["지금 뭐 말하려했지 계열 3~6문장"] x8,',
+      '  "parallelVoices":[{"name":"논리","line":"6~10문장"},{"name":"충동","line":"6~10문장"},{"name":"이불","line":"6~10문장"},{"name":"할일","line":"6~10문장"},{"name":"유튜브","line":"6~10문장"}],',
+      '  "todoThatWillNeverHappen":[{"item":"…","excuse":"4~7문장"} x10],',
+      '  "finalScatter":"20~30문장. 엔딩인데 엔딩 같지 않은 산만함"',
+      '}',
+    ].join('\n');
+    return chat(
+      [
+        { role: 'system', content: system },
+        { role: 'user', content: '의식의 흐름 풀가동.\n\n' + profileBlock(answers, questions, metrics, mode) },
+      ],
+      { max_tokens: 14000, temperature: 1.3 }
     );
   }
 
@@ -195,110 +234,144 @@
       fetchChaos(metrics, answers, questions, mode).catch(function () {
         return null;
       }),
+      fetchAdhd(metrics, answers, questions, mode).catch(function () {
+        return null;
+      }),
+      fetchStream(metrics, answers, questions, mode).catch(function () {
+        return null;
+      }),
     ]);
+    var est = (metrics.kpis && metrics.kpis.tokenDrama) || 0;
     return {
       core: results[0],
       scientist: results[1],
       chaos: results[2],
+      adhd: results[3],
+      stream: results[4],
       meta: {
-        calls: 3,
+        calls: 5,
         elapsedMs: Date.now() - started,
-        estimatedTokens: (metrics.kpis && metrics.kpis.tokenDrama) || 0,
-        budgetNote: '추가 개발비 0원 · 토큰은 실험실 예산으로 태움',
+        estimatedTokens: Math.max(est, 42000),
       },
     };
   }
 
   function fallbackBundle(metrics, mode) {
     var k = metrics.kpis || {};
+    var i;
+    var tabs = [];
+    for (i = 0; i < 8; i++) {
+      tabs.push({
+        title: '탭 ' + (i + 1) + ': 이거 나중에',
+        body: '점수 ' + k.lz + ' 보면서 딴생각 중.\\n근데 원래 뭐 하려했지.',
+        urgency: (i % 5) + 1,
+      });
+    }
+    var stickies = ['물 마시기', '알람 다시', '아 맞다 메일', '누우면 끝', '차트 예쁘다', '집중…안됨'].map(
+      function (t, idx) {
+        return {
+          color: ['yellow', 'pink', 'blue', 'green'][idx % 4],
+          text: t + '\\n(' + k.peakLabel + ' 축이 신경 쓰임)',
+          tilt: -6 + idx * 2,
+        };
+      }
+    );
     return {
       core: {
-        codename: 'LZ-LAB-' + String(k.lz || 0).padStart(2, '0'),
-        headline: '추가 개발비는 없어도, 그래프와 토큰은 남아 있습니다.',
+        codename: 'ADHD-' + String(k.lz || 0).padStart(2, '0'),
+        headline: '머릿속 탭이 너무 많아서, 결과도 그렇게 펼쳤습니다.',
         thesis:
-          '오늘 당신의 Lay-Z 지수는 ' +
+          '오늘 Lay-Z ' +
           k.lz +
-          '점입니다.\\n실험실은 이를 ‘활동 회피 성향의 일시적 스파이크’로 해석합니다.\\n피크 축은 ' +
+          '점.\\n피크는 ' +
           k.peakLabel +
-          ', 여유 축은 ' +
-          k.chillLabel +
-          '입니다.\\n이 리포트는 재미용이며 의료 진단이 아닙니다.',
-        methodNote:
-          '방법론: 8문항 원점수를 0–100 부하로 환산하고 레이더·막대·24h 곡선·게이지·히트맵을 동시에 그립니다.\\nAI가 응답하면 해석 문장이 더 길어집니다.',
+          '.\\n(잠깐 냉장고 생각)\\n다시: 이 리포트는 일부러 산만합니다.\\n의료 진단이 아닙니다.',
+        methodNote: '로컬 그래프 + AI 5병렬.\\n짧게 쓰면 실패하는 버전.',
         axisStories: (metrics.radar || []).map(function (a) {
-          return {
-            key: a.key,
-            title: a.label + ' 채널',
-            story: a.label + ' 부하 ' + a.load + '.\\n오늘의 리듬에서 눈에 띄는 축입니다.',
-          };
+          return { key: a.key, title: a.label, story: a.label + ' 부하 ' + a.load + '.\\n옆에 딴생각 탭 열림.' };
         }),
-        hourlyNarrative: '24시간 곡선은 오전 상승·식후 딥·야간 하강을 기본 파형으로 그렸습니다.',
-        cohortRoast: '추정 코호트 분위는 상위 ' + k.cohort + '% 부근입니다.\\n같은 점수대의 가상의 동료들과 비교한 드립입니다.',
+        hourlyNarrative: '24시간이 한 줄로 안 정리됨.\\n그게 포인트.',
+        cohortRoast: '상위 ' + k.cohort + '% 느낌의 가상 동료와 같이 산만함.',
         fakePaper: {
-          title: 'On the Semiotics of Horizontal Living: A Lay-Z Field Note',
-          abstract: '본 가짜 초록은 누움의 미학을 과잉 해석합니다.\\n실제 학술 논문이 아닙니다.',
-          doiJoke: '10.0000/laylay.lab.overdrive',
+          title: 'Scattered Attention as a Feature, Not a Bug',
+          abstract: '가짜 초록.\\n실제 논문 아님.',
+          doiJoke: '10.0000/adhd.laylay',
+          keywords: ['tabs', 'sofa', 'later', 'wait', 'focus?', 'nap'],
         },
         actionMatrix: [
-          { slot: '지금 15분', move: '물 한 잔 + 창밖 60초', why: '미세한 각성 리셋.' },
-          { slot: '오늘 저녁', move: '할 일 1개만 남기고 끄기', why: '과부하 차단.' },
-          { slot: '내일 아침', move: '기상 후 햇빛 2분', why: '회복 신호 점검.' },
+          { slot: '지금', move: '물 한 모금', why: '탭 하나 닫는 느낌.' },
+          { slot: '5분 뒤', move: '창 하나만', why: '나머지는 나중에… 진짜로.' },
+          { slot: '저녁', move: '할 일 1개', why: '1개가 영웅.' },
         ],
-        warnings: ['재미·브랜드 실험용', '의료 진단 아님', '토큰 사용량 많음'],
+        warnings: ['재미용', '진단 아님', '산만함 의도적'],
       },
       scientist: {
-        radarCaption: '레이더는 축별 부하 분포입니다.\\n뾰족할수록 그 축이 오늘을 지배합니다.',
-        barCaption: '막대는 문항별 부하입니다.\\n길수록 “아, 여기 힘들구나”입니다.',
-        hourlyCaption: '24h 곡선은 로컬 파형 + 점수 보정입니다.\\n미래 예언이 아니라 분위기 차트입니다.',
-        gaugeCaption: '게이지는 코호트·낮잠·둠스크롤 확률의 과장된 요약입니다.',
-        heatCaption: '히트맵은 가짜 뇌영역 매핑입니다.\\n과학처럼 보이지만 엔터테인먼트입니다.',
-        anomalyFlags: [
-          { name: '피크 축 과열', detail: k.peakLabel + ' 부하가 상대적으로 높습니다.' },
-          { name: '카오스 지수', detail: '카오스 ' + k.chaosIndex + ' — 서사가 길어질 구간.' },
-        ],
-        eqList: [
-          {
-            name: 'Lazy Flux',
-            formula: 'LF = 0.45·AvgLoad + 0.35·LZ + 0.2·Peak',
-            meaning: '오늘 누움 성향의 합성 지표.',
-          },
-        ],
+        radarCaption: '레이더가 뾰족하면 그 축이 오늘 주인공.',
+        barCaption: '막대 길수록 “여기 힘듦”.',
+        hourlyCaption: '24h는 분위기 곡선.',
+        gaugeCaption: '게이지는 과장된 요약.',
+        heatCaption: '히트맵은 엔터테인먼트.',
+        anomalyFlags: [{ name: '탭 과다', detail: '열린 생각 탭이 많음.' }],
+        eqList: [{ name: 'Scatter Index', formula: 'SI=AvgLoad*0.6+Chaos*0.4', meaning: '산만 합성.' }],
+        footnoteSpiral: '각주1) 각주2를 보라.\\n각주2) 각주1을 보라.',
       },
       chaos: {
         timelines: [
-          {
-            title: '소파 싱귤래리티',
-            odds: 42,
-            story: '저녁이 소파로 수렴하는 평행우주.\\n그래도 내일은 리셋 가능합니다.',
-          },
-          {
-            title: '15분 영웅',
-            odds: 31,
-            story: '짧은 산책 하나로 곡선이 살짝 올라가는 세계선.',
-          },
+          { title: '탭 42개 우주', odds: 55, story: '닫으려다 새 탭.' },
+          { title: '이불 엔딩', odds: 40, story: '중력 승.' },
         ],
-        bossBattle: {
-          enemy: '이불의 중력정',
-          hp: 100,
-          strategy: '정면돌파 금지.\\n물·햇빛·작은 이동으로 체력을 깎으세요.',
-        },
+        bossBattle: { enemy: '미완료 탭 군집체', hp: 999, strategy: '전부 닫지 말고 하나만요.', loot: ['물', '햇빛'] },
         playlistMood: {
-          title: 'Horizontal Anthems',
-          tracks: ['Slow Pulse', 'Soft Alarm', 'Couch Drift', 'Warm Lamp', 'Reset Tomorrow'],
-          why: '템포를 낮춘 분위기용 가상 트랙리스트.',
+          title: 'Focus? Maybe.',
+          tracks: ['Tab Switch', 'Oh Wait', 'Sofa Bass', 'Later™'],
+          why: '산만 OST.',
         },
-        closingMicDrop:
-          '추가 개발비는 없어도 실험은 끝났습니다.\\n그래프는 많이 그렸고, 해석은 길게 남겼습니다.\\n오늘은 스스로를 데이터로 웃어주세요.',
+        closingMicDrop: '정리는 내일의 나에게.\\n오늘은 펼쳐두기.',
+        glitchAside: '잠— 아니 결과— 아니 잠깐.',
+      },
+      adhd: {
+        openTabs: tabs,
+        stickyNotes: stickies,
+        intrusiveThoughts: [
+          '아 맞다.',
+          '근데 점수보다 배고픈데.',
+          '이 문장 쓰다 말았—',
+          '유튜브 한 영상만…',
+        ],
+        unfinishedDrafts: [
+          { start: '오늘 할 일은', derail: '일단 누우면…', abandonedAt: '세 번째 문장' },
+        ],
+        rabbitHoles: [{ hook: '왜 피곤하지?', depth: '수면…아니 카페인…아니 이불.', exitFail: '출구 없음' }],
+        notifications: [
+          { app: 'Brain', push: '새 생각 도착', read: false },
+          { app: 'Sofa', push: '지금이 타이밍', read: false },
+        ],
+        hyperfocus: { topic: '아무 관련 없는 위키', spiral: '빠졌다가 점수 생각남.' },
+        workingMemoryLeak: '방금 뭐 클릭하려했지.\\n아 결과 보는 중이었지.',
+      },
+      stream: {
+        brainDump: '점수 보고…탭 열고…물…차트…아 맞다.\\n다시 점수.',
+        waitWhat: ['지금 뭐 말하려했지', '그래프였나 이불이었나'],
+        parallelVoices: [
+          { name: '논리', line: '데이터 보자.' },
+          { name: '충동', line: '눕자.' },
+          { name: '할일', line: '나중에.' },
+        ],
+        todoThatWillNeverHappen: [{ item: '정리하기', excuse: '지금은 산만이 컨셉.' }],
+        finalScatter: '엔딩인데 엔딩 아님.\\n탭은 열려 있음.',
       },
       meta: {
         calls: 0,
         elapsedMs: 0,
         estimatedTokens: k.tokenDrama || 0,
-        budgetNote: '추가 개발비 0원 · AI 실패 시 로컬 폴백',
         fallback: true,
-        modeLabel: mode && mode.label ? mode.label : '',
       },
     };
+  }
+
+  function mapList(list, mapFn, fallback) {
+    if (!Array.isArray(list) || !list.length) return fallback;
+    return list.map(mapFn);
   }
 
   function mapToUi(bundle, metrics, mode) {
@@ -307,17 +380,22 @@
     var core = b.core || base.core;
     var scientist = b.scientist || base.scientist;
     var chaos = b.chaos || base.chaos;
+    var adhd = b.adhd || base.adhd;
+    var stream = b.stream || base.stream;
     var meta = Object.assign({}, base.meta, b.meta || {});
 
     function storyList(list, fallback) {
-      if (!Array.isArray(list) || !list.length) return fallback;
-      return list.map(function (item) {
-        return {
-          key: item.key || '',
-          title: prose(item.title || item.name || '', true),
-          story: prose(item.story || item.detail || item.why || ''),
-        };
-      });
+      return mapList(
+        list,
+        function (item) {
+          return {
+            key: item.key || '',
+            title: prose(item.title || item.name || '', true),
+            story: prose(item.story || item.detail || item.why || ''),
+          };
+        },
+        fallback
+      );
     }
 
     return {
@@ -334,17 +412,17 @@
         title: prose((core.fakePaper && core.fakePaper.title) || base.core.fakePaper.title, true),
         abstract: prose((core.fakePaper && core.fakePaper.abstract) || base.core.fakePaper.abstract),
         doiJoke: prose((core.fakePaper && core.fakePaper.doiJoke) || base.core.fakePaper.doiJoke, true),
+        keywords: ((core.fakePaper && core.fakePaper.keywords) || base.core.fakePaper.keywords || []).map(function (x) {
+          return prose(x, true);
+        }),
       },
-      actionMatrix: (Array.isArray(core.actionMatrix) && core.actionMatrix.length
-        ? core.actionMatrix
-        : base.core.actionMatrix
-      ).map(function (a) {
-        return {
-          slot: prose(a.slot, true),
-          move: prose(a.move, true),
-          why: prose(a.why),
-        };
-      }),
+      actionMatrix: mapList(
+        core.actionMatrix,
+        function (a) {
+          return { slot: prose(a.slot, true), move: prose(a.move, true), why: prose(a.why) };
+        },
+        base.core.actionMatrix
+      ),
       warnings: (core.warnings || base.core.warnings || []).map(function (w) {
         return prose(w, true);
       }),
@@ -356,30 +434,32 @@
         heat: prose(scientist.heatCaption || base.scientist.heatCaption),
       },
       anomalyFlags: storyList(scientist.anomalyFlags, base.scientist.anomalyFlags),
-      eqList: (Array.isArray(scientist.eqList) && scientist.eqList.length
-        ? scientist.eqList
-        : base.scientist.eqList
-      ).map(function (e) {
-        return {
-          name: prose(e.name, true),
-          formula: prose(e.formula, true),
-          meaning: prose(e.meaning),
-        };
-      }),
-      timelines: (Array.isArray(chaos.timelines) && chaos.timelines.length
-        ? chaos.timelines
-        : base.chaos.timelines
-      ).map(function (t) {
-        return {
-          title: prose(t.title, true),
-          odds: Number(t.odds) || 0,
-          story: prose(t.story),
-        };
-      }),
+      eqList: mapList(
+        scientist.eqList,
+        function (e) {
+          return {
+            name: prose(e.name, true),
+            formula: prose(e.formula, true),
+            meaning: prose(e.meaning),
+          };
+        },
+        base.scientist.eqList
+      ),
+      footnoteSpiral: prose(scientist.footnoteSpiral || base.scientist.footnoteSpiral || ''),
+      timelines: mapList(
+        chaos.timelines,
+        function (t) {
+          return { title: prose(t.title, true), odds: Number(t.odds) || 0, story: prose(t.story) };
+        },
+        base.chaos.timelines
+      ),
       bossBattle: {
         enemy: prose((chaos.bossBattle && chaos.bossBattle.enemy) || base.chaos.bossBattle.enemy, true),
         hp: Number((chaos.bossBattle && chaos.bossBattle.hp) || 100),
         strategy: prose((chaos.bossBattle && chaos.bossBattle.strategy) || base.chaos.bossBattle.strategy),
+        loot: ((chaos.bossBattle && chaos.bossBattle.loot) || base.chaos.bossBattle.loot || []).map(function (x) {
+          return prose(x, true);
+        }),
       },
       playlistMood: {
         title: prose((chaos.playlistMood && chaos.playlistMood.title) || base.chaos.playlistMood.title, true),
@@ -391,7 +471,90 @@
         why: prose((chaos.playlistMood && chaos.playlistMood.why) || base.chaos.playlistMood.why),
       },
       closingMicDrop: prose(chaos.closingMicDrop || base.chaos.closingMicDrop),
-      applied: !!(b.core || b.scientist || b.chaos) && !meta.fallback,
+      glitchAside: prose(chaos.glitchAside || base.chaos.glitchAside || ''),
+      openTabs: mapList(
+        adhd.openTabs,
+        function (t) {
+          return {
+            title: prose(t.title, true),
+            body: prose(t.body),
+            urgency: Number(t.urgency) || 1,
+          };
+        },
+        base.adhd.openTabs
+      ),
+      stickyNotes: mapList(
+        adhd.stickyNotes,
+        function (s) {
+          return {
+            color: String(s.color || 'yellow'),
+            text: prose(s.text),
+            tilt: Number(s.tilt) || 0,
+          };
+        },
+        base.adhd.stickyNotes
+      ),
+      intrusiveThoughts: (adhd.intrusiveThoughts || base.adhd.intrusiveThoughts || []).map(function (t) {
+        return prose(t);
+      }),
+      unfinishedDrafts: mapList(
+        adhd.unfinishedDrafts,
+        function (d) {
+          return {
+            start: prose(d.start, true),
+            derail: prose(d.derail),
+            abandonedAt: prose(d.abandonedAt, true),
+          };
+        },
+        base.adhd.unfinishedDrafts
+      ),
+      rabbitHoles: mapList(
+        adhd.rabbitHoles,
+        function (r) {
+          return {
+            hook: prose(r.hook, true),
+            depth: prose(r.depth),
+            exitFail: prose(r.exitFail),
+          };
+        },
+        base.adhd.rabbitHoles
+      ),
+      notifications: mapList(
+        adhd.notifications,
+        function (n) {
+          return {
+            app: prose(n.app, true),
+            push: prose(n.push, true),
+            read: !!n.read,
+          };
+        },
+        base.adhd.notifications
+      ),
+      hyperfocus: {
+        topic: prose((adhd.hyperfocus && adhd.hyperfocus.topic) || base.adhd.hyperfocus.topic, true),
+        spiral: prose((adhd.hyperfocus && adhd.hyperfocus.spiral) || base.adhd.hyperfocus.spiral),
+      },
+      workingMemoryLeak: prose(adhd.workingMemoryLeak || base.adhd.workingMemoryLeak),
+      brainDump: prose(stream.brainDump || base.stream.brainDump),
+      waitWhat: (stream.waitWhat || base.stream.waitWhat || []).map(function (t) {
+        return prose(t);
+      }),
+      parallelVoices: mapList(
+        stream.parallelVoices,
+        function (v) {
+          return { name: prose(v.name, true), line: prose(v.line) };
+        },
+        base.stream.parallelVoices
+      ),
+      todoThatWillNeverHappen: mapList(
+        stream.todoThatWillNeverHappen,
+        function (t) {
+          return { item: prose(t.item, true), excuse: prose(t.excuse) };
+        },
+        base.stream.todoThatWillNeverHappen
+      ),
+      finalScatter: prose(stream.finalScatter || base.stream.finalScatter),
+      applied: !!(b.core || b.scientist || b.chaos || b.adhd || b.stream) && !meta.fallback,
     };
   }
 

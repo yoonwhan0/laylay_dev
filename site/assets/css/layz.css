@@ -1156,6 +1156,405 @@ button {
   }
 }
 
+/* Module 05 — ADHD brain board */
+.center-panel--adhd {
+  width: min(100%, 960px);
+  overflow: hidden;
+}
+
+.lab-dash--adhd {
+  position: relative;
+  max-width: none;
+}
+
+.adhd-thought-rain {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 180px;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.adhd-thought {
+  position: absolute;
+  top: 8px;
+  left: var(--x, 10%);
+  max-width: 180px;
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(40, 30, 20, 0.55);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px dashed rgba(255, 94, 4, 0.35);
+  transform: rotate(var(--r, 0deg));
+  animation: adhdFloat 7s ease-in-out infinite;
+  animation-delay: var(--d, 0s);
+  white-space: pre-line;
+}
+
+@keyframes adhdFloat {
+  0%,
+  100% {
+    transform: rotate(var(--r, 0deg)) translateY(0);
+  }
+  50% {
+    transform: rotate(var(--r, 0deg)) translateY(10px);
+  }
+}
+
+.adhd-hero {
+  position: relative;
+  z-index: 1;
+}
+
+.adhd-glitch {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #ff5e04;
+  font-weight: 600;
+  white-space: pre-line;
+}
+
+.lab-kpi-strip--chaos .lab-kpi:nth-child(odd) {
+  transform: rotate(-1deg);
+}
+
+.lab-kpi-strip--chaos .lab-kpi:nth-child(even) {
+  transform: rotate(1.2deg);
+  background: #2a211c;
+}
+
+.adhd-tabstrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 18px;
+  position: relative;
+  z-index: 1;
+}
+
+.adhd-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 180px;
+  padding: 7px 10px;
+  border: 1px solid #ddd;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: rotate(var(--r, 0deg));
+}
+
+.adhd-tab i {
+  font-style: normal;
+  opacity: 0.45;
+}
+
+.adhd-tab.u4,
+.adhd-tab.u5 {
+  border-color: #ff5e04;
+  background: rgba(255, 94, 4, 0.1);
+}
+
+.adhd-scatter {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.adhd-card {
+  grid-column: span 4;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid #e8e0d6;
+  transform: rotate(var(--r, 0deg));
+  box-shadow: 3px 4px 0 rgba(0, 0, 0, 0.04);
+}
+
+.adhd-card--wide,
+.adhd-card--tab:nth-child(3n) {
+  grid-column: span 6;
+}
+
+.adhd-card--tab:nth-child(4n) {
+  grid-column: span 5;
+}
+
+.adhd-card--tab:nth-child(5n) {
+  grid-column: span 7;
+}
+
+.adhd-card header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #9a948c;
+  margin-bottom: 6px;
+}
+
+.adhd-card h3,
+.adhd-card h4 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.adhd-card p,
+.adhd-draft p,
+.adhd-voice p,
+.adhd-flag p,
+.adhd-todo-never p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+.adhd-interrupt {
+  margin: 10px 0 !important;
+  padding: 8px 10px;
+  background: #fff3ea;
+  border-left: 3px solid #ff5e04;
+  font-weight: 700;
+  color: #b34700;
+}
+
+.adhd-sticky-wall {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 4px 0 8px;
+}
+
+.adhd-sticky {
+  width: min(180px, 46%);
+  min-height: 120px;
+  padding: 12px;
+  transform: rotate(var(--r, 0deg));
+  animation: adhdPop 0.45s ease both;
+  animation-delay: var(--delay, 0s);
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.08);
+}
+
+.adhd-sticky p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.adhd-sticky--yellow {
+  background: #fff2a8;
+}
+.adhd-sticky--pink {
+  background: #ffd0e0;
+}
+.adhd-sticky--blue {
+  background: #cfe8ff;
+}
+.adhd-sticky--green {
+  background: #d8f5c8;
+}
+
+@keyframes adhdPop {
+  from {
+    opacity: 0;
+    transform: rotate(var(--r, 0deg)) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(var(--r, 0deg)) scale(1);
+  }
+}
+
+.adhd-notif-stack {
+  grid-column: span 5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adhd-notif {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: #161513;
+  color: #fff;
+  border-radius: 12px;
+  transform: rotate(-0.8deg);
+}
+
+.adhd-notif strong {
+  font-size: 11px;
+  color: #ffb387;
+}
+
+.adhd-notif span {
+  font-size: 12px;
+}
+
+.adhd-notif.is-read {
+  opacity: 0.45;
+}
+
+.adhd-voice {
+  grid-column: span 4;
+  padding: 12px 14px;
+  background: #f7f2eb;
+  border: 1px dashed #cfc4b6;
+  transform: rotate(var(--r, 0deg));
+}
+
+.adhd-voice strong {
+  display: inline-block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #ff5e04;
+}
+
+.adhd-draft {
+  grid-column: span 4;
+  padding: 12px 14px;
+  background: repeating-linear-gradient(
+    0deg,
+    #fff,
+    #fff 22px,
+    #f0ebe4 22px,
+    #f0ebe4 23px
+  );
+  border: 1px solid #e5ddd3;
+}
+
+.adhd-draft-start {
+  font-weight: 700 !important;
+  margin-bottom: 6px !important;
+}
+
+.adhd-draft span {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #9a948c;
+}
+
+.adhd-hole {
+  background: #1d1916;
+  color: #fff;
+  border-color: #1d1916;
+}
+
+.adhd-hole em {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #ffb387;
+}
+
+.adhd-dump {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 94, 4, 0.12), transparent 40%),
+    #fffaf4;
+}
+
+.adhd-waitlist {
+  margin-top: 12px;
+}
+
+.adhd-flag {
+  grid-column: span 4;
+  padding: 12px;
+  border: 1px solid #ffd0b5;
+  background: #fff7f1;
+}
+
+.adhd-eq {
+  grid-column: span 4;
+  transform: rotate(var(--r, 0deg));
+}
+
+.adhd-todo-never {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.adhd-todo-never > div {
+  padding: 12px;
+  background: #fff;
+  border: 1px dashed #ccc;
+}
+
+.adhd-todo-never strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.adhd-closing,
+.adhd-final,
+.adhd-leak {
+  grid-column: 1 / -1;
+  white-space: pre-line;
+}
+
+.adhd-final {
+  padding: 16px;
+  background: #161513;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.adhd-leak {
+  font-size: 13px;
+  color: #8a847c;
+  font-style: italic;
+}
+
+@media (max-width: 900px) {
+  .adhd-scatter {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .adhd-card,
+  .adhd-card--wide,
+  .adhd-card--tab:nth-child(3n),
+  .adhd-card--tab:nth-child(4n),
+  .adhd-card--tab:nth-child(5n),
+  .adhd-voice,
+  .adhd-draft,
+  .adhd-flag,
+  .adhd-eq,
+  .adhd-notif-stack {
+    grid-column: span 1;
+  }
+
+  .adhd-todo-never {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .adhd-scatter {
+    grid-template-columns: 1fr;
+  }
+
+  .adhd-card,
+  .adhd-sticky {
+    transform: none !important;
+  }
+}
+
 /* Laytime Hub — legacy hub layout (unused shell kept for assets) */
 .hub-main {
   display: grid;
