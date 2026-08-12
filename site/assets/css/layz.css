@@ -341,8 +341,8 @@ button {
 .media-rec-card {
   display: flex;
   gap: 14px;
-  align-items: flex-start;
-  padding: 16px 18px;
+  align-items: stretch;
+  padding: 12px;
   border: 1px solid #e8e2dc;
   background: #fffaf6;
   transition: border-color 0.15s, transform 0.15s;
@@ -353,13 +353,60 @@ button {
   transform: translateY(-1px);
 }
 
-.media-rec-num {
-  font-family: var(--font-display);
-  font-size: 14px;
+.media-rec-thumb {
+  position: relative;
+  flex: 0 0 112px;
+  width: 112px;
+  min-height: 84px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #2a2623 0%, #4a3f38 100%);
+}
+
+.media-rec-thumb-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 84px;
+  object-fit: cover;
+}
+
+.media-rec-thumb-fallback {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--lay-orange);
-  line-height: 1.4;
-  min-width: 28px;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.media-rec-thumb.is-fallback .media-rec-thumb-fallback {
+  display: flex;
+}
+
+.media-rec-num {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  z-index: 1;
+  min-width: 0;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+}
+
+.media-rec-body {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 4px 4px 0;
 }
 
 .media-rec-kind {
@@ -391,6 +438,144 @@ button {
   font-size: 13px;
   font-weight: 600;
   color: var(--lay-orange);
+}
+
+/* PROMIS module 04 */
+.center-panel--promis {
+  background:
+    radial-gradient(circle at top right, rgba(46, 111, 166, 0.08), transparent 40%),
+    #fff;
+}
+
+.promis-source-card {
+  width: 100%;
+  max-width: 440px;
+  margin: 8px auto 18px;
+  padding: 16px 18px;
+  border: 1px solid #d7e2ef;
+  background: #f5f9fd;
+  text-align: left;
+}
+
+.promis-source-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #2e6fa6;
+  margin-bottom: 6px;
+}
+
+.promis-source-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+  margin-bottom: 6px;
+}
+
+.promis-source-meta {
+  font-size: 12px;
+  color: var(--gray5);
+  line-height: 1.5;
+}
+
+.promis-source-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2e6fa6;
+  text-decoration: underline;
+}
+
+.promis-score-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 18px 0 12px;
+}
+
+.promis-score-box {
+  padding: 16px 12px;
+  border: 1px solid #d7e2ef;
+  background: #f8fbfe;
+  text-align: center;
+}
+
+.promis-score-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #2e6fa6;
+  margin-bottom: 6px;
+}
+
+.promis-score-num {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #16324f;
+}
+
+.promis-score-band {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #e8f1fa;
+  color: #2e6fa6;
+}
+
+.promis-score-raw {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--gray4);
+}
+
+.promis-ref-note {
+  font-size: 12px;
+  color: var(--gray5);
+  line-height: 1.5;
+  margin-top: 6px;
+}
+
+.promis-citation {
+  margin-top: 36px;
+  padding: 20px 18px;
+  border-top: 1px solid #d7e2ef;
+  border-bottom: 1px solid #d7e2ef;
+  background: #f7fafc;
+  text-align: left;
+}
+
+.promis-citation h4 {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #2e6fa6;
+  margin-bottom: 10px;
+}
+
+.promis-citation p {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--gray6);
+  margin-bottom: 4px;
+}
+
+.promis-citation-note {
+  margin-top: 10px !important;
+  color: var(--gray5) !important;
+}
+
+@media (max-width: 640px) {
+  .promis-score-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Laytime Hub — legacy hub layout (unused shell kept for assets) */

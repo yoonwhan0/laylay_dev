@@ -51,6 +51,8 @@ let state = {
   lastMode: null,
   layzAi: null,
   mediaRec: null,
+  promisResult: null,
+  promisAi: null,
   layzNoticeOpen: false,
   shareKind: "layz",
 };
@@ -58,7 +60,13 @@ let state = {
 function versionChipLabel() {
   if (state.productVersion === 2) return "사투리 버전";
   if (state.productVersion === 3) return "풍성 답변 + 콘텐츠 추천";
+  if (state.productVersion === 4) return "PROMIS® 공신력 버전";
   return "기본 제품";
+}
+
+function activeQuestions() {
+  if (state.productVersion === 4 && window.PromisData) return window.PromisData.QUESTIONS;
+  return QUESTIONS;
 }
 
 const LAYZ_NOTICE_ITEMS = [
@@ -90,6 +98,35 @@ function resetQuizState() {
   state.lastMode = null;
   state.layzAi = null;
   state.mediaRec = null;
+  state.promisResult = null;
+  state.promisAi = null;
+}
+
+async function runPromisAiFlow() {
+  if (!window.PromisData) {
+    navigate("#/layz");
+    return;
+  }
+  const scored = window.PromisData.scoreAnswers(state.answers);
+  if (!scored) {
+    alert("응답이 부족해 점수를 계산하지 못했어요. 다시 시도해 주세요.");
+    navigate("#/layz");
+    return;
+  }
+  state.promisResult = scored;
+  state.promisAi = null;
+  let ai = null;
+  if (window.PromisAi) {
+    try {
+      ai = await window.PromisAi.fetchCopy(scored, state.answers, window.PromisData.QUESTIONS);
+    } catch (e) {
+      ai = null;
+    }
+  }
+  state.promisAi = window.PromisAi
+    ? window.PromisAi.mapToUi(ai, scored)
+    : null;
+  navigate("#/result");
 }
 
 async function runLayZAiFlow() {
@@ -311,19 +348,26 @@ function renderDialectPicker() {
 function renderLayzIntro() {
   const isDialectVersion = state.productVersion === 2;
   const isRichVersion = state.productVersion === 3;
+  const isPromisVersion = state.productVersion === 4;
   const startDisabled = isDialectVersion && !state.dialect;
   const subtitle = isDialectVersion
     ? "동일한 8가지 문의로 측정하고, 고른 지역 말투로 결과를 들려드려요"
     : isRichVersion
       ? "기본과 같은 문의지만 답변이 더 풍성하고, 점수에 따라 유튜브·영화 추천까지 받아보세요"
-      : "8가지 질문으로 오늘의 Lay-Z 지수를 확인해보세요";
+      : isPromisVersion
+        ? "NIH PROMIS® Global Health 문항으로 신체·정신 건강 T-score를 확인합니다"
+        : "8가지 질문으로 오늘의 Lay-Z 지수를 확인해보세요";
+  const title = isPromisVersion ? "PROMIS® Global Health" : "Lay-Z Check";
+  const bold = isPromisVersion ? "공신력 있는 자기보고 건강 척도" : "오늘 나의 게으름 지수는?";
+  const note = isPromisVersion ? "약 2분 · GPH-4 / GMH-4 8문항" : "약 1분이면 충분해요!";
+  const infoLabel = isPromisVersion ? "출처·채점 기준 보기" : "Lay-Z Check란?";
 
   return `
     <div class="center-panel-wrap">
-      <section class="center-panel center-panel--tall">
+      <section class="center-panel center-panel--tall ${isPromisVersion ? "center-panel--promis" : ""}">
         <p class="version-chip">${versionChipLabel()}</p>
-        <h1 class="title-layz title-layz--intro">Lay-Z Check</h1>
-        <p class="subtitle-bold">오늘 나의 게으름 지수는?</p>
+        <h1 class="title-layz title-layz--intro">${title}</h1>
+        <p class="subtitle-bold">${bold}</p>
         <p class="subtitle">${subtitle}</p>
 
         <div class="hero-illust">
@@ -331,13 +375,16 @@ function renderLayzIntro() {
         </div>
 
         ${isDialectVersion ? renderDialectPicker() : ""}
+        ${isPromisVersion ? renderPromisSourceCard() : ""}
 
-        <p class="landing-note">약 1분이면 충분해요!</p>
+        <p class="landing-note">${note}</p>
         <div class="btn-stack">
           <button class="btn btn-primary ${startDisabled ? "is-disabled" : ""}" data-action="start" ${
             startDisabled ? "aria-disabled=\"true\"" : ""
           }>지금 바로 시작하기</button>
-          <button class="btn btn-outline btn-outline--sm" data-action="info">Lay-Z Check란?</button>
+          <button class="btn btn-outline btn-outline--sm" data-action="${
+            isPromisVersion ? "promis-info" : "info"
+          }">${infoLabel}</button>
         </div>
         <div class="layz-notice-block">
           <button type="button" class="landing-footer-link layz-notice ${state.layzNoticeOpen ? "open" : ""}" data-action="toggle-layz-notice">
@@ -351,14 +398,35 @@ function renderLayzIntro() {
   `;
 }
 
+function renderPromisSourceCard() {
+  const src = window.PromisData?.SOURCE;
+  if (!src) return "";
+  return `
+    <div class="promis-source-card">
+      <p class="promis-source-label">근거 문헌</p>
+      <p class="promis-source-title">${src.title}</p>
+      <p class="promis-source-meta">${src.authors} · ${src.journal} (${src.year})</p>
+      <p class="promis-source-meta">DOI: ${src.doi} · ${src.pmcid}</p>
+      <a class="promis-source-link" href="${src.url}" target="_blank" rel="noopener noreferrer">PMC 원문 보기</a>
+    </div>
+  `;
+}
+
 function renderQuiz() {
-  const q = QUESTIONS[state.currentQ];
-  const progress = ((state.currentQ + 1) / QUESTIONS.length) * 100;
+  const list = activeQuestions();
+  const q = list[state.currentQ];
+  const total = list.length;
+  const progress = ((state.currentQ + 1) / total) * 100;
   const num = String(state.currentQ + 1).padStart(2, "0");
+  const totalLabel = String(total).padStart(2, "0");
+  const isPromis = state.productVersion === 4;
   const dialectNote =
     state.productVersion === 2 && state.dialect
       ? `<p class="quiz-dialect-note">${dialectLabel(state.dialect)} 말투로 결과가 준비돼요</p>`
       : "";
+  const promisNote = isPromis
+    ? `<p class="quiz-dialect-note">${q.help || "PROMIS® Global Health"}</p>`
+    : "";
   const nav =
     state.currentQ === 0
       ? `<button data-action="layz-intro">메인으로 돌아가기</button>`
@@ -370,14 +438,17 @@ function renderQuiz() {
 
   return `
     <div class="center-panel-wrap">
-      <section class="center-panel center-panel--tall">
+      <section class="center-panel center-panel--tall ${isPromis ? "center-panel--promis" : ""}">
         <div class="panel-inner">
-          <h2 class="title-layz title-layz--sm">Lay-Z Check</h2>
-          <p class="quiz-subtitle">오늘 나의 게으름 지수는?</p>
+          <h2 class="title-layz title-layz--sm">${isPromis ? "PROMIS® Check" : "Lay-Z Check"}</h2>
+          <p class="quiz-subtitle">${
+            isPromis ? "신체 · 정신 글로벌 건강 문항" : "오늘 나의 게으름 지수는?"
+          }</p>
           ${dialectNote}
+          ${promisNote}
 
           <div class="quiz-progress">
-            <div class="quiz-progress-num"><strong>${num}</strong> / 08</div>
+            <div class="quiz-progress-num"><strong>${num}</strong> / ${totalLabel}</div>
             <div class="progress-bar">
               <div class="progress-bar-fill" style="width:${progress}%"></div>
             </div>
@@ -402,9 +473,11 @@ function renderQuiz() {
 
 function renderLoading() {
   const loadingText =
-    state.productVersion === 3
-      ? "풍성한 리포트와 콘텐츠 추천을 찾는 중 · · ·"
-      : "8개의 답변을 차근차근 살펴보는 중 · · ·";
+    state.productVersion === 4
+      ? "PROMIS T-score와 해석 리포트를 준비하는 중 · · ·"
+      : state.productVersion === 3
+        ? "풍성한 리포트와 콘텐츠 추천을 찾는 중 · · ·"
+        : "8개의 답변을 차근차근 살펴보는 중 · · ·";
   return `
     <div class="center-panel-wrap">
       <section class="center-panel center-panel--loading">
@@ -440,25 +513,121 @@ function renderMediaSection() {
       <p class="media-rec-sub">${bandNote}</p>
       <div class="media-rec-list">
         ${media.items
-          .map(
-            (item, i) => `
+          .map((item, i) => {
+            const kindText = item.kind === "movie" ? "영화" : "유튜브";
+            const thumb = String(item.thumb || "").trim();
+            const thumbHtml = thumb
+              ? `<img class="media-rec-thumb-img" src="${thumb}" alt="${kindText} 썸네일" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest('.media-rec-thumb').classList.add('is-fallback'); this.remove();" />`
+              : "";
+            return `
           <a class="media-rec-card" href="${item.url}" target="_blank" rel="noopener noreferrer">
-            <span class="media-rec-num">${String(i + 1).padStart(2, "0")}</span>
+            <div class="media-rec-thumb ${thumb ? "" : "is-fallback"}">
+              ${thumbHtml}
+              <span class="media-rec-thumb-fallback">${kindText}</span>
+              <span class="media-rec-num">${String(i + 1).padStart(2, "0")}</span>
+            </div>
             <div class="media-rec-body">
-              <span class="media-rec-kind">${item.kind === "movie" ? "영화" : "유튜브"}</span>
+              <span class="media-rec-kind">${kindText}</span>
               <h4>${formatAiHtml(item.title, { singleLine: true })}</h4>
               <p>${formatAiHtml(item.reason)}</p>
-              <span class="media-rec-link">검색해서 보기 →</span>
+              <span class="media-rec-link">${item.kind === "movie" ? "포스터 보고 찾아보기 →" : "영상 보러가기 →"}</span>
             </div>
-          </a>`
-          )
+          </a>`;
+          })
           .join("")}
       </div>
     </section>
   `;
 }
 
+function renderPromisResult() {
+  const r = state.promisResult;
+  const ai = state.promisAi;
+  if (!r) {
+    return `<div class="center-panel-wrap"><section class="center-panel"><p>결과 데이터가 없습니다.</p><button class="btn btn-primary" data-action="layz-intro">돌아가기</button></section></div>`;
+  }
+  const src = r.source || window.PromisData?.SOURCE || {};
+  const title = ai?.title || `신체 T ${r.physicalT} · 정신 T ${r.mentalT}`;
+  const desc = ai?.desc || "";
+  const summary = ai?.summary || "";
+  const recommends = ai?.recommends || [];
+
+  return `
+    <div class="center-panel-wrap">
+      <section class="center-panel center-panel--result center-panel--promis">
+        <div class="panel-inner">
+          <div class="result-hero">
+            <div class="result-card-label">PROMIS® Global Health Report</div>
+            <div class="result-card-title">신체 · 정신 건강 T-score</div>
+            <div class="promis-score-grid">
+              <div class="promis-score-box">
+                <span class="promis-score-label">GPH-4 신체</span>
+                <strong class="promis-score-num">${r.physicalT}</strong>
+                <span class="promis-score-band">${r.physicalBand.label}</span>
+                <span class="promis-score-raw">raw ${r.physicalRaw}/20</span>
+              </div>
+              <div class="promis-score-box">
+                <span class="promis-score-label">GMH-4 정신</span>
+                <strong class="promis-score-num">${r.mentalT}</strong>
+                <span class="promis-score-band">${r.mentalBand.label}</span>
+                <span class="promis-score-raw">raw ${r.mentalRaw}/20</span>
+              </div>
+            </div>
+            <p class="promis-ref-note">참고 GPH-2 T ${r.gph2T} · GMH-2 T ${r.gmh2T} · 결합 평균 T ${r.combinedT}</p>
+            <p class="promis-ref-note">T=50은 미국 일반인구 평균, SD≈10 · 높을수록 해당 영역 건강이 더 좋음</p>
+
+            <div class="result-message">
+              <h3>${formatAiHtml(title)}</h3>
+              <p>${formatAiHtml(desc)}</p>
+            </div>
+
+            <div class="btn-stack">
+              <button class="btn btn-outline btn-outline--sm" data-action="retry">다시 측정하기</button>
+            </div>
+          </div>
+
+          <h3 class="section-title section-title--center">해석 요약</h3>
+          <p class="result-summary">${formatAiHtml(summary)}</p>
+
+          <h3 class="section-title section-title--center">일상 제안</h3>
+          <div class="recommend-list">
+            ${recommends
+              .map(
+                (item) => `
+              <article class="recommend-card recommend-card--full">
+                <span class="badge">${item.badge}</span>
+                <h4>${formatAiHtml(item.title)}</h4>
+                <p>${formatAiHtml(item.desc)}</p>
+              </article>`
+              )
+              .join("")}
+          </div>
+
+          <aside class="promis-citation">
+            <h4>출처 / Source</h4>
+            <p><strong>${src.title || ""}</strong></p>
+            <p>${src.authors || ""}</p>
+            <p>${src.journal || ""} (${src.year || ""})</p>
+            <p>DOI: <a href="https://doi.org/${src.doi}" target="_blank" rel="noopener noreferrer">${src.doi}</a></p>
+            <p>PMCID: ${src.pmcid || ""} · PMID: ${src.pmid || ""}</p>
+            <p>Instrument: ${src.instrument || ""}</p>
+            <p class="promis-citation-note">${src.note || ""}</p>
+            <a class="promis-source-link" href="${src.url || "#"}" target="_blank" rel="noopener noreferrer">PMC 논문 원문</a>
+          </aside>
+
+          <div class="btn-stack result-bottom-btns">
+            <button class="btn btn-primary" data-action="retry">다시 측정하기</button>
+            <a href="#/layz" class="back-link" data-action="layz-intro">메인으로 돌아가기</a>
+          </div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function renderResult() {
+  if (state.productVersion === 4) return renderPromisResult();
+
   const score = state.lastScore;
   const mode = state.lastMode;
   const copy = RESULT_COPY[mode.name];
@@ -758,12 +927,30 @@ function handleClick(e) {
         alert("충청도 / 경상도 / 전라도 중 하나를 먼저 골라주세요.");
         return;
       }
+      if (state.productVersion === 4 && !window.PromisData) {
+        alert("PROMIS 데이터 모듈을 불러오지 못했어요.");
+        return;
+      }
       state.answers = [];
       state.currentQ = 0;
       navigate("#/quiz");
       break;
     case "info":
       modal.classList.add("open");
+      break;
+    case "promis-info":
+      alert(
+        [
+          "출처: Hays et al., J Patient Rep Outcomes. 2017;1:2",
+          "DOI: 10.1186/s41687-017-0003-8 · PMCID: PMC5934936",
+          "",
+          "문항: PROMIS® Global Health v1.2",
+          "점수: GPH-4 / GMH-4 raw(4–20) → T-score",
+          "참고: 논문 초점 척도 GPH-2 / GMH-2도 함께 산출",
+          "",
+          "본 결과는 자기보고 스크리닝용이며 의료 진단이 아닙니다.",
+        ].join("\n")
+      );
       break;
     case "home":
       navigate("#/layz");
@@ -776,15 +963,28 @@ function handleClick(e) {
       }
       break;
     case "answer": {
+      const list = activeQuestions();
       const idx = Number(btn.dataset.index);
-      const opt = QUESTIONS[state.currentQ].options[idx];
-      state.answers.push({ score: opt.score, label: opt.label, qIndex: state.currentQ });
-      if (state.currentQ < QUESTIONS.length - 1) {
+      const q = list[state.currentQ];
+      const opt = q.options[idx];
+      if (state.productVersion === 4) {
+        state.answers.push({
+          id: q.id,
+          domain: q.domain,
+          value: opt.value,
+          label: opt.label,
+          qIndex: state.currentQ,
+        });
+      } else {
+        state.answers.push({ score: opt.score, label: opt.label, qIndex: state.currentQ });
+      }
+      if (state.currentQ < list.length - 1) {
         state.currentQ++;
         render();
       } else {
         navigate("#/loading");
-        runLayZAiFlow();
+        if (state.productVersion === 4) runPromisAiFlow();
+        else runLayZAiFlow();
       }
       break;
     }
@@ -793,7 +993,9 @@ function handleClick(e) {
       state.currentQ = 0;
       state.layzAi = null;
       state.mediaRec = null;
-      if (state.productVersion === 2) {
+      state.promisResult = null;
+      state.promisAi = null;
+      if (state.productVersion === 2 || state.productVersion === 4) {
         navigate("#/layz");
       } else {
         navigate("#/quiz");

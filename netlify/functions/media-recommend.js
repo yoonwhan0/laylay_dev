@@ -1,5 +1,5 @@
 /**
- * Lay-Z v3: 점수 구간에 따라 YouTube 또는 영화 추천을 AI + 웹검색으로 생성
+ * Lay-Z v3: 점수 구간에 따라 YouTube/영화 추천 + 썸네일 URL 생성
  */
 
 const corsHeaders = {
@@ -45,12 +45,30 @@ function movieSearchUrl(q) {
   )}`;
 }
 
+function youtubeThumb(videoId) {
+  if (!videoId) return "";
+  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+}
+
+function extractVideoId(text) {
+  if (!text) return "";
+  const s = String(text);
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    /"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/,
+    /^([a-zA-Z0-9_-]{11})$/,
+  ];
+  for (const re of patterns) {
+    const m = s.match(re);
+    if (m && m[1]) return m[1];
+  }
+  return "";
+}
+
 async function duckDuckGoHints(query) {
   try {
     const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1`;
-    const res = await fetch(url, {
-      headers: { Accept: "application/json" },
-    });
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
     if (!res.ok) return [];
     const data = await res.json();
     const hints = [];
@@ -71,39 +89,164 @@ async function duckDuckGoHints(query) {
   }
 }
 
-async function youtubeApiItems(query, apiKey) {
-  if (!apiKey) return [];
+async function youtubeApiSearchOne(query, apiKey) {
+  if (!apiKey || !query) return null;
   try {
     const url =
       "https://www.googleapis.com/youtube/v3/search?" +
       new URLSearchParams({
         part: "snippet",
         type: "video",
-        maxResults: "3",
+        maxResults: "1",
         q: query,
         key: apiKey,
         relevanceLanguage: "ko",
         safeSearch: "moderate",
       }).toString();
     const res = await fetch(url);
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     const data = await res.json();
-    return (data.items || [])
-      .map((it) => {
-        const id = it.id && it.id.videoId;
-        const sn = it.snippet || {};
-        if (!id) return null;
-        return {
-          title: sn.title || query,
-          reason: sn.channelTitle ? `${sn.channelTitle} 채널` : "유튜브 검색 결과",
-          url: `https://www.youtube.com/watch?v=${id}`,
-          thumb: sn.thumbnails && sn.thumbnails.medium ? sn.thumbnails.medium.url : "",
-        };
-      })
-      .filter(Boolean);
+    const it = (data.items || [])[0];
+    if (!it || !it.id || !it.id.videoId) return null;
+    const sn = it.snippet || {};
+    const id = it.id.videoId;
+    const thumb =
+      (sn.thumbnails &&
+        (sn.thumbnails.high || sn.thumbnails.medium || sn.thumbnails.default) &&
+        (sn.thumbnails.high || sn.thumbnails.medium || sn.thumbnails.default).url) ||
+      youtubeThumb(id);
+    return {
+      title: sn.title || query,
+      channel: sn.channelTitle || "",
+      videoId: id,
+      url: `https://www.youtube.com/watch?v=${id}`,
+      thumb,
+    };
   } catch (_) {
-    return [];
+    return null;
   }
+}
+
+async function youtubeScrapeSearchOne(query) {
+  if (!query) return null;
+  try {
+    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&hl=ko&gl=KR`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+      },
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const idMatch = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
+    if (!idMatch) return null;
+    const id = idMatch[1];
+    let title = query;
+    const titleRe = new RegExp(
+      `"videoId":"${id}".{0,400}?"title":\\{"runs":\\[\\{"text":"([^"]+)"\\}\\]`,
+      "s"
+    );
+    const titleMatch = html.match(titleRe);
+    if (titleMatch && titleMatch[1]) title = titleMatch[1];
+    return {
+      title,
+      channel: "",
+      videoId: id,
+      url: `https://www.youtube.com/watch?v=${id}`,
+      thumb: youtubeThumb(id),
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function resolveYoutubeItem(query, title, youtubeKey, preferredId) {
+  const knownId = extractVideoId(preferredId) || extractVideoId(query);
+  if (knownId) {
+    return {
+      title: title || query,
+      videoId: knownId,
+      url: `https://www.youtube.com/watch?v=${knownId}`,
+      thumb: youtubeThumb(knownId),
+    };
+  }
+
+  const fromApi = await youtubeApiSearchOne(query || title, youtubeKey);
+  if (fromApi) return fromApi;
+
+  const fromScrape = await youtubeScrapeSearchOne(query || title);
+  if (fromScrape) return fromScrape;
+
+  return null;
+}
+
+async function omdbPoster(title, apiKey) {
+  if (!apiKey || !title) return "";
+  try {
+    const url =
+      "https://www.omdbapi.com/?" +
+      new URLSearchParams({
+        t: title,
+        apikey: apiKey,
+        type: "movie",
+      }).toString();
+    const res = await fetch(url);
+    if (!res.ok) return "";
+    const data = await res.json();
+    if (data && data.Poster && data.Poster !== "N/A") return data.Poster;
+    return "";
+  } catch (_) {
+    return "";
+  }
+}
+
+async function itunesMoviePoster(title) {
+  if (!title) return null;
+  try {
+    const url =
+      "https://itunes.apple.com/search?" +
+      new URLSearchParams({
+        term: title,
+        entity: "movie",
+        limit: "1",
+        country: "KR",
+        lang: "ko_kr",
+      }).toString();
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const hit = (data.results || [])[0];
+    if (!hit) return null;
+    const art = hit.artworkUrl100 || hit.artworkUrl60 || "";
+    const thumb = art ? art.replace(/100x100bb/, "600x600bb").replace(/60x60bb/, "600x600bb") : "";
+    return {
+      title: hit.trackName || title,
+      thumb,
+      url: hit.trackViewUrl || "",
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function resolveMovieItem(title, query, omdbKey) {
+  const name = (title || query || "").replace(/\s*영화\s*$/, "").trim();
+  const omdb = await omdbPoster(name, omdbKey);
+  if (omdb) {
+    return { title: name, thumb: omdb, url: "" };
+  }
+  const itunes = await itunesMoviePoster(name);
+  if (itunes && itunes.thumb) {
+    return {
+      title: itunes.title || name,
+      thumb: itunes.thumb,
+      url: itunes.url || "",
+    };
+  }
+  // 마지막 폴백: 검색 결과용 오픈그래프가 없어도 UI에서 플레이스홀더 처리
+  return { title: name, thumb: "", url: "" };
 }
 
 async function openAiCurate({ key, model, score, mode, plan, webHints }) {
@@ -112,8 +255,10 @@ async function openAiCurate({ key, model, score, mode, plan, webHints }) {
     "사용자의 Lay-Z 점수와 모드에 맞춰 오늘 보기 좋은 콘텐츠 3개를 고릅니다.",
     "웹검색 힌트가 있으면 참고하되, 실제로 검색 가능한 구체적 제목/키워드로 작성하세요.",
     "의학 진단처럼 말하지 마세요.",
-    "반드시 JSON만 출력: {\"sectionTitle\":\"…\",\"items\":[{\"title\":\"…\",\"reason\":\"…\",\"query\":\"…\"}]}",
-    "items는 정확히 3개. reason은 1~2문장. query는 검색용 짧은 한글/영어 키워드.",
+    '반드시 JSON만 출력: {"sectionTitle":"…","items":[{"title":"…","reason":"…","query":"…","videoId":"…"}]}',
+    "items는 정확히 3개. reason은 1~2문장. query는 검색용 짧은 키워드.",
+    "유튜브면 videoId(11자)를 알면 넣고, 모르면 빈 문자열.",
+    "영화면 videoId는 빈 문자열, title은 정확한 영화 제목.",
   ].join("\n");
 
   const user = [
@@ -125,8 +270,8 @@ async function openAiCurate({ key, model, score, mode, plan, webHints }) {
     webHints.length ? `웹검색 힌트:\n- ${webHints.join("\n- ")}` : "웹검색 힌트 없음",
     "",
     plan.kind === "youtube"
-      ? "유튜브 영상 3개를 추천하세요. query는 유튜브 검색에 바로 쓸 키워드."
-      : "영화 3편을 추천하세요. query는 영화 제목 위주 검색어.",
+      ? "유튜브 영상 3개를 추천하세요. query는 유튜브 검색 키워드. 가능하면 videoId도."
+      : "영화 3편을 추천하세요. title은 포스터 검색 가능한 정확한 제목.",
   ].join("\n");
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -138,7 +283,7 @@ async function openAiCurate({ key, model, score, mode, plan, webHints }) {
     body: JSON.stringify({
       model: model || "gpt-4o-mini",
       temperature: 0.85,
-      max_tokens: 1200,
+      max_tokens: 1400,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -165,17 +310,17 @@ function fallbackItems(plan) {
         {
           title: "패딩턴",
           reason: "부담 없이 마음이 풀리는 따뜻한 코미디예요.",
-          query: "패딩턴 영화",
+          query: "패딩턴",
         },
         {
           title: "리틀 포레스트",
           reason: "조용히 리듬을 되돌리고 싶을 때 좋은 힐링작이에요.",
-          query: "리틀 포레스트 영화",
+          query: "리틀 포레스트",
         },
         {
           title: "코코",
           reason: "감정은 건드리지만 결국 따뜻하게 남는 이야기예요.",
-          query: "코코 영화",
+          query: "코코",
         },
       ],
     };
@@ -252,6 +397,8 @@ exports.handler = async (event) => {
       "gpt-4o-mini";
     const youtubeKey =
       typeof process.env.YOUTUBE_API_KEY === "string" ? process.env.YOUTUBE_API_KEY.trim() : "";
+    const omdbKey =
+      typeof process.env.OMDB_API_KEY === "string" ? process.env.OMDB_API_KEY.trim() : "";
 
     const webHints = await duckDuckGoHints(`${plan.querySeed} ${modeLabel}`.trim());
     let curated = null;
@@ -269,34 +416,38 @@ exports.handler = async (event) => {
       curated = fallbackItems(plan);
     }
 
-    let ytApi = [];
-    if (plan.kind === "youtube" && youtubeKey && curated.items[0]?.query) {
-      ytApi = await youtubeApiItems(curated.items[0].query, youtubeKey);
-    }
+    const rawItems = curated.items.slice(0, 3);
+    const items = await Promise.all(
+      rawItems.map(async (it, idx) => {
+        const title = String(it.title || "").trim() || `추천 ${idx + 1}`;
+        const reason = String(it.reason || "").trim();
+        const query = String(it.query || title).trim();
 
-    const items = curated.items.slice(0, 3).map((it, idx) => {
-      const title = String(it.title || "").trim() || `추천 ${idx + 1}`;
-      const reason = String(it.reason || "").trim();
-      const query = String(it.query || title).trim();
-      if (plan.kind === "youtube" && ytApi[idx]) {
+        if (plan.kind === "youtube") {
+          const resolved = await resolveYoutubeItem(query, title, youtubeKey, it.videoId || "");
+          return {
+            kind: "youtube",
+            title: (resolved && resolved.title) || title,
+            reason,
+            query,
+            url: (resolved && resolved.url) || youtubeSearchUrl(query),
+            thumb: (resolved && resolved.thumb) || "",
+            videoId: (resolved && resolved.videoId) || "",
+          };
+        }
+
+        const movie = await resolveMovieItem(title, query, omdbKey);
         return {
-          kind: "youtube",
-          title: ytApi[idx].title || title,
-          reason: reason || ytApi[idx].reason,
+          kind: "movie",
+          title: (movie && movie.title) || title,
+          reason,
           query,
-          url: ytApi[idx].url,
-          thumb: ytApi[idx].thumb || "",
+          url: (movie && movie.url) || movieSearchUrl(query || title),
+          thumb: (movie && movie.thumb) || "",
+          videoId: "",
         };
-      }
-      return {
-        kind: plan.kind,
-        title,
-        reason,
-        query,
-        url: plan.kind === "youtube" ? youtubeSearchUrl(query) : movieSearchUrl(query),
-        thumb: "",
-      };
-    });
+      })
+    );
 
     return {
       statusCode: 200,
@@ -305,8 +456,7 @@ exports.handler = async (event) => {
         kind: plan.kind,
         label: plan.label,
         sectionTitle: curated.sectionTitle || `오늘 점수에 맞는 ${plan.label}`,
-        scoreBand:
-          score <= 39 ? "0-39" : score <= 69 ? "40-69" : "70-99",
+        scoreBand: score <= 39 ? "0-39" : score <= 69 ? "40-69" : "70-99",
         intent: plan.intent,
         webHints,
         items,
